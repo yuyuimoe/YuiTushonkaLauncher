@@ -96,6 +96,36 @@ public sealed class ForgeClientQueryTests
     }
 
     [Fact]
+    public async Task GetModVersionsAsync_AcceptsVersionsWithBuildMetadata_ThatTheRealForgePublishes()
+    {
+        // Real data: Dynamic Maps has "0.3.1+1" and SVM has "1.8.0+h4". One such version used to fail the
+        // whole listing with "unparsable mod version".
+        using var harness = new ForgeTestHarness();
+        harness
+            .Server.Given(Request.Create().WithPath("/api/v0/mod/1431/versions").UsingGet())
+            .RespondWith(
+                Response
+                    .Create()
+                    .WithStatusCode(200)
+                    .WithHeader("Content-Type", "application/json")
+                    .WithBody(
+                        """
+                        { "success": true, "data": [
+                            { "id": 1, "version": "0.3.1+1", "link": "https://x/a", "spt_version_constraint": "^4.0.0" },
+                            { "id": 2, "version": "1.8.0+h4", "link": "https://x/b", "spt_version_constraint": "^4.0.0" },
+                            { "id": 3, "version": "1.2.1", "link": "https://x/c", "spt_version_constraint": "^4.1.0" }
+                          ], "meta": { "current_page": 1, "last_page": 1, "per_page": 100, "total": 3 } }
+                        """
+                    )
+            );
+
+        var versions = await harness.Client.GetModVersionsAsync(1431);
+
+        versions.Select(version => version.Version.ToString()).Should().Equal("0.3.1+1", "1.8.0+h4", "1.2.1");
+        versions[1].Version.Should().Be(SemanticVersion.Parse("1.8.0"), "build metadata does not take part in equality");
+    }
+
+    [Fact]
     public async Task GetModVersionsAsync_UsesTheSingularModPathAndFollowsPagination()
     {
         using var harness = new ForgeTestHarness();
