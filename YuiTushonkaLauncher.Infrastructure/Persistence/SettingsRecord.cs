@@ -1,3 +1,4 @@
+using System.Text.Json;
 using YuiTushonkaLauncher.Core.Configuration;
 
 namespace YuiTushonkaLauncher.Infrastructure.Persistence;
@@ -27,6 +28,11 @@ internal sealed class SettingsRecord
 
     public bool FirstRunCompleted { get; set; }
 
+    /// <summary>The extra Proton roots as a JSON array: one column instead of a child table for a short list.</summary>
+    public string ExtraProtonRoots { get; set; } = "[]";
+
+    public string? UmuRunPath { get; set; }
+
     public static SettingsRecord FromSettings(LauncherSettings settings)
     {
         return new SettingsRecord
@@ -38,6 +44,8 @@ internal sealed class SettingsRecord
             LogRetentionDays = settings.LogRetentionDays,
             LogRetentionFiles = settings.LogRetentionFiles,
             FirstRunCompleted = settings.FirstRunCompleted,
+            ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots),
+            UmuRunPath = settings.UmuRunPath,
         };
     }
 
@@ -52,6 +60,8 @@ internal sealed class SettingsRecord
             LogRetentionDays = LogRetentionDays,
             LogRetentionFiles = LogRetentionFiles,
             FirstRunCompleted = FirstRunCompleted,
+            ExtraProtonRoots = ReadRoots(ExtraProtonRoots),
+            UmuRunPath = UmuRunPath,
         };
     }
 
@@ -64,5 +74,20 @@ internal sealed class SettingsRecord
         LogRetentionDays = settings.LogRetentionDays;
         LogRetentionFiles = settings.LogRetentionFiles;
         FirstRunCompleted = settings.FirstRunCompleted;
+        ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots);
+        UmuRunPath = settings.UmuRunPath;
+    }
+
+    private static string[] ReadRoots(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(json) ?? [];
+        }
+        catch (JsonException)
+        {
+            // A hand-edited row must not stop the launcher from starting.
+            return [];
+        }
     }
 }

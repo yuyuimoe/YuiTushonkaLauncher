@@ -495,6 +495,9 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("UseGameMode")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsDefault");
@@ -587,6 +590,13 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ExtraProtonRoots")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("[]");
+
                     b.Property<bool>("FirstRunCompleted")
                         .HasColumnType("INTEGER");
 
@@ -611,6 +621,10 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<string>("Theme")
                         .IsRequired()
                         .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UmuRunPath")
+                        .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

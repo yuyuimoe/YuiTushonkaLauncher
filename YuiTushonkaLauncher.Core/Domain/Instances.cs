@@ -143,6 +143,9 @@ public sealed class RuntimeProfile
     /// <summary>Additional command-line arguments.</summary>
     public string? ExtraArguments { get; set; }
 
+    /// <summary>Start programs through <c>gamemoderun</c> (Linux, needs Feral GameMode installed).</summary>
+    public bool UseGameMode { get; set; }
+
     public bool IsDefault { get; set; }
 }
 

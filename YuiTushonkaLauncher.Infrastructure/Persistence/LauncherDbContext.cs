@@ -309,5 +309,7 @@ public sealed class LauncherDbContext(DbContextOptions<LauncherDbContext> option
         settings.Property(row => row.InstancesRoot).HasMaxLength(1024);
         settings.Property(row => row.Language).HasMaxLength(16).IsRequired();
         settings.Property(row => row.Theme).HasMaxLength(16).IsRequired();
+        settings.Property(row => row.ExtraProtonRoots).HasMaxLength(8192).IsRequired().HasDefaultValue("[]");
+        settings.Property(row => row.UmuRunPath).HasMaxLength(1024);
     }
 }
