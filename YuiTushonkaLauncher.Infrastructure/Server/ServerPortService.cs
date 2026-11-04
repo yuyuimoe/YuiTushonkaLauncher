@@ -27,9 +27,11 @@ public sealed class ServerPortService(
     /// <summary>The first port at or after <paramref name="start" /> that is free and not in <paramref name="reserved" />.</summary>
     public static int FindFree(int start, IPortProbe ports, ISet<int> reserved)
     {
-        var last = Math.Min(65535, start + SearchWidth);
+        // Anchor the window on the first port that may be used: a start below 1024 must not leave the window empty.
+        var first = Math.Max(start, FirstUnprivilegedPort);
+        var last = Math.Min(65535, first + SearchWidth);
 
-        for (var candidate = Math.Max(start, FirstUnprivilegedPort); candidate <= last; candidate++)
+        for (var candidate = first; candidate <= last; candidate++)
         {
             if (!reserved.Contains(candidate) && ports.IsFree(candidate))
             {
@@ -37,7 +39,7 @@ public sealed class ServerPortService(
             }
         }
 
-        throw new ServerPortException($"No free port was found between {start} and {last}.");
+        throw new ServerPortException($"No free port was found between {first} and {last}.");
     }
 
     /// <inheritdoc />

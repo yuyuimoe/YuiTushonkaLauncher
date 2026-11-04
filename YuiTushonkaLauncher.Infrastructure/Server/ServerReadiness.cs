@@ -19,14 +19,15 @@ internal static class ServerReadiness
 
     private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(1);
 
-    private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan DefaultAttemptTimeout = TimeSpan.FromSeconds(2);
 
     public static async Task<TimeSpan> WaitAsync(
         ISptServerClient client,
         TimeSpan timeout,
         Func<bool> processAlive,
         TimeProvider time,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        TimeSpan? attemptTimeout = null
     )
     {
         var started = time.GetTimestamp();
@@ -43,7 +44,7 @@ internal static class ServerReadiness
 
             using (var attempt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                attempt.CancelAfter(AttemptTimeout);
+                attempt.CancelAfter(attemptTimeout ?? DefaultAttemptTimeout);
 
                 try
                 {

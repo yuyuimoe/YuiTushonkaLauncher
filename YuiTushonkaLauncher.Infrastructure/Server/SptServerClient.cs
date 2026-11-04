@@ -13,13 +13,16 @@ namespace YuiTushonkaLauncher.Infrastructure.Server;
 /// </summary>
 public sealed class SptServerClient : ISptServerClient, IDisposable
 {
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(10);
 
     private readonly HttpClient _http;
 
-    public SptServerClient(ServerEndpoint endpoint, HttpMessageHandler? handler = null)
+    private readonly TimeSpan _requestTimeout;
+
+    public SptServerClient(ServerEndpoint endpoint, HttpMessageHandler? handler = null, TimeSpan? requestTimeout = null)
     {
         BaseUri = endpoint.BaseUri;
+        _requestTimeout = requestTimeout ?? DefaultRequestTimeout;
         _http = new HttpClient(handler ?? CreateHandler()) { BaseAddress = BaseUri, Timeout = Timeout.InfiniteTimeSpan };
     }
 
@@ -185,7 +188,7 @@ public sealed class SptServerClient : ISptServerClient, IDisposable
     private async Task<JsonElement> SendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(RequestTimeout);
+        timeout.CancelAfter(_requestTimeout);
 
         using var request = new HttpRequestMessage(method, path);
 
@@ -211,7 +214,7 @@ public sealed class SptServerClient : ISptServerClient, IDisposable
         {
             throw new SptServerException(
                 SptServerFailure.Timeout,
-                $"{BaseUri} did not answer '{path}' within {RequestTimeout.TotalSeconds:0} seconds."
+                $"{BaseUri} did not answer '{path}' within {_requestTimeout.TotalSeconds:0.##} seconds."
             );
         }
         catch (HttpRequestException exception)

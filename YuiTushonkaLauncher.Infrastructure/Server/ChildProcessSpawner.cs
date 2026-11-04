@@ -56,8 +56,12 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>The thread the last child was created on; tests check it is the dedicated one and not a pool thread.</summary>
+    internal Thread? LastSpawnerThread { get; private set; }
+
     private ManagedChild StartOnSpawnThread(ChildProcessStart request)
     {
+        LastSpawnerThread = Thread.CurrentThread;
         var command = request.Command;
         var fileName = command.FileName;
         var arguments = command.Arguments.ToList();

@@ -211,22 +211,16 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             Publish(entry, entry.Status with { State = ServerState.Stopping });
             child.RequestStop();
 
-            try
-            {
-                var finished =
-                    await Task.WhenAny(child.Exited, Task.Delay(gracePeriod ?? DefaultGrace, _time, cancellationToken)) == child.Exited;
+            // Cancelling the token cuts the grace period short: the delay ends early and the server is killed. WhenAny does not
+            // rethrow the cancellation, which is right here, because a caller that gives up waiting still must not leave a server behind.
+            var finished =
+                await Task.WhenAny(child.Exited, Task.Delay(gracePeriod ?? DefaultGrace, _time, cancellationToken)) == child.Exited;
 
-                if (!finished)
-                {
-                    _logger.LogWarning("The server of '{Instance}' did not stop on request and was killed", entry.InstanceName);
-                    child.Kill();
-                    await WaitBoundedAsync(child.Exited);
-                }
-            }
-            catch (OperationCanceledException)
+            if (!finished)
             {
+                _logger.LogWarning("The server of '{Instance}' did not stop on request and was killed", entry.InstanceName);
                 child.Kill();
-                throw;
+                await WaitBoundedAsync(child.Exited);
             }
 
             var exitCode = child.Exited.IsCompletedSuccessfully ? child.Exited.Result : (int?)null;
