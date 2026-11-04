@@ -288,25 +288,40 @@ public sealed class InstanceServiceTests : IAsyncLifetime
             inner.CreateHardLink(linkPath, existingPath);
         }
 
-        public void CreateSymbolicLink(string linkPath, string existingPath, bool isDirectory) =>
+        public void CreateSymbolicLink(string linkPath, string existingPath, bool isDirectory)
+        {
             inner.CreateSymbolicLink(linkPath, existingPath, isDirectory);
+        }
 
-        public int GetLinkCount(string path) => inner.GetLinkCount(path);
+        public int GetLinkCount(string path)
+        {
+            return inner.GetLinkCount(path);
+        }
 
-        public bool IsSameVolume(string pathA, string pathB) => inner.IsSameVolume(pathA, pathB);
+        public bool IsSameVolume(string pathA, string pathB)
+        {
+            return inner.IsSameVolume(pathA, pathB);
+        }
 
-        public long? GetAvailableFreeSpace(string path) => inner.GetAvailableFreeSpace(path);
+        public long? GetAvailableFreeSpace(string path)
+        {
+            return inner.GetAvailableFreeSpace(path);
+        }
 
-        public void Detach(string path) => inner.Detach(path);
+        public void Detach(string path)
+        {
+            inner.Detach(path);
+        }
 
-        public void CopyFile(string sourcePath, string destinationPath, bool overwrite) =>
+        public void CopyFile(string sourcePath, string destinationPath, bool overwrite)
+        {
             inner.CopyFile(sourcePath, destinationPath, overwrite);
+        }
 
-        public Task CopyDirectoryAsync(
-            string sourceDirectory,
-            string destinationDirectory,
-            CancellationToken cancellationToken = default
-        ) => inner.CopyDirectoryAsync(sourceDirectory, destinationDirectory, cancellationToken);
+        public Task CopyDirectoryAsync(string sourceDirectory, string destinationDirectory, CancellationToken cancellationToken = default)
+        {
+            return inner.CopyDirectoryAsync(sourceDirectory, destinationDirectory, cancellationToken);
+        }
     }
 
     private InstanceCreationRequest Request(FakeBaseInstall install, string name)

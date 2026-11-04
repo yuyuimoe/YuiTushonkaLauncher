@@ -11,6 +11,8 @@
     - Core/Forge/ForgeModels.cs   API-shaped records: pure data, no branches worth testing.
     - Core/Forge/ForgeResults.cs  idem (the two computed properties are covered elsewhere).
     - Core/Forge/ForgeQueries.cs  idem.
+    - FileSystem/FileSystemNative.cs  P/Invoke shim: it is all platform branches, exercised per OS.
+    - **/*.g.cs                   source-generator output (regex, JSON, MVVM).
 -->
 <RunSettings>
   <DataCollectionRunSettings>
@@ -19,7 +21,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <Include>[YuiTushonkaLauncher.Core]*,[YuiTushonkaLauncher.Infrastructure]*</Include>
-          <ExcludeByFile>**/Migrations/**/*.cs,**/Domain/Catalog.cs,**/Domain/Instances.cs,**/Persistence/SettingsRecord.cs,**/Forge/ForgeModels.cs,**/Forge/ForgeResults.cs,**/Forge/ForgeQueries.cs</ExcludeByFile>
+          <ExcludeByFile>**/Migrations/**/*.cs,**/Domain/Catalog.cs,**/Domain/Instances.cs,**/Persistence/SettingsRecord.cs,**/Forge/ForgeModels.cs,**/Forge/ForgeResults.cs,**/Forge/ForgeQueries.cs,**/FileSystem/FileSystemNative.cs,**/*.g.cs</ExcludeByFile>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>
         </Configuration>
