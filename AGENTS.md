@@ -33,6 +33,9 @@
   `--server-profile-remove|wipe <instance> <name> --yes`, `--server-profile-select <instance> <name>`,
   `--server-port <instance> [port]`, `--server-sync <instance> [--server host:port] [--apply] [--override-pins]`,
   `--server-stale [--reap]`
+- UI: `--lang pt-BR`; the shell is `ShellViewModel` (rail + launch panel + status bar), one page per feature,
+  `IDialogService` for every window (fakeable), `JsonLocalizer` for every string. Views are registered only in
+  `App.axaml` — a new page needs a `DataTemplate` there or it renders blank.
 - Logs: `--logs <instance> [--kind game|server|bepinex|launcher] [--lines N] [--export FILE]`,
   `--diagnostics <instance> [--output FILE]`, `--logs-prune`
 - Open points that must close before 1.0: `docs/plan/91-before-1.0.md`; deliberately postponed:

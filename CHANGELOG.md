@@ -69,6 +69,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   points at a text editor (one measured session wrote 322 MiB). Export gives exactly the selected lines;
   `--diagnostics` writes a bundle with versions, instance state, hashes, mods and the last lines of each source;
   retention gzips rotated files into `archive/` and deletes by age then count, never the file in use.
+- Window: a rail with instances, mods, patch, the Forge browser, the server panel, the logs and settings; a
+  launch panel that walks the pipeline and a status bar that names the instance, the server, the patch state
+  and the downloads. Pages are plain view models over the services, with explicit view templates instead of
+  the reflection locator.
+- Screens: instance cards with create/adopt (a plan is shown before anything is copied), the mods list with
+  install from file or URL, pin and uninstall, addons and configs tabs, the patch plan and its restore, the
+  Forge search with categories, featured and Fika filters, the server's state, output, profiles and mod-list
+  sync, and a log panel that tails a source and saves a diagnostics bundle.
+- Localisation: `Assets/Locales/{en,pt-BR}.json` in SPT's nested shape, dotted keys, English fallback,
+  `--lang` (including `pt` and `pt_BR` spellings), a language switch that repaints the window, and no literal
+  user-facing string in XAML.
+- Theming: light/dark following the OS, one accent, dense rows for long mod lists; settings for language,
+  theme, folders, concurrency, log retention and the two "when the game starts" switches.
 - Launch button state machine: `LaunchSession` maps every step to the state a button shows, allows cancelling only
   until the game starts and offers Stop only once the pair runs.
 - Remembered profile: "always use this profile on this server", stored per instance and per endpoint, so a
