@@ -97,7 +97,7 @@ public sealed class AddonService(
             var plan = PlanPlacement(staging, instance.Layout, parentFolder);
             var files = await PlaceFilesAsync(instance.Path, plan, cancellationToken);
 
-            await SaveAsync(instance.Id, guid, request.ParentModGuid, identity, version, files, cancellationToken);
+            await SaveAsync(instance.Id, guid, request, identity, version, files, cancellationToken);
 
             return new AddonInstallResult
             {
@@ -327,7 +327,7 @@ public sealed class AddonService(
     private async Task SaveAsync(
         Guid instanceId,
         string guid,
-        string parentModGuid,
+        AddonInstallRequest request,
         ModIdentity identity,
         SemanticVersion version,
         List<InstalledFile> files,
@@ -356,10 +356,11 @@ public sealed class AddonService(
                     Name = identity.Name ?? guid,
                     Kind = ModKind.Client,
                     Version = version,
-                    ParentModGuid = parentModGuid,
+                    ParentModGuid = request.ParentModGuid,
                     Recognition = identity.HasGuid ? ModRecognition.Recognized : ModRecognition.GuidMissing,
-                    Source = InstalledModSource.LocalArchive,
+                    Source = request.DownloadUrl is null ? InstalledModSource.LocalArchive : InstalledModSource.Forge,
                     InstalledAt = DateTimeOffset.UtcNow,
+                    ModId = await ResolveCatalogueRowAsync(context, guid, request, identity, token),
                 };
 
                 foreach (var file in files)
@@ -373,6 +374,45 @@ public sealed class AddonService(
             },
             cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Links the addon to a catalogue row carrying its Forge id, so an export can name it and an import
+    /// can fetch the exact version again. Without a Forge id there is nothing to record.
+    /// </summary>
+    private static async Task<Guid?> ResolveCatalogueRowAsync(
+        LauncherDbContext context,
+        string guid,
+        AddonInstallRequest request,
+        ModIdentity identity,
+        CancellationToken cancellationToken
+    )
+    {
+        if (request.ForgeId is not { } forgeId)
+        {
+            return null;
+        }
+
+        var row = await context.Mods.FirstOrDefaultAsync(mod => mod.ForgeId == forgeId, cancellationToken);
+        if (row is not null)
+        {
+            return row.Id;
+        }
+
+        row = new Mod
+        {
+            Id = Guid.NewGuid(),
+            ForgeId = forgeId,
+            Guid = guid,
+            Name = identity.Name ?? guid,
+            Author = string.Empty,
+            Kind = ModKind.Client,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        context.Mods.Add(row);
+
+        return row.Id;
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)

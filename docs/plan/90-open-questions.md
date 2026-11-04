@@ -4,15 +4,17 @@ Everything still unresolved, with who/what resolves it.
 
 ## Blocks Phase 8 (export/import)
 
-1. **Threat model for `.sptpack`.** A package writes files and triggers downloads, so it is untrusted
-   input. To be decided in a dedicated **grilling session**, not by accident while coding. Defaults
-   until then: zip-slip guard via `RelativePath`, allowlist of `configs/**` (no binaries, no
-   symlinks, no absolute paths), size caps, and a review screen before writing anything.
-   Related: should a package be signed/verified, and should it embed a hash of the producing install?
+1. **Threat model for `.sptpack` — defaults implemented, authenticity still open.** The baseline is now
+   code and documented as [D19](04-decisions.md#d19-a-sptpack-is-a-list-of-names-never-a-payload): no
+   binaries, no URLs from the package, writes only into files a named mod owns, strict validation, content
+   digest against the exporter's, review before write. What is **not** decided: should a package be
+   *signed*, and should it embed a hash of the producing install? Without either, the share code proves
+   integrity only, never who made the package. Still worth a dedicated grilling session before 1.0, because
+   it changes the format (a `formatVersion` 2).
 
-2. **Share-code semantics.** SHA-256 of `manifest.json` is plan-level only. A code that survives
-   re-serialization needs a canonical JSON form (sorted keys, no whitespace). Decide whether the code
-   is the manifest hash or a separate stable identity.
+2. **Share-code semantics — decided.** The code is the SHA-256 of the canonical *composition* (not of the
+   file): it excludes `createdAt`, `appVersion`, `instanceName` and display names, so two exports of the
+   same composition match. See D19.
 
 ## Blocks nothing now, but must be settled before 1.0
 
@@ -47,3 +49,10 @@ Everything still unresolved, with who/what resolves it.
 12. **Byte-identity with the official launcher.** Needs a fresh install patched by the *current* official
     launcher; only an 8 KiB-older output exists locally. Cheap to settle whenever someone runs the
     official launcher once on a new 4.1.6 install.
+13. **Pack UI wording for untrusted names.** The names in a package are unauthenticated, so the review
+    screen must always show the GUID and the Forge-confirmed name next to them (the CLI already prints the
+    GUID). Settle the layout in phase 12.
+14. **Config files the installer calls non-config.** `IsConfig` still misses `.txt` (and the integrity check
+    therefore does not list an edited `MOTD.txt` under `ModifiedConfigs`). The export no longer depends on
+    the flag; decide in phase 12 whether integrity should use the same extension rule.
+

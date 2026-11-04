@@ -9,16 +9,20 @@ namespace YuiTushonkaLauncher.Core.Domain;
 /// <remarks>
 /// Parsing is deliberately lenient about the number of parts (<c>1</c>, <c>1.2</c> and <c>1.2.3</c>
 /// are accepted, missing parts default to zero) because Forge data can be messy, but the comparison
-/// follows semver: a pre-release sorts before its release.
+/// follows semver: a pre-release sorts before its release, and build metadata (<c>1.8.0+h4</c>) is kept
+/// for display but ignored by comparison and equality, exactly as the spec says. The real Forge publishes
+/// such versions (<c>0.3.1+1</c>, <c>1.8.0+h4</c>); rejecting them made one odd version hide a mod's whole
+/// version list.
 /// </remarks>
 public readonly record struct SemanticVersion : IComparable<SemanticVersion>
 {
-    public SemanticVersion(int major, int minor = 0, int patch = 0, string? preRelease = null)
+    public SemanticVersion(int major, int minor = 0, int patch = 0, string? preRelease = null, string? build = null)
     {
         Major = major;
         Minor = minor;
         Patch = patch;
         PreRelease = string.IsNullOrWhiteSpace(preRelease) ? null : preRelease;
+        Build = string.IsNullOrWhiteSpace(build) ? null : build;
     }
 
     /// <summary>Major component.</summary>
@@ -33,7 +37,10 @@ public readonly record struct SemanticVersion : IComparable<SemanticVersion>
     /// <summary>Pre-release identifier, without the leading hyphen. <c>null</c> for a release.</summary>
     public string? PreRelease { get; }
 
-    /// <summary>Parses <c>X.Y.Z[-pre]</c>, tolerating surrounding whitespace and missing parts.</summary>
+    /// <summary>Build metadata, without the leading plus. Shown, never compared. <c>null</c> when absent.</summary>
+    public string? Build { get; }
+
+    /// <summary>Parses <c>X.Y.Z[-pre][+build]</c>, tolerating surrounding whitespace and missing parts.</summary>
     public static SemanticVersion Parse(string value)
     {
         if (TryParse(value, out var version))
@@ -44,7 +51,7 @@ public readonly record struct SemanticVersion : IComparable<SemanticVersion>
         throw new FormatException($"'{value}' is not a valid semantic version.");
     }
 
-    /// <summary>Attempts to parse <c>X.Y.Z[-pre]</c>.</summary>
+    /// <summary>Attempts to parse <c>X.Y.Z[-pre][+build]</c>.</summary>
     public static bool TryParse(string? value, out SemanticVersion version)
     {
         version = default;
@@ -56,6 +63,20 @@ public readonly record struct SemanticVersion : IComparable<SemanticVersion>
 
         var text = value.Trim();
         string? preRelease = null;
+        string? build = null;
+
+        // Build metadata comes last and may itself contain hyphens, so it is split off first.
+        var plus = text.IndexOf('+');
+        if (plus >= 0)
+        {
+            build = text[(plus + 1)..];
+            text = text[..plus];
+
+            if (build.Length == 0)
+            {
+                return false;
+            }
+        }
 
         var hyphen = text.IndexOf('-');
         if (hyphen >= 0)
@@ -84,7 +105,7 @@ public readonly record struct SemanticVersion : IComparable<SemanticVersion>
             }
         }
 
-        version = new SemanticVersion(numbers[0], numbers[1], numbers[2], preRelease);
+        version = new SemanticVersion(numbers[0], numbers[1], numbers[2], preRelease, build);
         return true;
     }
 
@@ -153,10 +174,25 @@ public readonly record struct SemanticVersion : IComparable<SemanticVersion>
         return left.CompareTo(right) >= 0;
     }
 
+    /// <summary>Equal when the numbers and the pre-release match; build metadata does not take part.</summary>
+    public bool Equals(SemanticVersion other)
+    {
+        return Major == other.Major
+            && Minor == other.Minor
+            && Patch == other.Patch
+            && string.Equals(PreRelease, other.PreRelease, StringComparison.Ordinal);
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Major, Minor, Patch, PreRelease);
+    }
+
     /// <inheritdoc />
     public override string ToString()
     {
-        var core = $"{Major}.{Minor}.{Patch}";
-        return PreRelease is null ? core : $"{core}-{PreRelease}";
+        var core = PreRelease is null ? $"{Major}.{Minor}.{Patch}" : $"{Major}.{Minor}.{Patch}-{PreRelease}";
+        return Build is null ? core : $"{core}+{Build}";
     }
 }

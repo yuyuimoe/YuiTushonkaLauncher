@@ -192,3 +192,34 @@ Follow `SP-Tushonka/launcher` exactly, so contributions can move between the two
   the namespace, `CS1591` and `CA1822` suppressed.
 - `EnforceCodeStyleInBuild` is on, so violations surface as build warnings instead of review comments.
 
+## D19. A `.sptpack` is a list of names, never a payload
+
+A package is untrusted input that can ask the launcher to download and write things, so it is designed to
+carry as little authority as possible (phase 8). The defaults listed in open question 1 are now code:
+
+- **No binaries, no URLs.** A package holds `manifest.json`, a generated `README.txt` and edited config
+  files. It names mods by `forgeId` + exact version; the download address always comes from the Forge's own
+  answer and must be `https`. An executable extension (`.dll .exe .bundle .pak .dat .so …`) is rejected
+  wherever it appears, with its own error, before the allowlist (`.json .ini .toml .yaml .yml .txt .cfg`).
+- **A package can only write files a mod it names already owns.** Each config entry must name its owner
+  (`modGuid`); at apply time the path must be a tracked file of that installed mod. Anything else is not
+  written. Paths are checked by pure rules (`PackRules`) and again against the real file system
+  (`PackPathGuard`: containment plus no symbolic link anywhere on the way).
+- **Everything is validated before anything is returned**, in a fixed order: entry count, entry names
+  (zip-slip, absolute, backslash, device names, trailing dots, symlinks, duplicates), forbidden types,
+  bytes counted while reading (header sizes are attacker-controlled), format version before schema (a newer
+  format gets an upgrade hint), strict schema, share code, per-config hash.
+- **Downloaded content is checked against the exporter's.** Each mod carries `contentSha256`, a digest of the
+  hashes *as shipped*; after installing, the import recomputes it. A mismatch (a host serving a different
+  file under the same version) removes a fresh install and fails, unless the user accepts changed content.
+- **Review before write.** `PlanImportAsync` writes nothing; the CLI applies only with `--apply`; a local
+  edit of a config wins over the package unless the user chooses to overwrite it.
+- **The share code is not a signature.** It is the SHA-256 of the canonical composition (guid, version, kind,
+  pin, forge id, content digest, config hashes, SPT version, layout) and excludes timestamps, instance name
+  and display names. It catches damage and accidental edits and makes two exports of the same composition
+  comparable; anyone who can build a package can compute it. Authenticity (signing, a producing-install
+  hash) is deliberately not claimed — see open question 1.
+- **Applying a config moves the integrity baseline.** `InstalledFile.Sha256` becomes the imported hash and
+  `OriginalSha256` keeps what the mod shipped, so an imported instance is integrity-clean and a re-export
+  reproduces the same package.
+

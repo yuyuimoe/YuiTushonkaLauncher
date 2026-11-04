@@ -40,9 +40,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 - Binary patching: finds the SPT deltas, plans one decision per file, backs up before patching and
   replaces the file by rename (never in place, so hard links into the base install are safe), refuses
   builds the delta does not support, repairs a damaged file from its backup, and restores on request.
+- Export / import: a `.sptpack` is a few KB listing exact mod versions plus the config files you edited, with
+  no binaries. Importing shows a plan first, downloads the exact versions from the Forge, checks the content
+  against what the exporter had, and never overwrites a config you edited unless you say so. Packages are
+  validated hard (zip-slip, symlinks, binaries, size bombs, tampering) before anything is written.
+- Fixes found on real data: versions with build metadata (`1.8.0+h4`) no longer break a mod's version list;
+  downloads are no longer named after their version; addons remember their Forge id.
 - Headless commands: `--migrate-only`, `--inspect-base <path>` and
   `--create-instance <name> --from <base> --into <dir>` and
-  `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>` and `--patch-plan|--patch|--restore <instance>`.
+  `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>` and `--patch-plan|--patch|--restore <instance>` and `--export <instance> <file>` and
+  `--import <file> --instance <name> [--apply]`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.
