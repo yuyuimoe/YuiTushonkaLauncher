@@ -23,29 +23,49 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
 
     private IDisposable? _job;
 
+    private readonly IExecutableFinder _finder;
+
+    private readonly IProcessRunner _runner;
+
+    private readonly Lazy<DetachStrategy> _strategy;
+
     public ChildProcessSpawner(IPlatformInfo platform, IExecutableFinder finder, IProcessRunner runner, ILogger<ChildProcessSpawner> logger)
     {
         _platform = platform;
         _logger = logger;
+        _finder = finder;
+        _runner = runner;
 
-        var systemdRun = platform.IsLinux ? finder.Find("systemd-run") : null;
-        var setsid = platform.IsLinux ? finder.Find("setsid") : null;
-
-        Strategy = DetachStrategy.Choose(
-            platform.IsLinux,
-            systemdRun,
-            systemdRun is not null && SystemdUserIsRunning(runner, systemdRun),
-            setsid
-        );
-
-        if (platform.IsLinux && Strategy.Mechanism == RunMechanism.None)
-        {
-            _logger.LogWarning("Neither 'systemd-run' nor 'setsid' is available: a process started now dies with the launcher.");
-        }
+        // Decided on first use, never here: deciding runs `systemd-run --user --scope true`, and a constructor that waits
+        // on a child process is a constructor that can deadlock the UI thread it was called from.
+        _strategy = new Lazy<DetachStrategy>(Choose);
     }
 
     /// <summary>What this machine can do, decided once from what is installed.</summary>
-    public DetachStrategy Strategy { get; }
+    public DetachStrategy Strategy
+    {
+        get { return _strategy.Value; }
+    }
+
+    private DetachStrategy Choose()
+    {
+        var systemdRun = _platform.IsLinux ? _finder.Find("systemd-run") : null;
+        var setsid = _platform.IsLinux ? _finder.Find("setsid") : null;
+
+        var strategy = DetachStrategy.Choose(
+            _platform.IsLinux,
+            systemdRun,
+            systemdRun is not null && SystemdUserIsRunning(_runner, systemdRun),
+            setsid
+        );
+
+        if (_platform.IsLinux && strategy.Mechanism == RunMechanism.None)
+        {
+            _logger.LogWarning("Neither 'systemd-run' nor 'setsid' is available: a process started now dies with the launcher.");
+        }
+
+        return strategy;
+    }
 
     /// <inheritdoc />
     public RunMechanism Mechanism

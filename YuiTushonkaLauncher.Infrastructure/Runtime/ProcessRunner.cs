@@ -63,14 +63,17 @@ public sealed class ProcessRunner(ILogger<ProcessRunner> logger) : IProcessRunne
 
         try
         {
-            await process.WaitForExitAsync(linked.Token);
+            // ConfigureAwait(false) everywhere: a caller is allowed to block on RunAsync from a UI thread whose message
+            // pump is not running yet (the launcher's own startup does exactly that), and a captured context there
+            // deadlocks the whole window.
+            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             // A Wine launch spawns a tree (wineserver, services.exe…); killing only the parent leaves orphans.
             Kill(process);
-            await process.WaitForExitAsync(CancellationToken.None);
-            await DrainAsync(readers);
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            await DrainAsync(readers).ConfigureAwait(false);
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -81,7 +84,7 @@ public sealed class ProcessRunner(ILogger<ProcessRunner> logger) : IProcessRunne
             return new ProcessRunResult(-1, TimedOut: true);
         }
 
-        await DrainAsync(readers);
+        await DrainAsync(readers).ConfigureAwait(false);
         return new ProcessRunResult(process.ExitCode);
     }
 
@@ -91,12 +94,12 @@ public sealed class ProcessRunner(ILogger<ProcessRunner> logger) : IProcessRunne
     /// </summary>
     private static async Task DrainAsync(Task readers)
     {
-        await Task.WhenAny(readers, Task.Delay(DrainGrace));
+        await Task.WhenAny(readers, Task.Delay(DrainGrace)).ConfigureAwait(false);
     }
 
     private static async Task Pump(StreamReader reader, bool isError, IProgress<ProcessLine>? output)
     {
-        while (await reader.ReadLineAsync() is { } line)
+        while (await reader.ReadLineAsync().ConfigureAwait(false) is { } line)
         {
             output?.Report(new ProcessLine(isError, line));
         }
