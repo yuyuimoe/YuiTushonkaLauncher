@@ -133,7 +133,9 @@ public sealed class LauncherDbContext(DbContextOptions<LauncherDbContext> option
         installed.Property(row => row.Kind).HasConversion<string>().HasMaxLength(16);
         installed.Property(row => row.Recognition).HasConversion<string>().HasMaxLength(16);
         installed.Property(row => row.Source).HasConversion<string>().HasMaxLength(16);
+        installed.Property(row => row.ParentModGuid).HasMaxLength(256);
         installed.HasIndex(row => new { row.InstanceId, row.Guid }).IsUnique();
+        installed.HasIndex(row => new { row.InstanceId, row.ParentModGuid });
         installed
             .HasOne(row => row.Instance)
             .WithMany(row => row.InstalledMods)
