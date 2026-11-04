@@ -13,7 +13,7 @@ configuration lives in Infrastructure. Value objects are `record`s and compare b
 | `Name` | `string` | unique, `[A-Za-z0-9_-]+`, used as folder name |
 | `Path` | `string` | absolute instance root |
 | `BaseGamePath` | `string` | the user-supplied Tarkov/SPT installer output this instance links from |
-| `SptVersion` | `SptVersion` | owned value object |
+| `SptVersion` | `SemanticVersion` | owned value object |
 | `TarkovVersion` | `string` | as reported by the installer/`EscapeFromTarkov.exe` |
 | `Layout` | `InstanceLayout` | `Spt40` (`spt/SPT/...`) or `Spt41Plus` (`spt/SPT_Runtime/...`) |
 | `RuntimeProfileId` | `Guid?` | Windows native, Proton, Wine runner config |
@@ -58,10 +58,12 @@ separately: `GET /addons` with `mod_id`, and their versions carry `mod_version_c
 (see [03-verified-facts](03-verified-facts.md#addons)). Therefore: separate tables, no shared
 inheritance; both expose a common `IPackage` read model for the UI only.
 
-### `SptVersion`
+### `SptRelease`
 
-`Version`, `TarkovVersion`, `IsCurrent`, `ModCount`, `ReleaseUrl` (from `/spt/versions`). Also the
-compatibility source for [the SPT↔Tarkov matrix](04-decisions.md#d12-spt-and-tarkov-compatibility-matrix).
+`Version`, `TarkovVersion`, `IsCurrent`, `ModCount`, `ReleaseUrl` (from `/spt/versions`), `FetchedAt`.
+Also the compatibility source for
+[the SPT↔Tarkov matrix](04-decisions.md#d12-spt-and-tarkov-compatibility-matrix).
+Named `SptRelease` (not `SptVersion`) so it does not collide with the version value object.
 
 ### `Dependency`
 
@@ -74,6 +76,18 @@ Modelled after `IModMetadata.ModDependencies` (guid → range) and `Incompatibil
 `Id`, `Name`, `SptVersion`, `TarkovVersion`, `Entries` (`PackageEntry`: guid, name, exact version,
 kind, pinned), `ManifestSha256` (the share code). This is both the export manifest and the local
 snapshot used to detect drift.
+
+### `InstalledMod` / `InstalledFile`
+
+The installation record: an instance *has* mods, and the same mod can sit in several instances at
+different versions, so this is separate from the catalogue `Mod`.
+
+`InstalledMod`: `InstanceId`, `ModId?` (null when unrecognised), `Guid`, `Name`, `Kind`, `Version`,
+`IsPinned`, `Recognition`, `Source` (`Forge` / `LocalArchive` / `Adopted`), `InstalledAt`.
+
+`InstalledFile`: `RelativePath` (instance-relative, never absolute, never containing `..`), `Sha256`
+(as installed), `Length`, `IsConfig`, `OriginalSha256` (what the mod shipped, so a hand-edited config
+is detectable and exportable).
 
 ### `PatchInfo`
 
@@ -99,9 +113,9 @@ concurrent downloads, telemetry off.
 
 | Type | Rules |
 |---|---|
-| `SptVersion` | semver `X.Y.Z`; ordering matters (4.1.10 > 4.1.9) |
-| `Range` | semver constraint parser (`^4.1.0`, `>=4.0.0 <5.0.0`, SPT's own strings sometimes contain stray whitespace — trim) |
-| `PackageId` | `(ModKind kind, string guid)` — the identity used everywhere |
+| `SemanticVersion` | semver `X.Y.Z[-pre]`; ordering matters (4.1.10 > 4.1.9, and a pre-release sorts before its release). Parsing tolerates stray whitespace and missing parts because Forge data is messy. One type for SPT versions *and* mod versions. |
+| `VersionRange` | constraint parser over `SemanticVersion`: bare/exact, `^`, `~`, comparison operators, `,`/space conjunctions, NuGet brackets (`[4.0.0,5.0.0)`), `||` alternatives. An empty constraint means "any". Keeps its raw text so it round-trips losslessly. |
+| `PackageId` | `(PackageKind kind, string guid)` — the identity used everywhere |
 | `FileHash` | `(string Sha256, long Length)` |
 | `RelativePath` | validated: no `..`, no rooted paths, no reserved names — every extracted path goes through it |
 

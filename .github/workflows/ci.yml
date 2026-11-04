@@ -40,11 +40,16 @@ jobs:
       - name: Build
         run: dotnet build YuiTushonkaLauncher.slnx -c Release --nologo
       - name: Test
-        run: dotnet test YuiTushonkaLauncher.slnx -c Release --no-build --nologo --logger "trx;LogFileName=results.trx"
+        run: >
+          dotnet test YuiTushonkaLauncher.slnx -c Release --no-build --nologo
+          --settings coverlet.runsettings --collect:"XPlat Code Coverage"
+          --results-directory TestResults --logger "trx;LogFileName=results.trx"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.os }}
-          path: "**/TestResults/*.trx"
+          path: |
+            **/TestResults/*.trx
+            TestResults/**/coverage.cobertura.xml
           if-no-files-found: ignore
