@@ -124,3 +124,27 @@ batch, and every `IInstanceContext.RefreshAsync` with its source. `StatusBarView
 * Main window lists instances; the manager window opens on Mods and the pages work as before.
 * Every instance check logs a start and an end at Debug.
 * Release build warning-free, CSharpier clean, tests green, coverage floor kept.
+
+## What was built
+
+* `InstallFingerprint` / `IInstallDetector` (`InstallDetector`), reading `SPT.Server.deps.json`,
+  `SPT_Data/configs/core.json` and the executable's PE version. Detection never throws; a folder that is not an install
+  comes back with warnings.
+* `IAdoptService` / `AdoptService`: plan and adopt, in place, with SHA-256 classification against a pristine reference,
+  patched forms recognised through `.spt-bak`, hard links into the new base install, and a no-reference fallback that
+  treats the install as its own base and says so.
+* Create/adopt window: detection row (SPT, required build, detected build, mismatch in red), adopt without a
+  destination, reference and base-root pickers, plan summaries for both modes, and a refusal that names both builds.
+* `HomeViewModel` + new `MainWindow` (instances as tiles, details pane, launch, manage) and `InstanceManagerWindow`
+  (the old shell: Forge, Mods, Server, Logs, Settings), opened from the details pane. The manager is created on first
+  use; its rail no longer carries an instances entry, because instances belong to the home window.
+* `--verbose` copies debug lines to the console, and the file sink always keeps Debug: it previously applied a global
+  `Information` minimum, so Debug never reached the log at all. Pre-flight now logs each step with elapsed milliseconds.
+* Tests: `InstallDetectorTests` (7), `AdoptServiceTests` (7), `HomeTests` (5); the fake base install now writes a real
+  PE version and a `core.json`, which is why one existing expectation moved from "unknown" to `0.16.9.40743`.
+
+## Still open from this phase
+
+* The home details pane does not show a thumbnail: an instance has no artwork of its own yet, so the card shows its
+  initial. Deciding where instance art comes from belongs with the Forge thumbnails (phase 16).
+* `--verbose` is read but the CLI has no other flag for the log level; a config knob can come with the settings pass.

@@ -80,7 +80,12 @@
       "patch": "Patch",
       "logs": "Logs",
       "server": "Server"
-    }
+    },
+    "adoptSource": "Install to adopt",
+    "reference": "Pristine install (reference)",
+    "baseRoot": "Base installs folder",
+    "detect": "Detect versions",
+    "versionMismatch": "This install holds Tarkov {0}, but the SPT release it carries requires {1}."
   },
   "patch": {
     "patched": "patched",
@@ -256,5 +261,20 @@
     "title": "YuiTushonkaLauncher is already running",
     "body": "Only one launcher instance can manage instances at a time. Switch to the window that is already open.",
     "close": "Close"
+  },
+  "home": {
+    "manage": "Manage instance",
+    "settings": "Settings",
+    "details": "Details",
+    "selectHint": "Select an instance to see its details and open the manager."
+  },
+  "adopt": {
+    "shared": "{0} files shared with the base install ({1})",
+    "modified": "{0} files kept as modifications ({1})",
+    "patched": "{0} files recognised as the patched form",
+    "state": "{0} files of instance state (profiles, configuration, logs)",
+    "newBase": "A base install will be created at: {0}",
+    "existingBase": "The base install is reused: {0}",
+    "kept": "Kept as modifications:"
   }
 }

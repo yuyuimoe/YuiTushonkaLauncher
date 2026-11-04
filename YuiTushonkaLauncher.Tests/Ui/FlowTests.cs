@@ -125,7 +125,7 @@ public sealed class FlowTests
         // leaves it on "waiting for the server" after the pair is already up.
         await using var world = await UiWorld.CreateAsync(configure: services => services.AddSingleton<ILaunchService>(new SilentLaunch()));
         var instance = await world.SeedInstanceAsync("silent");
-        world.Shell.Navigate(LauncherSection.Instances);
+        world.Shell.Navigate(LauncherSection.Mods);
         await world.Shell.LoadAsync(default);
 
         await world.Shell.LaunchPanel.LaunchCommand.ExecuteAsync(null);

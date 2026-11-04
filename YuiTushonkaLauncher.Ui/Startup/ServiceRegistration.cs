@@ -79,6 +79,7 @@ public static class ServiceRegistration
         services.AddSingleton<LogsPageViewModel>();
         services.AddSingleton<SettingsPageViewModel>();
         services.AddSingleton<ShellViewModel>();
+        services.AddSingleton<HomeViewModel>();
 
         return services;
     }

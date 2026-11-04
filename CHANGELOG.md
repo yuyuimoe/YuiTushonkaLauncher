@@ -132,3 +132,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   The probe is now decided on first use instead of in a constructor, `ProcessRunner` never captures a caller's
   synchronisation context, and two regression tests keep the start-up path free of that dependency.
 - A crash on a background thread or an unobserved task no longer disappears without a log line.
+### Changed
+
+- **The launcher opens on the instances**, and managing one is a window of its own (mods, Forge, server, logs,
+  settings), opened from the details pane. This is the shape Prism Launcher uses, and the one that makes an instance
+  the unit of work.
+- **Adopt no longer asks for a destination.** Adopting takes the install that already runs and brings it in where it
+  is; the pristine files are hard-linked into a base install that other instances can share, so nothing is copied and
+  nothing is moved. Every file is compared by SHA-256 with a reference install, a patched file is recognised through
+  its `.spt-bak`, and everything that does not match is kept and listed as a modification.
+- Create and Adopt now detect versions: the SPT release, the Tarkov build that release requires (from the install's
+  own `core.json`) and the build actually present. A mismatch is shown in red and blocks the creation, naming both
+  builds.
+
+### Fixed
+
+- Debug logging never wrote to the file: the logger applied a global `Information` minimum, so the file sink's `Debug`
+  setting had nothing to let through. The file now always keeps Debug; `--verbose` also copies it to the console.

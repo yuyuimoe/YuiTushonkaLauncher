@@ -6,82 +6,148 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DesignWidth="1000"
-  d:DesignHeight="680"
+  d:DesignWidth="1040"
+  d:DesignHeight="700"
   x:Class="YuiTushonkaLauncher.Views.MainWindow"
-  x:DataType="vm:ShellViewModel"
+  x:DataType="vm:HomeViewModel"
   Icon="/Assets/icon.ico"
-  Width="1000"
-  Height="680"
-  MinWidth="760"
-  MinHeight="480"
+  Width="1040"
+  Height="700"
+  MinWidth="820"
+  MinHeight="520"
   Title="{Binding Title}"
 >
   <Grid RowDefinitions="Auto,*,Auto">
-    <!-- Launch panel: always visible, because launching is what the launcher is for. -->
+    <!-- Toolbar: the two ways to add an instance, and the way into the settings. -->
     <Border Grid.Row="0" Padding="16,12" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
-      <Grid ColumnDefinitions="Auto,*,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button
-            Classes="primary"
-            Command="{Binding LaunchPanel.LaunchCommand}"
-            IsEnabled="{Binding LaunchPanel.CanPressLaunch}"
-            Content="{Binding LaunchPanel.LaunchLabel}"
-            AutomationProperties.Name="{Binding LaunchPanel.LaunchLabel}"
-          />
-          <Button
-            Command="{Binding LaunchPanel.StopCommand}"
-            IsEnabled="{Binding LaunchPanel.CanPressStop}"
-            Content="{Binding LaunchPanel.StopLabel}"
-            AutomationProperties.Name="{Binding LaunchPanel.StopLabel}"
-          />
-          <Button
-            Command="{Binding LaunchPanel.CancelLaunchCommand}"
-            IsEnabled="{Binding LaunchPanel.CanPressCancel}"
-            Content="{Binding LaunchPanel.CancelLabel}"
-            AutomationProperties.Name="{Binding LaunchPanel.CancelLabel}"
-          />
-        </StackPanel>
-
-        <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
-          <TextBlock Text="{Binding LaunchPanel.Message}" Classes="caption" />
-          <TextBlock Text="{Binding LaunchPanel.ProblemsText}" Classes="error" IsVisible="{Binding LaunchPanel.HasProblems}" />
+          <Button Classes="primary" Command="{Binding Instances.CreateCommand}" Content="{Binding Instances.CreateLabel}" />
+          <Button Command="{Binding Instances.AdoptCommand}" Content="{Binding Instances.AdoptLabel}" />
+          <Button Command="{Binding Instances.LoadCommand}" Content="{Binding Instances.RefreshLabel}" />
         </StackPanel>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="{Binding LaunchPanel.ProfileLabel}" VerticalAlignment="Center" />
-          <TextBox Text="{Binding LaunchPanel.ProfileUsername}" Width="160" PlaceholderText="{Binding LaunchPanel.ProfileLabel}" />
-          <CheckBox Content="{Binding LaunchPanel.RememberLabel}" IsChecked="{Binding LaunchPanel.RememberProfile}" />
-          <CheckBox Content="{Binding LaunchPanel.SkipPatchLabel}" IsChecked="{Binding LaunchPanel.SkipPatch}" />
+          <TextBlock Text="{Binding StatusBar.InstanceText}" Classes="caption" VerticalAlignment="Center" />
+          <Button Command="{Binding OpenSettingsCommand}" Content="{Binding SettingsLabel}" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="200,*">
-      <!-- Left rail. -->
-      <Border Grid.Column="0" Background="{DynamicResource YttRailBrush}">
-        <ItemsControl ItemsSource="{Binding NavItems}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:NavItemViewModel">
-              <Button
-                Classes="rail"
-                Classes.selected="{Binding IsSelected}"
-                Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).GoCommand}"
-                CommandParameter="{Binding Section}"
-                AutomationProperties.Name="{Binding AccessibleName}"
-              >
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <TextBlock Text="{Binding Glyph}" Width="16" />
-                  <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </Border>
+    <Grid Grid.Row="1" ColumnDefinitions="*,320">
+      <!-- The instances, as tiles: an initial, a name and the versions. -->
+      <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="16,16,8,16">
+        <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,8">
+          <TextBlock Text="{Binding Instances.Title}" Classes="sectionTitle" />
+          <TextBlock Text="{Binding Instances.Status}" Classes="caption" IsVisible="{Binding Instances.HasStatus}" />
+          <TextBlock Text="{Binding Instances.Error}" Classes="error" IsVisible="{Binding Instances.HasError}" />
+        </StackPanel>
 
-      <!-- The page. -->
-      <ContentControl Grid.Column="1" Margin="16" Content="{Binding CurrentPage}" />
+        <StackPanel Grid.Row="1" Spacing="6" VerticalAlignment="Top" IsVisible="{Binding !Instances.HasInstances}">
+          <TextBlock Text="{Binding Instances.EmptyText}" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Instances.EmptyHint}" Classes="caption" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ListBox
+          Grid.Row="1"
+          Background="Transparent"
+          ItemsSource="{Binding Instances.Instances}"
+          SelectedItem="{Binding Instances.Selected}"
+          IsVisible="{Binding Instances.HasInstances}"
+        >
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" ItemWidth="200" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:InstanceCardViewModel">
+              <Border Classes="card" Margin="0,0,8,8" Padding="10" Width="190">
+                <StackPanel Spacing="6">
+                  <Border
+                    Width="56"
+                    Height="56"
+                    CornerRadius="6"
+                    HorizontalAlignment="Left"
+                    Background="{DynamicResource YttAccentSoftBrush}"
+                  >
+                    <TextBlock
+                      Text="{Binding Initial}"
+                      FontSize="26"
+                      FontWeight="Bold"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                    />
+                  </Border>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding VersionLine}" Classes="caption" FontSize="11" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding ModsLine}" Classes="caption" FontSize="11" />
+                    <TextBlock Text="{Binding PatchStateText}" Classes="caption" FontSize="11" />
+                  </StackPanel>
+                  <Border
+                    Padding="6,0"
+                    CornerRadius="4"
+                    Background="{DynamicResource YttAccentSoftBrush}"
+                    HorizontalAlignment="Left"
+                    IsVisible="{Binding IsActive}"
+                  >
+                    <TextBlock Text="{Binding ActiveLabel}" FontSize="11" />
+                  </Border>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+
+      <!-- The details of the selected instance, and the one button that matters. -->
+      <Border Grid.Column="1" Background="{DynamicResource YttRailBrush}" Padding="16">
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Grid.Row="0" Spacing="8" IsVisible="{Binding HasSelection}">
+            <TextBlock Text="{Binding SelectedName}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding DetailsLabel}" Classes="caption" />
+            <TextBlock Text="{Binding Instances.Selected.VersionLine}" />
+            <TextBlock Text="{Binding Instances.Selected.ModsLine}" Classes="caption" />
+            <TextBlock Text="{Binding Instances.Selected.PatchStateText}" Classes="caption" />
+            <TextBlock Text="{Binding Instances.Selected.LastLaunchText}" Classes="caption" />
+            <TextBlock Text="{Binding Instances.Selected.PathText}" Classes="caption" FontSize="11" TextWrapping="Wrap" />
+
+            <StackPanel Spacing="6" Margin="0,8,0,0">
+              <Button
+                Classes="primary"
+                Command="{Binding LaunchPanel.LaunchCommand}"
+                IsEnabled="{Binding LaunchPanel.CanPressLaunch}"
+                Content="{Binding LaunchPanel.LaunchLabel}"
+                HorizontalAlignment="Stretch"
+              />
+              <Button
+                Command="{Binding LaunchPanel.StopCommand}"
+                IsEnabled="{Binding LaunchPanel.CanPressStop}"
+                Content="{Binding LaunchPanel.StopLabel}"
+                HorizontalAlignment="Stretch"
+              />
+              <Button Command="{Binding ManageCommand}" Content="{Binding ManageLabel}" HorizontalAlignment="Stretch" />
+              <Button
+                Command="{Binding Instances.DeleteCommand}"
+                CommandParameter="{Binding Instances.Selected}"
+                Content="{Binding Instances.DeleteLabel}"
+                HorizontalAlignment="Stretch"
+              />
+            </StackPanel>
+
+            <TextBlock Text="{Binding LaunchPanel.Message}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <TextBlock
+              Text="{Binding LaunchPanel.ProblemsText}"
+              Classes="error"
+              IsVisible="{Binding LaunchPanel.HasProblems}"
+              TextWrapping="Wrap"
+            />
+          </StackPanel>
+
+          <TextBlock Grid.Row="0" Text="{Binding SelectHint}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasSelection}" />
+        </Grid>
+      </Border>
     </Grid>
 
     <Border Grid.Row="2" Classes="statusBar">

@@ -80,7 +80,12 @@
       "patch": "Patch",
       "logs": "Logs",
       "server": "Servidor"
-    }
+    },
+    "adoptSource": "Instalação a adotar",
+    "reference": "Instalação limpa (referência)",
+    "baseRoot": "Pasta das instalações base",
+    "detect": "Detectar versões",
+    "versionMismatch": "Esta instalação tem Tarkov {0}, mas a versão do SPT exige {1}."
   },
   "patch": {
     "patched": "aplicado",
@@ -256,5 +261,20 @@
     "title": "O YuiTushonkaLauncher já está aberto",
     "body": "Só uma instância do launcher pode gerenciar instâncias por vez. Alterne para a janela que já está aberta.",
     "close": "Fechar"
+  },
+  "home": {
+    "manage": "Gerenciar instância",
+    "settings": "Configurações",
+    "details": "Detalhes",
+    "selectHint": "Selecione uma instância para ver os detalhes e abrir o gerenciador."
+  },
+  "adopt": {
+    "shared": "{0} arquivos compartilhados com a instalação base ({1})",
+    "modified": "{0} arquivos mantidos como modificação ({1})",
+    "patched": "{0} arquivos reconhecidos como a forma patchada",
+    "state": "{0} arquivos de estado da instância (perfis, configuração, logs)",
+    "newBase": "Uma instalação base será criada em: {0}",
+    "existingBase": "A instalação base será reaproveitada: {0}",
+    "kept": "Mantidos como modificação:"
   }
 }

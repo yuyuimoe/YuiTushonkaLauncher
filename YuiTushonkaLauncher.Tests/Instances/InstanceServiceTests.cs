@@ -104,7 +104,7 @@ public sealed class InstanceServiceTests : IAsyncLifetime
         var list = await _service.ListAsync();
         list.Should().ContainSingle();
         list[0].Id.Should().Be(instance.Id);
-        list[0].TarkovVersion.Should().Be("unknown");
+        list[0].TarkovVersion.Should().Be("0.16.9.40743");
 
         await using var context = _database.CreateContext();
         var profile = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.SingleAsync(context.ServerProfiles);

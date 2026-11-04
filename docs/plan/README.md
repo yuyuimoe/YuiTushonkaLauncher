@@ -25,7 +25,7 @@ for what has to exist when the branch merges.
 | 12 | [phase-12-ui](phase-12-ui.md) | ☑ done |
 | 13 | [phase-13-qa](phase-13-qa.md) | ☑ done |
 | 14 | [phase-14-packaging](phase-14-packaging.md) | ☑ done |
-| 15 | [phase-15-instances-home](phase-15-instances-home.md) | → in progress |
+| 15 | [phase-15-instances-home](phase-15-instances-home.md) | ☑ done |
 | 16 | [phase-16-forge-browser](phase-16-forge-browser.md) | ☐ |
 | 17 | [phase-17-mods-addons](phase-17-mods-addons.md) | ☐ |
 
