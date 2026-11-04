@@ -37,8 +37,19 @@ public sealed class PatchingTestContext : IAsyncDisposable
             new PatchPlanner(),
             new BackupScanner(),
             Writer,
+            _busy,
             NullLogger<PatchingService>.Instance
         );
+    }
+
+    /// <summary>What decides whether patching may touch the files; a test replaces it to model a running game.</summary>
+    private readonly Server.SwitchableBusyGuard _busy = new();
+
+    /// <summary>What decides whether the service may touch the files; setting it changes what the service sees.</summary>
+    public Core.Launch.IInstanceBusyGuard Busy
+    {
+        get { return _busy.Current; }
+        set { _busy.Current = value; }
     }
 
     public TestDatabase Database { get; }
@@ -67,7 +78,7 @@ public sealed class PatchingTestContext : IAsyncDisposable
     }
 
     /// <summary>Instance-relative path of the binary a delta patches.</summary>
-    public const string TargetRelative = "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll";
+    public const string TargetRelative = "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll";
 
     public string TargetPath
     {

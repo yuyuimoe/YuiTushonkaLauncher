@@ -434,3 +434,42 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   ` traces.log` 163 MB, `application.log` 30 KB, `assetBundle.log` 582 B. Any view must tail, not load.
 - SPT **does not rotate** that `Logs/` folder: it deletes and regenerates it, which is why a run after a crash
   loses the evidence ([92-after-1.0](92-after-1.0.md)).
+
+### Detaching a real server (2026-11-04)
+
+- `systemd-run --user --scope --quiet true` exits 0 on this machine, so the strongest mechanism is available.
+- `systemd-run --user --scope --quiet /path/SPT.Server.Linux` **keeps the pid of the program**: the launcher's
+  recorded pid was the server itself, so stopping or adopting by pid works without hunting the wrapper.
+- Measured on a real instance: with the launcher killed by `kill -9`, the server **stayed alive and kept
+  answering `ping`**; the record held its pid, start time, executable, mechanism (`SystemdScope`) and port, and
+  `--stale --reap` stopped it with SIGTERM (graceful, exit 0).
+- A `setsid` child ends up in its own session (session id differs from the launcher's), which is what makes
+  a plain-child death signal irrelevant.
+
+### The launch pipeline on a real install (2026-11-04)
+
+- `--launch v1 --profile yui` on a freshly created merged instance: `PreFlight`, `PatchCheck` (already
+  patched), `ServerStart` (2.6 s), `Ready`, `GameStart`, `Detached`, total **2.7 s**, with the game receiving
+  `-force-gfx-jobs native -token=<profileId> -config={'BackendUrl':'https://127.0.0.1:6969',…}`.
+- **A scope keeps what a pid cannot**: the game substitution (`/bin/sh`) forked, so the recorded pid could
+  die while the work lived on. With `--unit=ytt-<id>` the unit is the durable identity:
+  `systemctl --user is-active ytt-<id>` said **active**, `list-units` showed it running, and
+  `systemctl --user kill --signal=TERM` stopped the whole tree. Without the `.scope` suffix, `is-active`
+  looks for a `.service` and reports a scope as inactive — measured.
+- `--stale` then reported both members as `Running` with `[SystemdScope]`, and `--stale --reap` stopped
+  both and the units disappeared.
+- A detached server left without its record is invisible to the launcher: the next launch says the port is
+  in use. Worth remembering before deleting anything in `<data>/run/`.
+
+### Reading SPT's logs on a real install (2026-11-04)
+
+- A real `Logs/` folder for one session measured **312 MiB**: `application.log` 30 KiB, `assetBundle.log` 582 B,
+  `_backend.log` 78 MiB, ` errors.log` 78 MiB, `traces.log` 156 MiB (the earlier numbers were the uncompressed
+  ones; the copies measured here are the same session).
+- The launcher's own log lives in the application data folder (`<data>/logs/launcher-<date>.log`), separate from
+  the instance.
+- Retention measured with the real command: 26 plain files → 20 gzipped into `archive/`, 5 deleted by age, the
+  active file untouched, and a second pass did nothing.
+- A windowed tail of a file larger than the window drops the partial first line, so a cut word never appears as
+  a log entry; the line numbers a view shows are positions within the tail, not file line numbers (counting from
+  the start would mean reading the whole file).

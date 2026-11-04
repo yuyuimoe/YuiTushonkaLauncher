@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace YuiTushonkaLauncher.Infrastructure.Server;
 
-/// <summary>The one libc call the launcher needs: sending a signal. .NET can kill a process but cannot ask it to stop.</summary>
+/// <summary>The system calls the launcher needs: sending a signal, and Windows job breakaway. .NET can kill a process but cannot ask it to stop.</summary>
 #pragma warning disable SYSLIB1054 // DllImport is intentional, as in FileSystemNative: the project does not enable unsafe code.
 internal static class Interop
 {
@@ -12,6 +12,12 @@ internal static class Interop
         {
             _ = kill(processId, signal);
         }
+    }
+
+    /// <summary>Sends a signal to a whole process group (a negative pid), which is how a detached tree is addressed.</summary>
+    public static bool SignalGroup(int processGroupId, int signal)
+    {
+        return !OperatingSystem.IsWindows() && kill(-processGroupId, signal) == 0;
     }
 
     [DllImport("libc", SetLastError = true)]

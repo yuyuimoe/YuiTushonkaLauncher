@@ -18,7 +18,7 @@ namespace YuiTushonkaLauncher.Tests.Packs;
 public sealed class PackServiceTests : IDisposable
 {
     private const string ModGuid = "com.fixture.clientmod";
-    private const string ConfigRelative = "spt/BepInEx/config/com.fixture.clientmod.cfg";
+    private const string ConfigRelative = "BepInEx/config/com.fixture.clientmod.cfg";
 
     private readonly TempDirectory _temp = new();
 
@@ -150,7 +150,7 @@ public sealed class PackServiceTests : IDisposable
         await using var source = await ModTestContext.CreateAsync("source");
         using var archive = ModArchive().Add("BepInEx/plugins/fixture/motd.txt", "hello");
         await InstallFromForgeAsync(source, archive);
-        const string motd = "spt/BepInEx/plugins/fixture/motd.txt";
+        const string motd = "BepInEx/plugins/fixture/motd.txt";
         File.WriteAllText(Path.Combine(source.Instance.Path, motd), "hello from yui");
 
         var result = await source.Packs.ExportAsync(source.Instance.Id, NewPackage());
@@ -164,7 +164,7 @@ public sealed class PackServiceTests : IDisposable
         await using var source = await ModTestContext.CreateAsync("source");
         using var archive = ModArchive();
         await InstallFromForgeAsync(source, archive);
-        const string dll = "spt/BepInEx/plugins/fixture/FixturePlugin.dll";
+        const string dll = "BepInEx/plugins/fixture/FixturePlugin.dll";
         await File.AppendAllTextAsync(Path.Combine(source.Instance.Path, dll), "patched by hand");
 
         var result = await source.Packs.ExportAsync(source.Instance.Id, NewPackage());
@@ -181,7 +181,7 @@ public sealed class PackServiceTests : IDisposable
         await using var source = await ModTestContext.CreateAsync("source");
         using var archive = ModArchive().Add("BepInEx/plugins/fixture/motd.txt", "hello");
         await InstallFromForgeAsync(source, archive);
-        const string motd = "spt/BepInEx/plugins/fixture/motd.txt";
+        const string motd = "BepInEx/plugins/fixture/motd.txt";
         File.WriteAllText(Path.Combine(source.Instance.Path, motd), "hello from yui");
         var package = NewPackage();
         var exported = await source.Packs.ExportAsync(source.Instance.Id, package);
@@ -522,7 +522,7 @@ public sealed class PackServiceTests : IDisposable
         fresh.Forge.WithMod(ModGuid, "1.4.2", 7);
         using var freshArchive = ModArchive();
         fresh.DownloadSource = freshArchive.Path;
-        const string foreign = "spt/BepInEx/config/not-a-file-of-the-mod.cfg";
+        const string foreign = "BepInEx/config/not-a-file-of-the-mod.cfg";
         var manifest = PackCrafter.Manifest(configs: [PackCrafter.Config(ModGuid, foreign, "planted")]);
         var package = PackCrafter.Zip(NewPackage(), PackCrafter.ManifestEntry(manifest), PackCrafter.ConfigEntry(foreign, "planted"));
 
@@ -697,5 +697,58 @@ public sealed class PackServiceTests : IDisposable
         var plan = await fresh.Packs.PlanImportAsync(fresh.Instance.Id, package);
 
         plan.Items.Single().Action.Should().Be(ImportAction.Install);
+    }
+
+    [Fact]
+    public async Task Export_RefusesWhileThePairRuns()
+    {
+        await using var context = await ModTestContext.CreateAsync("busy");
+        using var archive = ModArchive();
+        await InstallFromForgeAsync(context, archive);
+        context.Busy = new BusyWith("the game", 900);
+
+        var act = () => context.Packs.ExportAsync(context.Instance.Id, NewPackage());
+
+        var failure = (await act.Should().ThrowAsync<YuiTushonkaLauncher.Core.Launch.InstanceBusyException>()).Which;
+        failure.Message.Should().Contain("Exporting").And.Contain("the game");
+    }
+
+    [Fact]
+    public async Task Import_RefusesWhileThePairRuns()
+    {
+        await using var context = await ModTestContext.CreateAsync("busy-import");
+        using var archive = ModArchive();
+        await InstallFromForgeAsync(context, archive);
+        var package = NewPackage();
+        await context.Packs.ExportAsync(context.Instance.Id, package);
+        context.Busy = new BusyWith("the server", 555);
+
+        var act = () => context.Packs.ImportAsync(context.Instance.Id, package, new ImportOptions());
+
+        (await act.Should().ThrowAsync<YuiTushonkaLauncher.Core.Launch.InstanceBusyException>())
+            .Which.Message.Should()
+            .Contain("Importing");
+    }
+
+    /// <summary>A guard that always reports one running process.</summary>
+    private sealed class BusyWith(string kind, int pid) : YuiTushonkaLauncher.Core.Launch.IInstanceBusyGuard
+    {
+        private readonly YuiTushonkaLauncher.Core.Launch.InstanceActivity _activity = new(kind, pid, "/srv/thing");
+
+        public Task<IReadOnlyList<YuiTushonkaLauncher.Core.Launch.InstanceActivity>> FindActivityAsync(
+            Guid instanceId,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult<IReadOnlyList<YuiTushonkaLauncher.Core.Launch.InstanceActivity>>([_activity]);
+        }
+
+        public Task EnsureIdleAsync(Guid instanceId, string operation, CancellationToken cancellationToken = default)
+        {
+            throw new YuiTushonkaLauncher.Core.Launch.InstanceBusyException(
+                $"{operation} cannot run while '{_activity}' is running.",
+                [_activity]
+            );
+        }
     }
 }

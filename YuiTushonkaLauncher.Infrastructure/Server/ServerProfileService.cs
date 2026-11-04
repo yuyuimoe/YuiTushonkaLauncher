@@ -178,6 +178,57 @@ public sealed class ServerProfileService(
         return (await client.GetProfilesAsync(cancellationToken)).FirstOrDefault(profile => profile.ProfileId == lastId);
     }
 
+    /// <inheritdoc />
+    public async Task<string?> GetRememberedUsernameAsync(Guid instanceId, CancellationToken cancellationToken = default)
+    {
+        var instance =
+            (await instances.ListAsync(cancellationToken)).FirstOrDefault(row => row.Id == instanceId)
+            ?? throw new ProfileOperationException("That instance does not exist.");
+        var endpoint = locator.Locate(instance).Endpoint.ToStringKey();
+
+        var remembered = await unitOfWork.ExecuteAsync(
+            async (context, token) =>
+                await context
+                    .ServerProfiles.AsNoTracking()
+                    .Where(row => row.InstanceId == instanceId)
+                    .Select(row => new { row.RememberedProfileUsername, row.RememberedForEndpoint })
+                    .FirstOrDefaultAsync(token),
+            cancellationToken
+        );
+
+        // A profile belongs to one server: pointing the instance elsewhere drops the preference instead of reusing a name.
+        return remembered is not null && string.Equals(remembered.RememberedForEndpoint, endpoint, StringComparison.Ordinal)
+            ? remembered.RememberedProfileUsername
+            : null;
+    }
+
+    /// <inheritdoc />
+    public async Task RememberAsync(Guid instanceId, string? username, string? profileId, CancellationToken cancellationToken = default)
+    {
+        var instance =
+            (await instances.ListAsync(cancellationToken)).FirstOrDefault(row => row.Id == instanceId)
+            ?? throw new ProfileOperationException("That instance does not exist.");
+        var endpoint = locator.Locate(instance).Endpoint.ToStringKey();
+
+        await unitOfWork.ExecuteAsync(
+            async (context, token) =>
+            {
+                var row = await context.ServerProfiles.FirstOrDefaultAsync(item => item.InstanceId == instanceId, token);
+
+                if (row is null)
+                {
+                    return;
+                }
+
+                row.RememberedProfileUsername = username;
+                row.RememberedProfileId = username is null ? null : profileId;
+                row.RememberedForEndpoint = username is null ? null : endpoint;
+                row.UpdatedAt = time.GetUtcNow();
+            },
+            cancellationToken
+        );
+    }
+
     private async Task<(Core.Domain.Instance Instance, SptServerLocation Location, ISptServerClient Client)> ConnectAsync(
         Guid instanceId,
         CancellationToken cancellationToken

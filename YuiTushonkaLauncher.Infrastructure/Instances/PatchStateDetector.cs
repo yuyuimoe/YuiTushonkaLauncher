@@ -16,7 +16,7 @@ public sealed class PatchStateDetector(ILogger<PatchStateDetector> logger)
     /// <summary>Relative path of the binary the SPT patch rewrites.</summary>
     public static string RelativeTargetPath
     {
-        get { return Path.Combine("gamefiles", "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll"); }
+        get { return InstancePaths.PatchedAssembly; }
     }
 
     /// <summary>Inspects the instance and returns what can be proven about its patch state.</summary>

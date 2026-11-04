@@ -72,7 +72,7 @@ public sealed partial class InstanceService(
                         cancellationToken.ThrowIfCancellationRequested();
 
                         var source = Path.Combine(baseInstall.RootPath, entry.RelativePath);
-                        var destination = Path.Combine(instanceRoot, entry.RelativePath);
+                        var destination = Path.Combine(instanceRoot, entry.Destination);
 
                         switch (entry.Action)
                         {
@@ -306,7 +306,7 @@ public sealed partial class InstanceService(
             TryProbeHardLinks(location, issues);
         }
 
-        var entries = EnumerateEntries(baseInstall.RootPath);
+        var entries = EnumerateEntries(baseInstall.RootPath, baseInstall.Shape);
         var copyBytes = entries.Where(entry => entry.Action == LinkAction.Copy).Sum(entry => entry.SizeBytes);
         var available = fileLinks.GetAvailableFreeSpace(location);
         if (available is { } free && free < copyBytes + FreeSpaceHeadroomBytes)
@@ -326,12 +326,13 @@ public sealed partial class InstanceService(
             InstancePath = instancePath,
             Layout = baseInstall.Layout,
             Entries = entries,
-            Directories = LinkPolicy.RequiredDirectories(baseInstall.Layout),
+            BaseShape = baseInstall.Shape,
+            Directories = InstancePaths.RequiredDirectories(baseInstall.Layout),
             Warnings = warnings,
         };
     }
 
-    private static List<InstancePlanEntry> EnumerateEntries(string baseInstallPath)
+    private static List<InstancePlanEntry> EnumerateEntries(string baseInstallPath, InstallShape shape)
     {
         var entries = new List<InstancePlanEntry>();
         var options = new EnumerationOptions
@@ -345,25 +346,26 @@ public sealed partial class InstanceService(
         foreach (var directory in Directory.EnumerateDirectories(baseInstallPath, "*", options))
         {
             var relative = Path.GetRelativePath(baseInstallPath, directory);
-            var action = LinkPolicy.Decide(relative, isDirectory: true);
+            var action = LinkPolicy.Decide(relative, isDirectory: true, shape);
 
             if (action is LinkAction.Skip)
             {
                 continue;
             }
 
-            entries.Add(new InstancePlanEntry(relative, action, 0));
+            entries.Add(new InstancePlanEntry(relative, action, 0, InstancePaths.FromBase(relative, shape)));
         }
 
         foreach (var file in Directory.EnumerateFiles(baseInstallPath, "*", options))
         {
             var relative = Path.GetRelativePath(baseInstallPath, file);
-            var action = LinkPolicy.Decide(relative, isDirectory: false);
+            var action = LinkPolicy.Decide(relative, isDirectory: false, shape);
+            var destination = InstancePaths.FromBase(relative, shape);
 
             if (action is LinkAction.Skip)
             {
                 // Still record it so the plan can report how much was deliberately left out.
-                entries.Add(new InstancePlanEntry(relative, LinkAction.Skip, 0));
+                entries.Add(new InstancePlanEntry(relative, LinkAction.Skip, 0, destination));
                 continue;
             }
 
@@ -377,7 +379,7 @@ public sealed partial class InstanceService(
                 // A file that vanishes mid-scan is simply not copied.
             }
 
-            entries.Add(new InstancePlanEntry(relative, action, size));
+            entries.Add(new InstancePlanEntry(relative, action, size, destination));
         }
 
         return entries;

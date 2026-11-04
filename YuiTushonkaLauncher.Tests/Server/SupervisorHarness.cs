@@ -19,7 +19,7 @@ public sealed class SupervisorHarness : IDisposable
 
         var paths = World.Temp.CreateAppPaths();
         paths.EnsureCreated();
-        PidStore = new ServerPidStore(paths, NullLogger<ServerPidStore>.Instance);
+        Runs = new InstanceRunStore(paths, NullLogger<InstanceRunStore>.Instance);
 
         Supervisor = new SptServerSupervisor(
             new SptServerLocator(new Runtime.FakePlatform(linux: true)),
@@ -31,7 +31,7 @@ public sealed class SupervisorHarness : IDisposable
             new FakeRuntimeProfiles(),
             Instances,
             Inspector,
-            PidStore,
+            Runs,
             Time,
             NullLogger<SptServerSupervisor>.Instance
         );
@@ -57,7 +57,7 @@ public sealed class SupervisorHarness : IDisposable
 
     public FakeInspector Inspector { get; } = new();
 
-    public ServerPidStore PidStore { get; }
+    public InstanceRunStore Runs { get; }
 
     public SptServerSupervisor Supervisor { get; }
 

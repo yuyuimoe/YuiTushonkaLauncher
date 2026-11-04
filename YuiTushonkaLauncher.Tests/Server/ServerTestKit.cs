@@ -282,6 +282,8 @@ public sealed class FakeChild : IChildProcess
 
     public int ProcessId { get; }
 
+    public string? Scope { get; init; }
+
     public DateTimeOffset StartedAt { get; }
 
     public bool HasExited { get; private set; }
@@ -321,13 +323,13 @@ public sealed class FakeSpawner : IChildProcessSpawner
 {
     private int _nextProcessId = 4000;
 
-    public bool TiesChildrenToLauncher { get; set; } = true;
+    public RunMechanism Mechanism { get; set; } = RunMechanism.Setsid;
 
     public List<ChildProcessStart> Starts { get; } = [];
 
     public List<FakeChild> Children { get; } = [];
 
-    public TimeProvider Time { get; init; } = TimeProvider.System;
+    public TimeProvider Time { get; set; } = TimeProvider.System;
 
     /// <summary>Builds the child for a start request; the default one stays alive until stopped.</summary>
     public Func<ChildProcessStart, FakeChild>? Factory { get; set; }
@@ -368,6 +370,7 @@ public sealed class FakeInspector : IProcessInspector
     public Task<bool> StopAsync(int processId, TimeSpan grace, CancellationToken cancellationToken = default)
     {
         StopRequests.Add(processId);
+        GroupStopRequests.RemoveAll(request => request == processId);
 
         if (CanStop)
         {
@@ -375,6 +378,48 @@ public sealed class FakeInspector : IProcessInspector
         }
 
         return Task.FromResult(CanStop);
+    }
+
+    /// <summary>Groups that are still alive, by process group id.</summary>
+    public HashSet<int> Groups { get; } = [];
+
+    public List<int> GroupStopRequests { get; } = [];
+
+    public bool IsGroupAlive(int processGroupId)
+    {
+        return Groups.Contains(processGroupId);
+    }
+
+    public Task<bool> StopGroupAsync(int processGroupId, TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        GroupStopRequests.Add(processGroupId);
+
+        if (CanStop)
+        {
+            Groups.Remove(processGroupId);
+        }
+
+        return Task.FromResult(CanStop);
+    }
+}
+
+/// <summary>Fake systemd units: a set of active unit names.</summary>
+public sealed class FakeScopes : IScopeService
+{
+    public HashSet<string> Active { get; } = [];
+
+    public List<string> StopRequests { get; } = [];
+
+    public bool IsActive(string unit)
+    {
+        return Active.Contains(unit);
+    }
+
+    public Task<bool> StopAsync(string unit, TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        StopRequests.Add(unit);
+        Active.Remove(unit);
+        return Task.FromResult(true);
     }
 }
 
@@ -391,7 +436,12 @@ public sealed class FakeRuntimeLauncher : IRuntimeLauncher
 
         return new LaunchPlan
         {
-            Command = new LaunchCommand { FileName = request.Program, WorkingDirectory = request.WorkingDirectory },
+            Command = new LaunchCommand
+            {
+                FileName = request.Program,
+                Arguments = request.Arguments,
+                WorkingDirectory = request.WorkingDirectory,
+            },
             Problems = Problems,
         };
     }
@@ -507,10 +557,18 @@ public sealed class ServerWorld : IDisposable
     public Instance CreateInstance(string name, int port = 6969, string ip = "127.0.0.1", InstanceLayout layout = InstanceLayout.Spt41Plus)
     {
         var path = _temp.Combine(name);
-        var runtime = Path.Combine(path, layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime");
+
+        // An instance is always SPT's merged shape: the runtime sits at the root, next to the executable.
+        var runtime = Path.Combine(path, InstancePaths.RuntimeDirectory(layout));
 
         Directory.CreateDirectory(Path.Combine(runtime, "SPT_Data", "configs"));
         Directory.CreateDirectory(Path.Combine(runtime, "user", "profiles"));
+        File.WriteAllText(Path.Combine(path, "EscapeFromTarkov.exe"), "MZ");
+        File.WriteAllText(Path.Combine(path, "UnityPlayer.dll"), "unity");
+        File.WriteAllText(Path.Combine(path, "winhttp.dll"), "doorstop");
+        File.WriteAllText(Path.Combine(path, "doorstop_config.ini"), "[General]");
+        Directory.CreateDirectory(Path.Combine(path, "BepInEx", "core"));
+        File.WriteAllText(Path.Combine(path, "BepInEx", "core", "BepInEx.Preloader.dll"), "preloader");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.Linux"), "#!/bin/sh");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.exe"), "MZ");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.Linux.runtimeconfig.json"), RuntimeConfig);
@@ -524,12 +582,13 @@ public sealed class ServerWorld : IDisposable
             Path = path,
             Layout = layout,
             ServerPort = port,
+            SptVersion = Core.Domain.SemanticVersion.Parse(layout == InstanceLayout.Spt40 ? "4.0.13" : "4.1.6"),
         };
     }
 
     public static string RuntimeOf(Instance instance)
     {
-        return Path.Combine(instance.Path, instance.Layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime");
+        return Path.Combine(instance.Path, Core.Instances.InstancePaths.RuntimeDirectory(instance.Layout));
     }
 
     public static string HttpConfigOf(Instance instance)

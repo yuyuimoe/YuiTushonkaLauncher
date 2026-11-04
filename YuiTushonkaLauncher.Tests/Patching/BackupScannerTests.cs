@@ -24,14 +24,14 @@ public sealed class BackupScannerTests : IDisposable
     [Fact]
     public void Discover_FindsNestedBackupsSortedByPath()
     {
-        Write("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak");
-        Write("spt/SPT_Runtime/BepInEx/core/lower.dll.spt-bak");
+        Write("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak");
+        Write("SPT_Runtime/BepInEx/core/lower.dll.spt-bak");
 
         var pairs = _scanner.Discover(Root);
 
         pairs.Should().HaveCount(2);
-        pairs[0].RelativePath.Should().Be("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
-        pairs[1].RelativePath.Should().Be("spt/SPT_Runtime/BepInEx/core/lower.dll");
+        pairs[0].RelativePath.Should().Be("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+        pairs[1].RelativePath.Should().Be("SPT_Runtime/BepInEx/core/lower.dll");
         pairs[0].TargetPath.Should().Be(Path.Combine(Root, pairs[0].RelativePath));
     }
 
@@ -44,8 +44,8 @@ public sealed class BackupScannerTests : IDisposable
     [Fact]
     public void Discover_IgnoresFilesThatAreNotBackups()
     {
-        Write("gamefiles/Assembly-CSharp.dll");
-        Write("gamefiles/Assembly-CSharp.dll.spt-bak");
+        Write("Assembly-CSharp.dll");
+        Write("Assembly-CSharp.dll.spt-bak");
 
         _scanner.Discover(Root).Should().ContainSingle();
     }

@@ -17,13 +17,16 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<IPortProbe, PortProbe>();
         services.AddSingleton<IDotNetRuntimeProbe, DotNetRuntimeProbe>();
         services.AddSingleton<IProcessInspector, ProcessInspector>();
+        services.AddSingleton<IScopeService, SystemdScopeService>();
         services.AddSingleton<ISptServerClientFactory, SptServerClientFactory>();
-        services.AddSingleton<ServerPidStore>();
+        services.AddSingleton<IInstanceRunStore, InstanceRunStore>();
+        services.AddSingleton<IRunAdoptionService, RunAdoptionService>();
 
         // The spawner owns a thread that never ends (it is what the children's lifetime is tied to), so it must be disposed with the container.
         services.AddSingleton<IChildProcessSpawner>(provider => new ChildProcessSpawner(
             provider.GetRequiredService<IPlatformInfo>(),
             provider.GetRequiredService<IExecutableFinder>(),
+            provider.GetRequiredService<IProcessRunner>(),
             provider.GetRequiredService<ILogger<ChildProcessSpawner>>()
         ));
 
@@ -31,6 +34,13 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<IServerProfileService, ServerProfileService>();
         services.AddSingleton<IServerPortService, ServerPortService>();
         services.AddSingleton<IServerSyncService, ServerSyncService>();
+
+        // Watches the supervised server and the recorded pair: the layers that rewrite instance files consume it.
+        services.AddSingleton<Core.Launch.IInstanceBusyGuard, Launch.InstanceBusyGuard>();
+
+        // Refusing a migration while the server runs needs to know the server state, so it lives here rather than with
+        // the instance services.
+        services.AddSingleton<Core.Instances.ILayoutMigrationService, Instances.LayoutMigrationService>();
 
         return services;
     }

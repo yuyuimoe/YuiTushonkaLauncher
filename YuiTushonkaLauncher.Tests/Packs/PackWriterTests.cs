@@ -17,11 +17,7 @@ public sealed class PackWriterTests : IDisposable
     private static PackManifest Manifest()
     {
         return PackCrafter.Manifest(
-            configs:
-            [
-                PackCrafter.Config(Owner, "spt/BepInEx/config/b.cfg", "b"),
-                PackCrafter.Config(Owner, "spt/BepInEx/config/a.cfg", "a"),
-            ]
+            configs: [PackCrafter.Config(Owner, "BepInEx/config/b.cfg", "b"), PackCrafter.Config(Owner, "BepInEx/config/a.cfg", "a")]
         );
     }
 
@@ -29,8 +25,8 @@ public sealed class PackWriterTests : IDisposable
     {
         return new Dictionary<string, byte[]>
         {
-            ["spt/BepInEx/config/b.cfg"] = Encoding.UTF8.GetBytes("b"),
-            ["spt/BepInEx/config/a.cfg"] = Encoding.UTF8.GetBytes("a"),
+            ["BepInEx/config/b.cfg"] = Encoding.UTF8.GetBytes("b"),
+            ["BepInEx/config/a.cfg"] = Encoding.UTF8.GetBytes("a"),
         };
     }
 
@@ -57,7 +53,7 @@ public sealed class PackWriterTests : IDisposable
         archive
             .Entries.Select(entry => entry.FullName)
             .Should()
-            .Equal("manifest.json", "README.txt", "configs/spt/BepInEx/config/a.cfg", "configs/spt/BepInEx/config/b.cfg");
+            .Equal("manifest.json", "README.txt", "configs/BepInEx/config/a.cfg", "configs/BepInEx/config/b.cfg");
         // A zip stores wall-clock time; compare that, not the offset the reader attaches.
         archive.Entries.Should().OnlyContain(entry => entry.LastWriteTime.DateTime == new DateTime(1980, 1, 1, 0, 0, 0));
     }

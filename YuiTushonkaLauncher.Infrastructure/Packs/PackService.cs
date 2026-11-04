@@ -39,6 +39,7 @@ public sealed class PackService(
     ILinkAwareFileWriter writer,
     PackReader reader,
     ILogger<PackService> logger,
+    Core.Launch.IInstanceBusyGuard busy,
     TimeProvider? timeProvider = null
 ) : IPackService
 {
@@ -52,6 +53,10 @@ public sealed class PackService(
         CancellationToken cancellationToken = default
     )
     {
+        // Exporting reads config files a running game may be rewriting: the copy would be a torn read, and the package
+        // would claim a hash the file does not have.
+        await busy.EnsureIdleAsync(instanceId, "Exporting", cancellationToken);
+
         options ??= new ExportOptions();
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
 
@@ -176,6 +181,9 @@ public sealed class PackService(
         CancellationToken cancellationToken = default
     )
     {
+        // Importing writes configs and installs mods: a live game would keep the old files open and mix the two states.
+        await busy.EnsureIdleAsync(instanceId, "Importing", cancellationToken);
+
         options ??= new ImportOptions();
         var contents = reader.Read(packagePath);
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
@@ -284,6 +292,17 @@ public sealed class PackService(
                 OriginalSha256 = file.OriginalSha256,
             },
             content
+        );
+    }
+
+    /// <summary>
+    /// Finds the installed file a package config refers to. A package written before the layout became SPT's merged
+    /// root records <c>spt/…</c> and <c>gamefiles/…</c> paths, so the comparison is done on the migrated form.
+    /// </summary>
+    private static InstalledFile? FindFile(InstalledMod owner, string packagePath)
+    {
+        return owner.Files.FirstOrDefault(file =>
+            string.Equals(file.RelativePath, Core.Instances.InstancePaths.LegacyToMerged(packagePath), StringComparison.Ordinal)
         );
     }
 
@@ -538,13 +557,13 @@ public sealed class PackService(
                 : Item(ImportAction.Unavailable, $"'{config.ModGuid}' is not installed and cannot be.");
         }
 
-        var row = owner.Files.FirstOrDefault(file => string.Equals(file.RelativePath, config.Path, StringComparison.Ordinal));
+        var row = FindFile(owner, config.Path);
         if (row is null)
         {
             return Item(ImportAction.Unavailable, $"It is not a file of '{config.ModGuid}', so the package may not write it.");
         }
 
-        var full = Path.Combine(instance.Path, config.Path);
+        var full = Path.Combine(instance.Path, row.RelativePath);
         var current = File.Exists(full) ? FileHash.TryCompute(full) : null;
         var shared = Convert.ToHexStringLower(SHA256.HashData(content));
 
@@ -823,14 +842,14 @@ public sealed class PackService(
             );
 
             // Ownership is checked against what is installed *now*: the package cannot write a file no mod owns.
-            var known = row?.Files.FirstOrDefault(file => string.Equals(file.RelativePath, config.Path, StringComparison.Ordinal));
+            var known = row is null ? null : FindFile(row, config.Path);
             if (row is null || known is null)
             {
                 return Done(ImportOutcome.Failed, $"'{config.Path}' is not a config file of '{config.ModGuid}'; it was not written.");
             }
 
-            var target = PackPathGuard.Resolve(instance.Path, config.Path);
-            progress?.Report($"Writing {config.Path}");
+            var target = PackPathGuard.Resolve(instance.Path, known.RelativePath);
+            progress?.Report($"Writing {known.RelativePath}");
 
             await writer.WriteAllBytesAsync(target, content, cancellationToken);
 

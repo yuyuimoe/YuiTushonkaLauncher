@@ -12,7 +12,7 @@ public sealed class SptServerLocator(IPlatformInfo platform) : ISptServerLocator
     /// <inheritdoc />
     public SptServerLocation Locate(Instance instance)
     {
-        var runtime = Path.Combine(instance.Path, LinkPolicy.RuntimeDirectory(instance.Layout).Replace('/', Path.DirectorySeparatorChar));
+        var runtime = Path.Combine(instance.Path, InstancePaths.RuntimeDirectory(instance.Layout));
         var configPath = Path.Combine(runtime, "SPT_Data", "configs", "http.json");
         var profiles = Path.Combine(runtime, "user", "profiles");
         var problems = new List<ServerProblem>();

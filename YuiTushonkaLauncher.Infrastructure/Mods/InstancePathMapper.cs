@@ -1,107 +1,74 @@
 using YuiTushonkaLauncher.Core.Domain;
+using YuiTushonkaLauncher.Core.Instances;
 
 namespace YuiTushonkaLauncher.Infrastructure.Mods;
 
 /// <summary>
-/// Maps paths from a mod archive onto the instance layout.
+/// Decides which instance path a mod archive entry belongs to.
 /// </summary>
 /// <remarks>
-/// Mod archives are rooted at the <em>game</em> root — <c>BepInEx/…</c>, <c>SPT_Runtime/…</c>,
-/// <c>EscapeFromTarkov_Data/…</c> — while an instance keeps the game under <c>gamefiles/</c> and the
-/// SPT runtime under <c>spt/</c> (the split the official installer and the user's own
-/// <c>create-spt-instance.sh</c> produce). Verified against real archives: Dynamic Maps ships
-/// <c>BepInEx/plugins</c>, <c>SPT_Runtime/user/mods</c> and <c>EscapeFromTarkov_Data/Managed</c> in one
-/// zip, and writing those verbatim would scatter files outside the trees the game reads.
+/// An instance has SPT's merged shape, so an archive rooted at the game root (<c>BepInEx/…</c>,
+/// <c>SPT_Runtime/…</c>, <c>EscapeFromTarkov_Data/…</c>) is already correct: verified against real archives,
+/// where Dynamic Maps ships all three in one zip. The mapper therefore keeps the layout paths as they are and
+/// only normalizes what a sloppy archive adds (a wrapper folder is handled by the installer, a leading slash
+/// here). The split <c>gamefiles/</c>/<c>spt/</c> shape belongs to a base install, never to an instance.
 /// </remarks>
 public static class InstancePathMapper
 {
-    /// <summary>Prefixes that belong to the game half of the instance.</summary>
-    private static readonly string[] GameRoots = ["EscapeFromTarkov_Data/", "MonoBleedingEdge/", "NLog/", "Install_EFT/"];
+    /// <summary>Top-level folders the game and SPT read, which an archive may root itself at.</summary>
+    private static readonly string[] LayoutRoots = ["BepInEx/", "SPT_Runtime/", "SPT/", "EscapeFromTarkov_Data/", "Logs/", "user/"];
 
-    /// <summary>Files that live at the game root but are not under a directory.</summary>
-    private static readonly string[] GameRootFiles = ["EscapeFromTarkov.exe", "UnityPlayer.dll", "Register Game.exe"];
+    /// <summary>Top-level files the game and SPT read.</summary>
+    private static readonly string[] LayoutFiles =
+    [
+        "EscapeFromTarkov.exe",
+        "UnityPlayer.dll",
+        "winhttp.dll",
+        "doorstop_config.ini",
+        ".doorstop_version",
+    ];
 
-    /// <summary>Prefixes that belong to the SPT half of the instance.</summary>
-    private static readonly string[] SptRoots = ["BepInEx/"];
-
-    /// <summary>Files that live at the SPT root but are not under a directory.</summary>
-    private static readonly string[] SptRootFiles = ["winhttp.dll", "doorstop_config.ini", ".doorstop_version"];
-
-    /// <summary>
-    /// Maps an archive-relative path to an instance-relative path.
-    /// </summary>
+    /// <summary>Maps an archive-relative path to an instance-relative path.</summary>
     /// <param name="archiveRelativePath">Path inside the archive, using forward slashes.</param>
     /// <param name="layout">The instance layout, which decides the runtime directory name.</param>
     public static string Map(string archiveRelativePath, InstanceLayout layout)
     {
         var path = archiveRelativePath.Replace('\\', '/').TrimStart('/');
+        var runtime = InstancePaths.RuntimeDirectory(layout);
 
-        // Already instance-relative ("spt/..." checked after the archive roots, because "SPT/..."
-        // would otherwise match case-insensitively and stay uppercase).
-        if (path.StartsWith("gamefiles/", StringComparison.OrdinalIgnoreCase))
-        {
-            return path;
-        }
+        // The wrappers of the installer's split shape, which some archives still carry.
+        path = StripPrefix(path, "gamefiles");
+        path = StripPrefix(path, "spt");
 
-        foreach (var root in GameRoots)
+        // Either runtime name means this instance's runtime.
+        foreach (var other in (string[])["SPT_Runtime", "SPT"])
         {
-            if (path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            var rest = StripPrefix(path, other);
+
+            if (!ReferenceEquals(rest, path))
             {
-                return "gamefiles/" + path;
+                return $"{runtime}/{rest}";
             }
         }
 
-        if (GameRootFiles.Contains(path, StringComparer.OrdinalIgnoreCase))
-        {
-            return "gamefiles/" + path;
-        }
-
-        if (path.StartsWith("SPT_Runtime/", StringComparison.Ordinal))
-        {
-            var rest = path["SPT_Runtime/".Length..];
-            return layout == InstanceLayout.Spt40 ? $"spt/SPT/{rest}" : $"spt/SPT_Runtime/{rest}";
-        }
-
-        if (path.StartsWith("SPT/", StringComparison.Ordinal))
-        {
-            return "spt/" + path;
-        }
-
-        if (path.StartsWith("spt/", StringComparison.OrdinalIgnoreCase))
-        {
-            return path;
-        }
-
-        foreach (var root in SptRoots)
-        {
-            if (path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-            {
-                return "spt/" + path;
-            }
-        }
-
-        if (SptRootFiles.Contains(path, StringComparer.OrdinalIgnoreCase))
-        {
-            return "spt/" + path;
-        }
-
-        if (path.StartsWith("user/", StringComparison.OrdinalIgnoreCase))
-        {
-            // Bare "user/..." means the SPT runtime's user directory.
-            var runtime = layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime";
-            return $"{runtime}/{path}";
-        }
-
-        // Anything else (a README, a bare assembly) is relocated by the caller.
-        return path;
+        // A bare "user/..." means the SPT runtime's user directory.
+        var bare = StripPrefix(path, "user");
+        return ReferenceEquals(bare, path) ? path : $"{InstancePaths.UserDirectory(layout)}/{bare}";
     }
 
     /// <summary>True when the path already belongs somewhere the game reads, so no relocation is needed.</summary>
     public static bool IsLayoutPath(string archiveRelativePath, InstanceLayout layout)
     {
-        var mapped = Map(archiveRelativePath, layout);
-        return mapped.StartsWith("gamefiles/", StringComparison.OrdinalIgnoreCase)
-            || mapped.StartsWith("spt/", StringComparison.OrdinalIgnoreCase);
+        var path = archiveRelativePath.Replace('\\', '/').TrimStart('/');
+
+        return LayoutRoots.Any(root => path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            || LayoutFiles.Contains(path, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Drops <paramref name="prefix" /> when the path starts with it (any case), else returns the path unchanged.</summary>
+    private static string StripPrefix(string path, string prefix)
+    {
+        return path.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase) ? path[(prefix.Length + 1)..] : path;
     }
 
     /// <summary>The default folder name inside <c>BepInEx/plugins</c> or <c>user/mods</c>.</summary>
@@ -119,11 +86,6 @@ public static class InstancePathMapper
     /// <summary>The instance-relative root for a mod of the given kind.</summary>
     public static string ModRoot(ModKind kind, InstanceLayout layout, string folder)
     {
-        return kind == ModKind.Server ? $"{RuntimeDirectory(layout)}/user/mods/{folder}" : $"spt/BepInEx/plugins/{folder}";
-    }
-
-    private static string RuntimeDirectory(InstanceLayout layout)
-    {
-        return layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime";
+        return kind == ModKind.Server ? $"{InstancePaths.UserDirectory(layout)}/mods/{folder}" : $"BepInEx/plugins/{folder}";
     }
 }

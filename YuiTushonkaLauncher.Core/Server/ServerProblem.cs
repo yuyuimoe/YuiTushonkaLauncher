@@ -17,7 +17,9 @@ public enum ServerProblemCode
     RuntimeMissing,
     RuntimeUnverified,
     ListensOnAllInterfaces,
-    DeathSignalUnavailable,
+
+    /// <summary>This machine cannot detach a process, so it would die with the launcher.</summary>
+    DetachUnavailable,
     RuntimeProfileInvalid,
 }
 

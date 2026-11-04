@@ -33,6 +33,11 @@ internal sealed class SettingsRecord
 
     public string? UmuRunPath { get; set; }
 
+    /// <summary>Stored as text: an unknown value from a hand-edited file falls back to keeping the window open.</summary>
+    public string GameStartWindow { get; set; } = "KeepOpen";
+
+    public bool AskBeforeStoppingProcesses { get; set; } = true;
+
     public static SettingsRecord FromSettings(LauncherSettings settings)
     {
         return new SettingsRecord
@@ -46,6 +51,8 @@ internal sealed class SettingsRecord
             FirstRunCompleted = settings.FirstRunCompleted,
             ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots),
             UmuRunPath = settings.UmuRunPath,
+            GameStartWindow = settings.GameStartWindow.ToString(),
+            AskBeforeStoppingProcesses = settings.AskBeforeStoppingProcesses,
         };
     }
 
@@ -62,6 +69,8 @@ internal sealed class SettingsRecord
             FirstRunCompleted = FirstRunCompleted,
             ExtraProtonRoots = ReadRoots(ExtraProtonRoots),
             UmuRunPath = UmuRunPath,
+            GameStartWindow = ReadGameStartWindow(GameStartWindow),
+            AskBeforeStoppingProcesses = AskBeforeStoppingProcesses,
         };
     }
 
@@ -76,6 +85,13 @@ internal sealed class SettingsRecord
         FirstRunCompleted = settings.FirstRunCompleted;
         ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots);
         UmuRunPath = settings.UmuRunPath;
+        GameStartWindow = settings.GameStartWindow.ToString();
+        AskBeforeStoppingProcesses = settings.AskBeforeStoppingProcesses;
+    }
+
+    private static GameStartWindowAction ReadGameStartWindow(string? value)
+    {
+        return Enum.TryParse<GameStartWindowAction>(value, ignoreCase: true, out var action) ? action : GameStartWindowAction.KeepOpen;
     }
 
     private static string[] ReadRoots(string json)

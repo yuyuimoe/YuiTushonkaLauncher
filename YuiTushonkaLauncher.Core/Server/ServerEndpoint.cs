@@ -70,6 +70,12 @@ public sealed partial record ServerEndpoint(string Host, int Port)
     [System.Text.RegularExpressions.GeneratedRegex(@"^https://(?:\[[^\]]+\]|[^/:?#]+):(\d{1,5})(?:[/?#]|$)")]
     private static partial System.Text.RegularExpressions.Regex ExplicitPort();
 
+    /// <summary><c>host:port</c>, the identity of a server for the preferences that belong to one.</summary>
+    public string ToStringKey()
+    {
+        return $"{ConnectHost}:{Port}";
+    }
+
     /// <summary>The port SPT uses unless <c>http.json</c> says otherwise.</summary>
     public const int DefaultPort = 6969;
 }

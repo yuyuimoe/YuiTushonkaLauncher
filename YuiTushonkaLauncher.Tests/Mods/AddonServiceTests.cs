@@ -28,7 +28,7 @@ public sealed class AddonServiceTests
             }
         );
 
-        result.Files.Should().Contain(path => path.StartsWith("spt/BepInEx/plugins/fixture/"));
+        result.Files.Should().Contain(path => path.StartsWith("BepInEx/plugins/fixture/"));
         File.Exists(Path.Combine(context.Instance.Path, result.Files[0])).Should().BeTrue();
 
         await using var verification = context.Database.CreateContext();

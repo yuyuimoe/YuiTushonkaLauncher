@@ -18,4 +18,5 @@ evidence.
 | 9 | **umu `GAMEID`** — profiles use `umu-default`, so umu applies no per-game fixes. | Check whether the umu database has an entry for Tarkov and use it if so. | Q18 |
 | 10 | **Prefix size** — a per-instance prefix is 0.4–0.7 GB. | Decide whether the default stays per-instance, becomes shared, or is cloned copy-on-write. | Q19 |
 | 11 | **Server mods that are not on the Forge** cannot be installed by `--server-sync --apply`; only named. | A user syncing to a server that runs a private mod needs a way to get it, and a release cannot answer "where is it?". | Q16 |
-| 12 | **The `ip` in `http.json`** can be `0.0.0.0` (LAN-reachable). We warn but never change it. | Deciding the default for new instances is a release-time UX decision, not a bug. | Q18 |
+| 12 | **A detached process still inherits the launcher's stdout pipe** (this is why Proton's output is not a log source in phase 11) (kept so a failed start shows its reason). If the launcher dies and the process writes, the write can fail. | Choose between inheriting the pipe (visibility) and a log file the process writes itself; the server and BepInEx already log to files. | Q21 |
+| 13 | **The `ip` in `http.json`** can be `0.0.0.0` (LAN-reachable). We warn but never change it. | Deciding the default for new instances is a release-time UX decision, not a bug. | Q18 |

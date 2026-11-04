@@ -29,6 +29,16 @@ public sealed record LauncherSettings
     /// <summary>A <c>umu-run</c> the user picked (Linux); <c>null</c> means look on <c>PATH</c>.</summary>
     public string? UmuRunPath { get; init; }
 
+    /// <summary>What the window does once the game starts (minimise or close are the two conveniences).</summary>
+    public GameStartWindowAction GameStartWindow { get; init; } = GameStartWindowAction.KeepOpen;
+
+    /// <summary>
+    /// Ask before closing the launcher while its server or game is still running. The processes are detached
+    /// ([D22](../plan/04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted)), so nothing stops by
+    /// itself; the question is the only reminder a user gets.
+    /// </summary>
+    public bool AskBeforeStoppingProcesses { get; init; } = true;
+
     /// <summary>Set once the first-run flow has been completed.</summary>
     public bool FirstRunCompleted { get; init; }
 
@@ -46,6 +56,8 @@ public sealed record LauncherSettings
             && LogRetentionDays == other.LogRetentionDays
             && LogRetentionFiles == other.LogRetentionFiles
             && FirstRunCompleted == other.FirstRunCompleted
+            && GameStartWindow == other.GameStartWindow
+            && AskBeforeStoppingProcesses == other.AskBeforeStoppingProcesses
             && UmuRunPath == other.UmuRunPath
             && ExtraProtonRoots.SequenceEqual(other.ExtraProtonRoots, StringComparer.Ordinal);
     }

@@ -204,8 +204,9 @@ internal static partial class HeadlessCommands
     {
         var instance = FindInstance(services, instanceName);
         var profile = services.GetRequiredService<IRuntimeProfileService>().ResolveForInstanceAsync(instance.Id).GetAwaiter().GetResult();
-        var gameDirectory = Path.Combine(instance.Path, "gamefiles");
-        var program = NullIfEmpty(ValueOf(args, "--exe")) ?? Path.Combine(gameDirectory, "EscapeFromTarkov.exe");
+        // The instance root is SPT's merged root: the game, Doorstop and BepInEx live together there.
+        var gameDirectory = instance.Path;
+        var program = NullIfEmpty(ValueOf(args, "--exe")) ?? Path.Combine(gameDirectory, Core.Instances.InstancePaths.GameExecutable);
 
         var launcher = services.GetRequiredService<IRuntimeLauncher>();
         var plan = launcher.Plan(
@@ -214,7 +215,7 @@ internal static partial class HeadlessCommands
             new RuntimeLaunchRequest
             {
                 Program = program,
-                WorkingDirectory = Path.GetDirectoryName(program) ?? gameDirectory,
+                WorkingDirectory = gameDirectory,
                 LoadsDoorstop = true,
             },
             SearchOptions(services)

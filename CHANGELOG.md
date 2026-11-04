@@ -59,6 +59,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   `--import <file> --instance <name> [--apply]` and `--runtimes`, `--runtime-profile-add`, `--runtime-assign`,
   `--runtime-plan`, `--prefix-init`, `--runtime-run`, `--server-info`, `--server-run`, `--server-profiles`,
   `--server-profile-add|remove|wipe|select`, `--server-port`, `--server-sync`, `--server-stale`.
+- Launch pipeline: `--launch` checks the instance (SPT's merged layout, every file the game needs, the runtime
+  command and the profile), patches only when needed, starts or adopts the server, waits for it, resolves the
+  profile and starts the game detached, reporting each step by name. `--launch-plan` does all of it without
+  starting anything. Patching, restoring and the layout migration refuse while the instance has a running
+  process, naming it, and so do pack export and import.
+- Logs: the launcher reads what SPT writes — the game's per-run folder, `BepInEx/LogOutput.log`, the server's
+  daily file and its own log — by tailing a window at the end, and refuses files above 64 MiB with a message that
+  points at a text editor (one measured session wrote 322 MiB). Export gives exactly the selected lines;
+  `--diagnostics` writes a bundle with versions, instance state, hashes, mods and the last lines of each source;
+  retention gzips rotated files into `archive/` and deletes by age then count, never the file in use.
+- Launch button state machine: `LaunchSession` maps every step to the state a button shows, allows cancelling only
+  until the game starts and offers Stop only once the pair runs.
+- Remembered profile: "always use this profile on this server", stored per instance and per endpoint, so a
+  launch never guesses which profile to open.
 - Server lifecycle: finds the instance's SPT server and its .NET requirement, refuses to start with a named
   reason (missing file, missing runtime, busy port, port claimed by another instance), and starts it with
   readiness by `ping` polling instead of sleeping. Readiness never trusts the exit code, because a busy port

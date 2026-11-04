@@ -24,7 +24,7 @@ public sealed class DeltaSetReaderTests : IDisposable
 
     private string Patches
     {
-        get { return _temp.Combine("instance", "spt", "SPT_Runtime", "SPT_Data", "Launcher", "Patches"); }
+        get { return _temp.Combine("instance", "SPT_Runtime", "SPT_Data", "Launcher", "Patches"); }
     }
 
     [Fact]
@@ -37,27 +37,27 @@ public sealed class DeltaSetReaderTests : IDisposable
     }
 
     [Fact]
-    public void Read_ANestedDelta_ResolvesToTheGameHalfOfTheInstance()
+    public void Read_ANestedDelta_ResolvesToThePathAtTheInstanceRoot()
     {
         WriteDelta("SPT-core/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
 
         var result = _reader.Read(_temp.Combine("instance"), Patches);
 
         var delta = result.Deltas.Should().ContainSingle().Subject;
-        delta.RelativePath.Should().Be("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
-        delta.BackupRelativePath.Should().Be("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak");
+        delta.RelativePath.Should().Be("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+        delta.BackupRelativePath.Should().Be("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak");
         delta.ExpectedInputSize.Should().Be(1000);
         delta.ExpectedOutputSize.Should().Be(1012);
     }
 
     [Fact]
-    public void Read_ADeltaUnderTheRuntimeRoot_ResolvesToTheSptHalf()
+    public void Read_ADeltaUnderTheRuntimeRoot_KeepsTheRuntimeDirectory()
     {
         WriteDelta("SPT-core/SPT_Runtime/whatever.dll");
 
         var result = _reader.Read(_temp.Combine("instance"), Patches);
 
-        result.Deltas.Should().ContainSingle().Which.RelativePath.Should().Be("spt/SPT_Runtime/whatever.dll");
+        result.Deltas.Should().ContainSingle().Which.RelativePath.Should().Be("SPT_Runtime/whatever.dll");
     }
 
     [Fact]

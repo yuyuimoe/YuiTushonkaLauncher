@@ -291,6 +291,9 @@ public sealed class LauncherDbContext(DbContextOptions<LauncherDbContext> option
         server.ToTable("ServerProfiles");
         server.HasKey(row => row.Id);
         server.Property(row => row.BackendUrl).HasMaxLength(512).IsRequired();
+        server.Property(row => row.RememberedProfileId).HasMaxLength(64);
+        server.Property(row => row.RememberedProfileUsername).HasMaxLength(64);
+        server.Property(row => row.RememberedForEndpoint).HasMaxLength(300);
         server.Property(row => row.LastProfileId).HasMaxLength(64);
         server.HasIndex(row => row.InstanceId).IsUnique();
         server

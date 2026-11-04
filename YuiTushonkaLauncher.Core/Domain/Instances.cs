@@ -169,5 +169,20 @@ public sealed class ServerProfile
     /// <summary>Profile id last used with this instance.</summary>
     public string? LastProfileId { get; set; }
 
+    /// <summary>
+    /// The profile to use without asking, chosen with "always use this profile on this server". <c>null</c> means
+    /// the launcher asks at every launch.
+    /// </summary>
+    public string? RememberedProfileId { get; set; }
+
+    /// <summary>The remembered profile's name, for a launcher that has to ask the server nothing to show it.</summary>
+    public string? RememberedProfileUsername { get; set; }
+
+    /// <summary>
+    /// The server the choice belongs to (<c>host:port</c>). A profile is per server, so pointing an instance at
+    /// another server drops the preference instead of reusing a name that may not exist there.
+    /// </summary>
+    public string? RememberedForEndpoint { get; set; }
+
     public DateTimeOffset UpdatedAt { get; set; }
 }

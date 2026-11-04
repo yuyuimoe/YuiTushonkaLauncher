@@ -40,7 +40,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
 
     private readonly IProcessInspector _inspector;
 
-    private readonly ServerPidStore _pidStore;
+    private readonly IInstanceRunStore _runStore;
 
     private readonly TimeProvider _time;
 
@@ -56,7 +56,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         IRuntimeProfileService profiles,
         IInstanceService instances,
         IProcessInspector inspector,
-        ServerPidStore pidStore,
+        IInstanceRunStore runStore,
         TimeProvider time,
         ILogger<SptServerSupervisor> logger
     )
@@ -70,7 +70,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         _profiles = profiles;
         _instances = instances;
         _inspector = inspector;
-        _pidStore = pidStore;
+        _runStore = runStore;
         _time = time;
         _logger = logger;
     }
@@ -105,14 +105,13 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             await CheckPortAsync(instance, location, problems, cancellationToken);
         }
 
-        if (!_spawner.TiesChildrenToLauncher)
+        if (_spawner.Mechanism == RunMechanism.None)
         {
             problems.Add(
                 new ServerProblem(
                     RuntimeProblemSeverity.Warning,
-                    ServerProblemCode.DeathSignalUnavailable,
-                    "This machine cannot tie the server to the launcher ('setpriv' is missing): if the launcher crashes the server keeps running "
-                        + "and is stopped the next time the launcher starts."
+                    ServerProblemCode.DetachUnavailable,
+                    "This machine offers neither 'systemd-run' nor 'setsid', so the server cannot be detached: it will die with the launcher."
                 )
             );
         }
@@ -196,7 +195,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             if (child is null || child.HasExited)
             {
                 entry.Child = null;
-                _pidStore.Delete(instanceId);
+                ForgetServer(instanceId);
 
                 if (entry.Status.State is ServerState.Starting or ServerState.Running or ServerState.Stopping)
                 {
@@ -223,7 +222,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
 
             var exitCode = child.Exited.IsCompletedSuccessfully ? child.Exited.Result : (int?)null;
             entry.Child = null;
-            _pidStore.Delete(instanceId);
+            ForgetServer(instanceId);
             Publish(entry, entry.Status with { State = ServerState.Stopped, ProcessId = null, ExitCode = exitCode });
             return entry.Status;
         }
@@ -247,84 +246,22 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         return _entries.TryGetValue(instanceId, out var entry) ? entry.Lines.Last(maxLines) : [];
     }
 
-    /// <inheritdoc />
-    public Task<IReadOnlyList<StaleServer>> FindStaleAsync(CancellationToken cancellationToken = default)
-    {
-        var stale = new List<StaleServer>();
-
-        foreach (var record in _pidStore.ReadAll())
-        {
-            if (
-                record.LauncherProcessId == Environment.ProcessId
-                || _entries.ContainsKey(record.InstanceId) && GetStatus(record.InstanceId).ProcessId == record.ProcessId
-            )
-            {
-                continue;
-            }
-
-            var identity = _inspector.Find(record.ProcessId);
-
-            // The record outlived its server, or the pid now belongs to an unrelated process: either way it is not ours to stop.
-            if (identity is null || !SameProcess(record, identity))
-            {
-                _pidStore.Delete(record.InstanceId);
-                continue;
-            }
-
-            // Another launcher that is still alive owns this server; only a dead launcher leaves a leftover.
-            if (_inspector.IsAlive(record.LauncherProcessId))
-            {
-                continue;
-            }
-
-            stale.Add(new StaleServer(record.InstanceId, record.ProcessId, record.ExecutablePath, record.Port, record.StartedAt));
-        }
-
-        return Task.FromResult<IReadOnlyList<StaleServer>>(stale);
-    }
-
-    /// <inheritdoc />
-    public async Task<int> ReapStaleAsync(CancellationToken cancellationToken = default)
-    {
-        var stopped = 0;
-
-        foreach (var server in await FindStaleAsync(cancellationToken))
-        {
-            if (await _inspector.StopAsync(server.ProcessId, StaleGrace, cancellationToken))
-            {
-                _pidStore.Delete(server.InstanceId);
-                stopped++;
-            }
-            else
-            {
-                _logger.LogWarning("The leftover server {Process} could not be stopped", server.ProcessId);
-            }
-        }
-
-        return stopped;
-    }
-
     public void Dispose()
     {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // Nothing is stopped here on purpose ([D22]): the server is detached, so closing the launcher must leave it
+        // running (the user is told by the close dialog, and --stale finds it if the launcher dies). The entry only
+        // releases what it holds in memory.
+        foreach (var entry in _entries.Values)
+        {
+            entry.Cancellation?.Dispose();
+            entry.Gate.Dispose();
+        }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        // Closing the launcher stops the servers it started, gracefully and in parallel.
-        await Task.WhenAll(_entries.Keys.Select(id => StopQuietlyAsync(id)));
-    }
-
-    private async Task StopQuietlyAsync(Guid instanceId)
-    {
-        try
-        {
-            await StopAsync(instanceId, TimeSpan.FromSeconds(5));
-        }
-        catch (Exception exception) when (exception is OperationCanceledException or InvalidOperationException)
-        {
-            _logger.LogWarning(exception, "Stopping the server of instance {Instance} on shutdown failed", instanceId);
-        }
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     private async Task<ServerStatus> StartCoreAsync(
@@ -404,7 +341,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             child.Kill();
             await WaitBoundedAsync(child.Exited);
             entry.Child = null;
-            _pidStore.Delete(entry.InstanceId);
+            ForgetServer(entry.InstanceId);
             Publish(
                 entry,
                 entry.Status with
@@ -422,7 +359,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             child.Kill();
             await WaitBoundedAsync(child.Exited);
             entry.Child = null;
-            _pidStore.Delete(entry.InstanceId);
+            ForgetServer(entry.InstanceId);
             Publish(entry, entry.Status with { State = ServerState.Stopped, ProcessId = null });
             throw;
         }
@@ -448,7 +385,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             }
 
             entry.Child = null;
-            _pidStore.Delete(entry.InstanceId);
+            ForgetServer(entry.InstanceId);
 
             var reason = $"The server exited on its own with code {code}." + LastLinesText(entry);
             _logger.LogWarning("Server of '{Instance}': {Reason}", entry.InstanceName, reason);
@@ -545,7 +482,8 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             problems.Add(
                 Error(
                     ServerProblemCode.PortBusy,
-                    $"Port {port} is already in use by another program. Stop it, or give this instance another port (next free: {await SuggestAsync(port, cancellationToken)})."
+                    $"Port {port} is already in use by another program. Stop it, give this instance another port (next free: {await SuggestAsync(port, cancellationToken)}), "
+                        + "or run --stale to check whether a server of a previous session is still running."
                 )
             );
             return;
@@ -616,14 +554,23 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
     {
         try
         {
-            _pidStore.Write(
-                new ServerPidRecord(
-                    entry.InstanceId,
-                    child.ProcessId,
-                    child.StartedAt,
-                    plan.Location.ExecutablePath ?? string.Empty,
-                    plan.Location.Endpoint.Port,
-                    Environment.ProcessId
+            var previous = _runStore.Find(entry.InstanceId);
+            var run = (previous ?? new InstanceRun { InstanceId = entry.InstanceId, InstanceName = instance.Name }) with
+            {
+                InstanceName = instance.Name,
+                LauncherProcessId = Environment.ProcessId,
+            };
+
+            _runStore.Save(
+                run.WithServer(
+                    new RunProcess(
+                        child.ProcessId,
+                        child.StartedAt,
+                        plan.Location.ExecutablePath ?? string.Empty,
+                        _spawner.Mechanism,
+                        plan.Location.Endpoint.Port,
+                        child.Scope
+                    )
                 )
             );
         }
@@ -631,10 +578,29 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         {
             _logger.LogWarning(
                 exception,
-                "The server record of '{Instance}' could not be written; a crash would leave no trace of it",
+                "The run record of '{Instance}' could not be written; a crash would leave no trace of it",
                 instance.Name
             );
         }
+    }
+
+    /// <summary>Removes the server from the run record, keeping the game half if the game is still recorded.</summary>
+    private void ForgetServer(Guid instanceId)
+    {
+        var run = _runStore.Find(instanceId);
+
+        if (run is null)
+        {
+            return;
+        }
+
+        if (run.Game is null)
+        {
+            _runStore.Forget(instanceId);
+            return;
+        }
+
+        _runStore.Save(run.WithServer(null));
     }
 
     private void Publish(Entry entry, ServerStatus status)
@@ -660,14 +626,6 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
     private static async Task WaitBoundedAsync(Task task)
     {
         await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5)));
-    }
-
-    private static bool SameProcess(ServerPidRecord record, ProcessIdentity identity)
-    {
-        var sameStart = Math.Abs((identity.StartedAt - record.StartedAt).TotalSeconds) < 2;
-        var sameFile =
-            identity.ExecutablePath is null || string.Equals(identity.ExecutablePath, record.ExecutablePath, StringComparison.Ordinal);
-        return sameStart && sameFile;
     }
 
     private static bool Satisfies(FrameworkRequirement installed, FrameworkRequirement required)

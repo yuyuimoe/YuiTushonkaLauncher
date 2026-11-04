@@ -6,9 +6,10 @@ using YuiTushonkaLauncher.Core.Runtime;
 namespace YuiTushonkaLauncher.Infrastructure.Server;
 
 /// <summary>
-/// Starts child processes that end with the launcher. Linux: <c>setpriv --pdeathsig TERM</c> in front of the
-/// command, started from a thread that never ends (<see cref="SpawnThread" />); the child gets SIGTERM, so a
-/// server still saves, even when the launcher is killed. Windows: a job object that kills on close.
+/// Starts the processes of a run and detaches them, so the launcher's own death does not take them
+/// (see <c>docs/plan/04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted</c>): a systemd user
+/// scope when there is one, otherwise a new session through <c>setsid</c>, otherwise a plain child. Windows uses a
+/// job object the launcher does not own, plus <c>CREATE_BREAKAWAY_FROM_JOB</c>.
 /// </summary>
 public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAsyncDisposable
 {
@@ -16,32 +17,69 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
 
     private readonly ILogger<ChildProcessSpawner> _logger;
 
-    private readonly string? _setpriv;
-
     private readonly SpawnThread _spawnThread = new();
 
     private readonly object _jobLock = new();
 
     private IDisposable? _job;
 
-    public ChildProcessSpawner(IPlatformInfo platform, IExecutableFinder finder, ILogger<ChildProcessSpawner> logger)
+    public ChildProcessSpawner(IPlatformInfo platform, IExecutableFinder finder, IProcessRunner runner, ILogger<ChildProcessSpawner> logger)
     {
         _platform = platform;
         _logger = logger;
-        _setpriv = platform.IsLinux ? finder.Find("setpriv") : null;
+
+        var systemdRun = platform.IsLinux ? finder.Find("systemd-run") : null;
+        var setsid = platform.IsLinux ? finder.Find("setsid") : null;
+
+        Strategy = DetachStrategy.Choose(
+            platform.IsLinux,
+            systemdRun,
+            systemdRun is not null && SystemdUserIsRunning(runner, systemdRun),
+            setsid
+        );
+
+        if (platform.IsLinux && Strategy.Mechanism == RunMechanism.None)
+        {
+            _logger.LogWarning("Neither 'systemd-run' nor 'setsid' is available: a process started now dies with the launcher.");
+        }
     }
 
+    /// <summary>What this machine can do, decided once from what is installed.</summary>
+    public DetachStrategy Strategy { get; }
+
     /// <inheritdoc />
-    public bool TiesChildrenToLauncher
+    public RunMechanism Mechanism
     {
-        get { return _platform.IsWindows || _setpriv is not null; }
+        get { return Strategy.Mechanism; }
     }
 
     /// <inheritdoc />
     public IChildProcess Start(ChildProcessStart request)
     {
-        // Wait for the spawner thread, not the pool: the child's lifetime is tied to the thread that creates it.
+        // The wrapper is started from this one thread and never handed to the pool: a scope or a session inherits the
+        // thread that created it, and a pool thread can be retired mid-flight.
         return _spawnThread.RunAsync(() => StartOnSpawnThread(request)).GetAwaiter().GetResult();
+    }
+
+    /// <summary>Asks systemd whether a user instance answers; a missing user manager means scopes are not usable.</summary>
+    private static bool SystemdUserIsRunning(IProcessRunner runner, string systemdRun)
+    {
+        try
+        {
+            var result = runner
+                .RunAsync(
+                    new LaunchCommand { FileName = systemdRun, Arguments = ["--user", "--scope", "--quiet", "true"] },
+                    timeout: TimeSpan.FromSeconds(10)
+                )
+                .GetAwaiter()
+                .GetResult();
+
+            return result.ExitCode == 0;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
     }
 
     public void Dispose()
@@ -66,21 +104,27 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
         var fileName = command.FileName;
         var arguments = command.Arguments.ToList();
 
-        if (_setpriv is not null)
+        // A named unit is what makes the process findable after it forks: the pid of a wrapper is not the pid of the game.
+        var unit = Strategy.Mechanism == RunMechanism.SystemdScope ? $"ytt-{Guid.NewGuid():n}" : null;
+
+        if (Strategy.Program is { } wrapper)
         {
             arguments.Insert(0, fileName);
-            arguments.InsertRange(0, ["--pdeathsig", "TERM"]);
-            fileName = _setpriv;
-        }
-        else if (_platform.IsLinux)
-        {
-            _logger.LogWarning("'setpriv' was not found: a server started now can outlive a launcher that crashes.");
+            arguments.InsertRange(0, Strategy.Arguments);
+
+            if (unit is not null)
+            {
+                arguments.InsertRange(0, [$"--unit={unit}"]);
+            }
+
+            fileName = wrapper;
         }
 
         var info = new ProcessStartInfo(fileName)
         {
             UseShellExecute = false,
             CreateNoWindow = true,
+
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -111,7 +155,7 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
             AssignToJob(process);
         }
 
-        return new ManagedChild(process, request.OnOutput);
+        return new ManagedChild(process, request.OnOutput) { Mechanism = Strategy.Mechanism, Scope = unit };
     }
 
     [SupportedOSPlatform("windows")]
@@ -138,6 +182,12 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
 /// <summary>A started process with its output pumped to a callback.</summary>
 internal sealed class ManagedChild : IChildProcess
 {
+    /// <summary>How this child was detached; the store records it so the UI can explain what outlives what.</summary>
+    public RunMechanism Mechanism { get; init; }
+
+    /// <summary>The systemd unit, when the scope mechanism was used.</summary>
+    public string? Scope { get; init; }
+
     private readonly Process _process;
 
     private volatile bool _hasExited;

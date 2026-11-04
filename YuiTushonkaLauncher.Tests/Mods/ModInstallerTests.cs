@@ -88,10 +88,10 @@ public sealed class ModInstallerTests : IAsyncLifetime
         result.Kind.Should().Be(ModKind.Client);
         result.Version.Should().Be(SemanticVersion.Parse("1.4.2"));
         result.Recognition.Should().Be(ModRecognition.Recognized);
-        result.Files.Should().Contain("spt/BepInEx/plugins/fixture/FixturePlugin.dll");
-        result.ConfigFiles.Should().Contain("spt/BepInEx/config/com.fixture.clientmod.cfg");
+        result.Files.Should().Contain("BepInEx/plugins/fixture/FixturePlugin.dll");
+        result.ConfigFiles.Should().Contain("BepInEx/config/com.fixture.clientmod.cfg");
 
-        var installed = Path.Combine(_instance.Path, "spt/BepInEx/plugins/fixture/FixturePlugin.dll");
+        var installed = Path.Combine(_instance.Path, "BepInEx/plugins/fixture/FixturePlugin.dll");
         File.Exists(installed).Should().BeTrue();
 
         await using var context = _database.CreateContext();
@@ -110,8 +110,8 @@ public sealed class ModInstallerTests : IAsyncLifetime
 
         result.Guid.Should().Be("com.fixture.servermod");
         result.Kind.Should().Be(ModKind.Server);
-        result.Files.Should().Contain("spt/SPT_Runtime/user/mods/fixture/FixtureServer.dll");
-        File.Exists(Path.Combine(_instance.Path, "spt/SPT_Runtime/user/mods/fixture/FixtureServer.dll")).Should().BeTrue();
+        result.Files.Should().Contain("SPT_Runtime/user/mods/fixture/FixtureServer.dll");
+        File.Exists(Path.Combine(_instance.Path, "SPT_Runtime/user/mods/fixture/FixtureServer.dll")).Should().BeTrue();
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class ModInstallerTests : IAsyncLifetime
 
         var result = await _installer.InstallAsync(Request(archive.Path));
 
-        result.Files.Should().Contain("spt/BepInEx/plugins/fixture/FixturePlugin.dll");
+        result.Files.Should().Contain("BepInEx/plugins/fixture/FixturePlugin.dll");
         result.Files.Should().NotContain(path => path.Contains("Fixture-1.0"));
     }
 
@@ -186,7 +186,7 @@ public sealed class ModInstallerTests : IAsyncLifetime
 
         await _installer.UninstallAsync(_instance.Id, "com.fixture.clientmod");
 
-        File.Exists(Path.Combine(_instance.Path, "spt/BepInEx/plugins/fixture/FixturePlugin.dll")).Should().BeFalse();
+        File.Exists(Path.Combine(_instance.Path, "BepInEx/plugins/fixture/FixturePlugin.dll")).Should().BeFalse();
         await using var context = _database.CreateContext();
         (await context.InstalledMods.CountAsync()).Should().Be(0);
     }
@@ -244,14 +244,14 @@ public sealed class ModInstallerTests : IAsyncLifetime
         var clean = await _integrity.VerifyAsync(_instance.Id);
         clean.IsClean.Should().BeTrue();
 
-        await File.WriteAllTextAsync(Path.Combine(_instance.Path, "spt/BepInEx/config/com.fixture.clientmod.cfg"), "[Edited]");
-        File.Delete(Path.Combine(_instance.Path, "spt/BepInEx/plugins/fixture/FixturePlugin.dll"));
+        await File.WriteAllTextAsync(Path.Combine(_instance.Path, "BepInEx/config/com.fixture.clientmod.cfg"), "[Edited]");
+        File.Delete(Path.Combine(_instance.Path, "BepInEx/plugins/fixture/FixturePlugin.dll"));
 
         var report = await _integrity.VerifyAsync(_instance.Id);
 
         report.IsClean.Should().BeFalse();
-        report.Mods.Single().ModifiedConfigs.Should().Contain("spt/BepInEx/config/com.fixture.clientmod.cfg");
-        report.DriftedPaths.Should().Contain("spt/BepInEx/plugins/fixture/FixturePlugin.dll");
+        report.Mods.Single().ModifiedConfigs.Should().Contain("BepInEx/config/com.fixture.clientmod.cfg");
+        report.DriftedPaths.Should().Contain("BepInEx/plugins/fixture/FixturePlugin.dll");
     }
 
     [Fact]

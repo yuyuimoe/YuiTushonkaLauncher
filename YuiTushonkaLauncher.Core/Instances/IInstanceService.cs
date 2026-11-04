@@ -15,8 +15,22 @@ public sealed record InstanceCreationRequest
     public required string BaseInstallPath { get; init; }
 }
 
-/// <summary>One entry of the plan: what happens to a path and how big it is.</summary>
-public sealed record InstancePlanEntry(string RelativePath, LinkAction Action, long SizeBytes);
+/// <summary>One entry of the plan: what happens to a path, where it lands, and how big it is.</summary>
+/// <param name="RelativePath">Path relative to the base install.</param>
+/// <param name="Action">What the builder does with it.</param>
+/// <param name="SizeBytes">Size, counted only for copies.</param>
+/// <param name="DestinationPath">
+/// Path relative to the instance, when it differs from <paramref name="RelativePath" />: a split base is
+/// unwrapped (<c>gamefiles/x</c> and <c>spt/x</c> both land at <c>x</c>).
+/// </param>
+public sealed record InstancePlanEntry(string RelativePath, LinkAction Action, long SizeBytes, string? DestinationPath = null)
+{
+    /// <summary>Where the entry lands in the instance; the base path itself when the plan did not say.</summary>
+    public string Destination
+    {
+        get { return DestinationPath ?? RelativePath; }
+    }
+}
 
 /// <summary>The pre-flight result: what would be linked, copied or skipped, and what would fail.</summary>
 public sealed record InstancePlan
@@ -27,8 +41,11 @@ public sealed record InstancePlan
 
     public IReadOnlyList<InstancePlanEntry> Entries { get; init; } = [];
 
-    /// <summary>Directories created empty (per-instance state).</summary>
+    /// <summary>Directories created empty (per-instance state), relative to the instance.</summary>
     public IReadOnlyList<string> Directories { get; init; } = [];
+
+    /// <summary>Shape of the base install the plan was made from.</summary>
+    public InstallShape BaseShape { get; init; }
 
     public IReadOnlyList<string> Warnings { get; init; } = [];
 
