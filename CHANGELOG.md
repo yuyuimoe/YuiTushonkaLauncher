@@ -59,6 +59,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   `--import <file> --instance <name> [--apply]` and `--runtimes`, `--runtime-profile-add`, `--runtime-assign`,
   `--runtime-plan`, `--prefix-init`, `--runtime-run`, `--server-info`, `--server-run`, `--server-profiles`,
   `--server-profile-add|remove|wipe|select`, `--server-port`, `--server-sync`, `--server-stale`.
+- Launch pipeline: `--launch` checks the instance (SPT's merged layout, every file the game needs, the runtime
+  command and the profile), patches only when needed, starts or adopts the server, waits for it, resolves the
+  profile and starts the game detached, reporting each step by name. `--launch-plan` does all of it without
+  starting anything. Patching, restoring and the layout migration refuse while the instance has a running
+  process, naming it.
+- Remembered profile: "always use this profile on this server", stored per instance and per endpoint, so a
+  launch never guesses which profile to open.
 - Server lifecycle: finds the instance's SPT server and its .NET requirement, refuses to start with a named
   reason (missing file, missing runtime, busy port, port claimed by another instance), and starts it with
   readiness by `ping` polling instead of sleeping. Readiness never trusts the exit code, because a busy port

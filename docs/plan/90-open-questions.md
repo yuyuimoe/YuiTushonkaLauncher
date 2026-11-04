@@ -121,3 +121,11 @@ Everything still unresolved, with who/what resolves it.
     the pid it reports is the wrapped program (measured), so stop and adoption work. Whether to switch to
     `--no-block` (true reparenting to the scope, no waiting) is worth a measurement on a slow machine before
     it is changed.
+
+23. **Export does not use the busy guard yet.** Import and export read and write the files a live game may be
+    using (a config the game rewrites on exit). Patching, restoring and the layout migration refuse; export
+    should too, and it is a one-line guard away — decide in 11.3, where the pack code is touched anyway.
+24. **A busy port that belongs to our own untracked server.** Measured: deleting the run record leaves a
+    detached server nobody can adopt, and the launch then says "port already in use". The message now suggests
+    `--stale`; whether the launcher should also scan for a process whose executable is the instance's server
+    (an adoption without a record) is open.

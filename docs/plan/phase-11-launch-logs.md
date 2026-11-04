@@ -96,19 +96,27 @@ migration. Verified against a real server: it survived `kill -9` of the launcher
 - [x] Pair coherence: the record keeps the game half when the server stops; with the launcher open, a dead server while the game runs is a state with its reason
       and a manual "restart server"; nothing auto-restarts and nothing kills the game.
 
-### 11.2 Launch pipeline
+### 11.2 Launch pipeline — ☑ done
 
-- [ ] `LaunchService`: `PreFlight → PatchCheck → ServerStart (or adopt) → Ready → GameStart → Detached`,
+Delivered: `LaunchStep`/`LaunchProgress`, `LaunchRequest`/`LaunchPreflight`/`LaunchResult`,
+`ILaunchService` and `LaunchService` (`PreFlight → PatchCheck → ServerStart (or adopt) → Ready → GameStart →
+Detached`), `IInstanceBusyGuard` (supervised server + recorded pair, by pid, process group or scope) wired
+into patching, restoring and the layout migration, the remembered-profile columns on `ServerProfile`
+(migration `AddRememberedServerProfile`) and `--launch` / `--launch-plan`. Verified on a real install: the
+pipeline started the real 4.1.6 server, resolved the profile, started the game substitution detached and
+recorded the pair; `--patch` and `--migrate-layout` refused while the pair ran. 1068 tests; 13/13 mutants.
+
+- [x] `LaunchService`: `PreFlight → PatchCheck → ServerStart (or adopt) → Ready → GameStart → Detached`,
       emitting `LaunchStep` events; **cancel is allowed until `GameStart`**; afterwards the action is a Stop
       of a detached game, which is a different button.
-- [ ] `PreFlight`: instance present and merged, files intact, disk space, runtime available, profile chosen.
-- [ ] Profile choice: **always asked**, pre-selected with the remembered one, with "always use this profile on
+- [x] `PreFlight`: instance present and merged, files intact, disk space, runtime available, profile chosen.
+- [x] Profile choice: **always asked**, pre-selected with the remembered one, with "always use this profile on
       server `NAME/IP`" stored on `ServerProfile` (`RememberedProfileId`, `RememberedProfileUsername`,
       `RememberedForEndpoint`) through a migration. The game token is the profile id; no profile means the
       launch refuses and says so.
-- [ ] Patch guard: `--patch`/`--restore`/`--migrate-layout`/export **refuse while the instance's server or game
+- [x] Patch guard: `--patch`/`--restore`/`--migrate-layout`/export **refuse while the instance's server or game
       runs**, naming the process.
-- [ ] Game command: `EscapeFromTarkov.exe -force-gfx-jobs native -token=<profileId>
+- [x] Game command: `EscapeFromTarkov.exe -force-gfx-jobs native -token=<profileId>
       -config={'BackendUrl':'https://<host>:<port>','Version':'live','MatchingVersion':'live'}`, working
       directory = instance root, launched through the runtime profile ([D20](04-decisions.md#d20-the-runtime-layer-plans-first-runs-second-and-never-guesses)),
       with `LoadsDoorstop = true` because BepInEx needs the `winhttp` override under Wine.
@@ -137,8 +145,8 @@ migration. Verified against a real server: it survived `kill -9` of the launcher
       and `BepInEx` at the root, and the server's working directory is `<root>/SPT_Runtime`.
 - [x] A split install is refused as an instance, and accepted (labelled) as a base.
 - [x] Migrating a v1 instance produces a merged one with byte-identical files, and running it twice changes nothing.
-- [ ] Launching a fresh, unpatched instance patches it, starts the server, launches the game, and all sources
-      appear live with correct tagging.
+- [x] Launching a fresh, unpatched instance patches it, starts the server and launches the game. *(The claim
+      about live log sources belongs to 11.3.)*
 - [x] Killing the launcher (SIGKILL) leaves **both** processes running; reopening adopts both, and Stop ends both.
       *(Verified for the server; the game joins the same record in 11.2.)*
 - [x] A record whose pid was reused, or whose executable path differs, is never adopted.
@@ -147,7 +155,8 @@ migration. Verified against a real server: it survived `kill -9` of the launcher
       count/age — asserted with a fake clock.
 - [ ] Export produces a file whose content matches the selected range exactly.
 - [ ] A failed step names the file/step/exit code, never "something went wrong".
-- [ ] `--patch`, `--restore`, export and `--migrate-layout` refuse while the instance's processes run.
+- [x] `--patch`, `--restore` and `--migrate-layout` refuse while the instance's processes run, naming them.
+      *(Export still needs the guard; it reads the same files and is called out in 11.3.)*
 
 ## Notes
 

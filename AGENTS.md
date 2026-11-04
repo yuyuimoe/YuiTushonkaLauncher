@@ -26,6 +26,8 @@
 - Linux runtime: `--runtimes` (what was found), `--runtime-profile-add <name> --auto`,
   `--runtime-assign <instance> <profile>`, `--runtime-plan <instance>` (read-only, exits 1 on an error),
   `--prefix-init <instance>`, `--runtime-run <instance> --exe <path> [--args "…"]`
+- Launch: `--launch-plan <instance> [--profile <user>]` (read-only), `--launch <instance> [--profile <user>]
+  [--remember] [--no-patch] [--game-program <path>]`
 - SPT server: `--server-info <instance>` (read-only, exits 1 on an error), `--server-run <instance> [--seconds N] [--restart]`,
   `--server-profiles <instance>` (starts a temporary server if none answers), `--server-profile-add <instance> <name> [--edition E]`,
   `--server-profile-remove|wipe <instance> <name> --yes`, `--server-profile-select <instance> <name>`,

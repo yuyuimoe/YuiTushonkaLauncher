@@ -445,3 +445,18 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   `--stale --reap` stopped it with SIGTERM (graceful, exit 0).
 - A `setsid` child ends up in its own session (session id differs from the launcher's), which is what makes
   a plain-child death signal irrelevant.
+
+### The launch pipeline on a real install (2026-11-04)
+
+- `--launch v1 --profile yui` on a freshly created merged instance: `PreFlight`, `PatchCheck` (already
+  patched), `ServerStart` (2.6 s), `Ready`, `GameStart`, `Detached`, total **2.7 s**, with the game receiving
+  `-force-gfx-jobs native -token=<profileId> -config={'BackendUrl':'https://127.0.0.1:6969',…}`.
+- **A scope keeps what a pid cannot**: the game substitution (`/bin/sh`) forked, so the recorded pid could
+  die while the work lived on. With `--unit=ytt-<id>` the unit is the durable identity:
+  `systemctl --user is-active ytt-<id>` said **active**, `list-units` showed it running, and
+  `systemctl --user kill --signal=TERM` stopped the whole tree. Without the `.scope` suffix, `is-active`
+  looks for a `.service` and reports a scope as inactive — measured.
+- `--stale` then reported both members as `Running` with `[SystemdScope]`, and `--stale --reap` stopped
+  both and the units disappeared.
+- A detached server left without its record is invisible to the launcher: the next launch says the port is
+  in use. Worth remembering before deleting anything in `<data>/run/`.
