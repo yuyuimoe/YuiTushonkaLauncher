@@ -49,7 +49,17 @@ public sealed class ModUpdateService(IUnitOfWork unitOfWork, IForgeClient forge,
                 Decision = UpdateDecision.UpToDate,
             };
 
-            if (mod.IsPinned && !includePinned)
+            if (mod.Recognition is ModRecognition.Unrecognized or ModRecognition.GuidMissing)
+            {
+                // Invariant 7: an unrecognised mod is never auto-updated. Its GUID may collide with a Forge entry that is
+                // not this mod, so offering that version would install someone else's files.
+                status = status with
+                {
+                    Decision = UpdateDecision.Unrecognized,
+                    Reason = "The launcher could not confirm which mod this is, so it is not updated automatically.",
+                };
+            }
+            else if (mod.IsPinned && !includePinned)
             {
                 status = status with
                 {

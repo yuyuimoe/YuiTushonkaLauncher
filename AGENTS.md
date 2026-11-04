@@ -36,6 +36,9 @@
 - UI: `--lang pt-BR`; the shell is `ShellViewModel` (rail + launch panel + status bar), one page per feature,
   `IDialogService` for every window (fakeable), `JsonLocalizer` for every string. Views are registered only in
   `App.axaml` — a new page needs a `DataTemplate` there or it renders blank.
+- QA: `dotnet run --project tools/YuiTushonkaLauncher.Tools.CoverageGate -c Release -- --report TestResults --min 90`
+  (CI runs this), `python3 tools/mutation-check.py [--only NAME]` (one mutant per fresh process, refuses to judge on a
+  test-count change), invariants in `YuiTushonkaLauncher.Tests/Qa/InvariantTests.cs`, numbers in `docs/qa/`.
 - Logs: `--logs <instance> [--kind game|server|bepinex|launcher] [--lines N] [--export FILE]`,
   `--diagnostics <instance> [--output FILE]`, `--logs-prune`
 - Open points that must close before 1.0: `docs/plan/91-before-1.0.md`; deliberately postponed:
