@@ -10,7 +10,7 @@ namespace YuiTushonkaLauncher.Core.Patching;
 /// </remarks>
 public sealed record DeltaDescriptor
 {
-    /// <summary>Instance-relative path of the file the delta rewrites (<c>gamefiles/…</c>).</summary>
+    /// <summary>Instance-relative path of the file the delta rewrites (<c>EscapeFromTarkov_Data/…</c>).</summary>
     public required string RelativePath { get; init; }
 
     /// <summary>Absolute path of the <c>.delta</c> file.</summary>
@@ -38,7 +38,7 @@ public static class DeltaSetLocation
     /// <summary>Instance-relative directory holding the deltas.</summary>
     public static string RelativePatchesDirectory(Domain.InstanceLayout layout)
     {
-        return Path.Combine(Instances.LinkPolicy.RuntimeDirectory(layout), "SPT_Data", "Launcher", "Patches").Replace('\\', '/');
+        return Instances.InstancePaths.PatchDirectory(layout);
     }
 
     /// <summary>Absolute directory holding the deltas of <paramref name="instanceRoot" />.</summary>
