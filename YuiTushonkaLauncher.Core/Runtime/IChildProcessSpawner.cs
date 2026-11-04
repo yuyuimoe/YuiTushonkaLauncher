@@ -1,0 +1,61 @@
+namespace YuiTushonkaLauncher.Core.Runtime;
+
+/// <summary>What to start as a long-running child that lives and dies with the launcher.</summary>
+public sealed record ChildProcessStart
+{
+    public required LaunchCommand Command { get; init; }
+
+    /// <summary>Receives every line of stdout and stderr as it is written.</summary>
+    public Action<ProcessLine>? OnOutput { get; init; }
+}
+
+/// <summary>A running child process.</summary>
+public interface IChildProcess
+{
+    int ProcessId { get; }
+
+    DateTimeOffset StartedAt { get; }
+
+    /// <summary>True from the moment the process ends. <see cref="Exited" /> completes a little later, after the last output was read.</summary>
+    bool HasExited { get; }
+
+    /// <summary>Completes with the exit code once the process is gone and its output was read.</summary>
+    Task<int> Exited { get; }
+
+    /// <summary>Asks the process to shut down cleanly (SIGTERM). On Windows there is no clean request for a console process.</summary>
+    void RequestStop();
+
+    /// <summary>Kills the process and everything it started.</summary>
+    void Kill();
+}
+
+/// <summary>
+/// Starts child processes tied to the launcher: when the launcher dies, even by SIGKILL, the children get
+/// SIGTERM (Linux) or are killed with the job (Windows). The seam where "tied to the launcher" is decided,
+/// so a different policy (a detached game) is a different implementation, not a different architecture.
+/// </summary>
+public interface IChildProcessSpawner
+{
+    /// <summary>
+    /// False when this machine cannot tie children to the launcher (no <c>setpriv</c> on Linux): children
+    /// still stop with a clean exit, but a launcher crash can leave them running.
+    /// </summary>
+    bool TiesChildrenToLauncher { get; }
+
+    IChildProcess Start(ChildProcessStart request);
+}
+
+/// <summary>What a process looks like from outside: used to recognise a leftover one without trusting a pid.</summary>
+public sealed record ProcessIdentity(int ProcessId, DateTimeOffset StartedAt, string? ExecutablePath);
+
+/// <summary>Looks at and stops processes this launcher did not start in this session.</summary>
+public interface IProcessInspector
+{
+    /// <summary>The process with this id, or <c>null</c> when none runs.</summary>
+    ProcessIdentity? Find(int processId);
+
+    bool IsAlive(int processId);
+
+    /// <summary>SIGTERM, then SIGKILL after <paramref name="grace" />; true when the process is gone.</summary>
+    Task<bool> StopAsync(int processId, TimeSpan grace, CancellationToken cancellationToken = default);
+}
