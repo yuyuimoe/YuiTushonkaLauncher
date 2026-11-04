@@ -1,0 +1,7 @@
+<Solution>
+    <Project Path="YuiTushonkaLauncher.Core/YuiTushonkaLauncher.Core.csproj" />
+    <Project Path="YuiTushonkaLauncher.Infrastructure/YuiTushonkaLauncher.Infrastructure.csproj" />
+    <Project Path="YuiTushonkaLauncher.Patching/YuiTushonkaLauncher.Patching.csproj" />
+    <Project Path="YuiTushonkaLauncher.Tests/YuiTushonkaLauncher.Tests.csproj" />
+    <Project Path="YuiTushonkaLauncher.Ui/YuiTushonkaLauncher.Ui.csproj" />
+</Solution>
