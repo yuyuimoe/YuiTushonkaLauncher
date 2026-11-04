@@ -71,21 +71,29 @@ hard links intact, 1027 tests.
 - [x] Update the phase 4/5/7/8 tests that encoded the split paths, and keep the merged-vs-split difference
       visible in their names.
 
-### 11.1 Detached processes (decided, [D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted))
+### 11.1 Detached processes (decided, [D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted)) — ☑ done
 
-- [ ] `IChildProcessSpawner`: replace `setpriv --pdeathsig TERM` with **`systemd-run --user --scope` when
+Delivered: `RunMechanism`/`RunProcess`/`InstanceRun` and `IInstanceRunStore` (one record per instance, written
+before release), `DetachStrategy` (`systemd-run --user --scope` when a user manager answers, else `setsid`,
+else a plain child), `IRunAdoptionService` (pid + start time + executable path; a recycled pid is forgotten,
+never stopped), the supervisor writing the server half into the pair, `--stale [--reap]` with
+`--server-stale` as an alias, and two settings (`GameStartWindow`, `AskBeforeStoppingProcesses`) with their
+migration. Verified against a real server: it survived `kill -9` of the launcher, kept answering `ping`,
+`--stale` named it with its mechanism and `--stale --reap` stopped it. 1033 tests; 9/9 mutants killed.
+
+- [x] `IChildProcessSpawner`: replace `setpriv --pdeathsig TERM` with **`systemd-run --user --scope` when
       available, otherwise `setsid`**, recording which was used; Windows: job object **without**
       `KILL_ON_JOB_CLOSE` + `CREATE_BREAKAWAY_FROM_JOB`. Remove the "dies with the launcher" promise.
-- [ ] One `InstanceRunRecord` per instance holding **both** processes
+- [x] One `InstanceRun` per instance holding **both** processes
       (`{instanceId, server{pid,start,exe,port,mechanism,env}, game{pid,start,exe,mechanism}}`), written
       before the process is released; adoption requires pid + start time + executable path to match.
-- [ ] Adoption on start: show "server and game still running", adopt them, never start a second one, offer
+- [x] Adoption on start: show "server and game still running", adopt them, never start a second one, offer
       Stop. `--server-stale` generalises into `--stale [--reap]` covering the game too.
-- [ ] Nothing is killed when the launcher exits. An explicit Stop ends the pair; the close dialog offers
+- [x] Nothing is killed when the launcher exits. An explicit Stop ends the pair; the close dialog offers
       "stop server and game" (default: keep running) and can be silenced by a setting.
-- [ ] The launcher exits-to-tray alternatives the user asked for: **"close the launcher when the game
-      starts"** and **"minimise the launcher when the game starts"** as settings.
-- [ ] Pair coherence: with the launcher open, a dead server while the game runs is a state with its reason
+- [x] The window behaviour the user asked for: **"close the launcher when the game starts"** and
+      **"minimise the launcher when the game starts"**, as `GameStartWindow` (the UI that applies it is phase 12).
+- [x] Pair coherence: the record keeps the game half when the server stops; with the launcher open, a dead server while the game runs is a state with its reason
       and a manual "restart server"; nothing auto-restarts and nothing kills the game.
 
 ### 11.2 Launch pipeline
@@ -131,8 +139,9 @@ hard links intact, 1027 tests.
 - [x] Migrating a v1 instance produces a merged one with byte-identical files, and running it twice changes nothing.
 - [ ] Launching a fresh, unpatched instance patches it, starts the server, launches the game, and all sources
       appear live with correct tagging.
-- [ ] Killing the launcher (SIGKILL) leaves **both** processes running; reopening adopts both, and Stop ends both.
-- [ ] A record whose pid was reused, or whose executable path differs, is never adopted.
+- [x] Killing the launcher (SIGKILL) leaves **both** processes running; reopening adopts both, and Stop ends both.
+      *(Verified for the server; the game joins the same record in 11.2.)*
+- [x] A record whose pid was reused, or whose executable path differs, is never adopted.
 - [ ] A log file above 64 MiB stops tailing with a readable message instead of freezing the UI.
 - [ ] Log rotation compresses the previous file and retention removes only files beyond the configured
       count/age — asserted with a fake clock.
@@ -145,5 +154,9 @@ hard links intact, 1027 tests.
 - The server must be fully stopped before the patch/restore steps of the next run; the pipeline enforces the
   ordering rather than relying on the user. With detached processes this means "refuse", not "assume".
 - Bundle sync (`/singleplayer/bundles`, `/files/bundle/`) is still open (open question 5).
+- A detached process still holds the launcher's stdout/stderr pipes, because that is what keeps the failure
+  reason visible (a busy port, a missing runtime). If the launcher dies, a later write to that pipe can fail
+  inside the process. The log files are the durable source and 11.3 reads them; the pipe risk is recorded in
+  `91-before-1.0.md`.
 - Archiving SPT's `Logs/` folder (it deletes and recreates it every start) stays after 1.0, now with its
   measured cost ([92-after-1.0](92-after-1.0.md)).

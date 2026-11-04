@@ -112,3 +112,12 @@ Everything still unresolved, with who/what resolves it.
     detected by the plan, which the migration does anyway.
 18. **Game logs above 64 MiB** stop following and point at the system editor (decided). Whether the same limit
     applies to *exporting* a selection from such a file is a small UX choice for phase 12.
+
+21. **The pipe of a detached process.** Keeping stdout/stderr redirected is what makes "the server exited
+    with code 0 because the port was busy" readable, but the pipe belongs to the launcher. Measured: the
+    server survives `kill -9`, and then writes into a pipe nobody reads. Decide before 1.0 whether to keep
+    the pipe (visibility, small risk) or redirect to a file the process owns (no risk, no live output).
+22. **`systemd-run --scope` waits for the command.** The launcher's own process object is the wrapper, and
+    the pid it reports is the wrapped program (measured), so stop and adoption work. Whether to switch to
+    `--no-block` (true reparenting to the scope, no waiting) is worth a measurement on a slow machine before
+    it is changed.

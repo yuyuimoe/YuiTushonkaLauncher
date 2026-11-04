@@ -434,3 +434,14 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   ` traces.log` 163 MB, `application.log` 30 KB, `assetBundle.log` 582 B. Any view must tail, not load.
 - SPT **does not rotate** that `Logs/` folder: it deletes and regenerates it, which is why a run after a crash
   loses the evidence ([92-after-1.0](92-after-1.0.md)).
+
+### Detaching a real server (2026-11-04)
+
+- `systemd-run --user --scope --quiet true` exits 0 on this machine, so the strongest mechanism is available.
+- `systemd-run --user --scope --quiet /path/SPT.Server.Linux` **keeps the pid of the program**: the launcher's
+  recorded pid was the server itself, so stopping or adopting by pid works without hunting the wrapper.
+- Measured on a real instance: with the launcher killed by `kill -9`, the server **stayed alive and kept
+  answering `ping`**; the record held its pid, start time, executable, mechanism (`SystemdScope`) and port, and
+  `--stale --reap` stopped it with SIGTERM (graceful, exit 0).
+- A `setsid` child ends up in its own session (session id differs from the launcher's), which is what makes
+  a plain-child death signal irrelevant.
