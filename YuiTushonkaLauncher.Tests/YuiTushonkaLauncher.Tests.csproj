@@ -35,6 +35,8 @@
     <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
     <!-- The headless UI tests drive the real shell, pages and views, so the app assembly is referenced. -->
     <ProjectReference Include="..\YuiTushonkaLauncher.Ui\YuiTushonkaLauncher.Ui.csproj" />
+    <!-- The coverage gate is tested like any other code: a gate with no tests is a guess. -->
+    <ProjectReference Include="..\tools\YuiTushonkaLauncher.Tools.CoverageGate\YuiTushonkaLauncher.Tools.CoverageGate.csproj" />
     <!-- Fixture assemblies used by the mod identity tests; copied to the test output. -->
     <ProjectReference Include="..\TestFixtures\ClientMod\ClientMod.csproj" />
     <ProjectReference Include="..\TestFixtures\ServerMod\ServerMod.csproj" />
