@@ -57,6 +57,9 @@ public sealed record ForgeAddonQuery
 
     public string? Sort { get; init; }
 
+    /// <summary>Include the versions of each addon (adds <c>include=versions</c>).</summary>
+    public bool IncludeVersions { get; init; }
+
     /// <summary>Only addons published on or after this instant.</summary>
     public DateTimeOffset? PublishedFrom { get; init; }
 
