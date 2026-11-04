@@ -74,6 +74,7 @@ public static class ServiceRegistration
         services.AddSingleton<InstancesPageViewModel>();
         services.AddSingleton<ForgePageViewModel>();
         services.AddSingleton<ModsPageViewModel>();
+        services.AddSingleton<AddonsPageViewModel>();
         services.AddSingleton<PatchPageViewModel>();
         services.AddSingleton<ServerPageViewModel>();
         services.AddSingleton<LogsPageViewModel>();

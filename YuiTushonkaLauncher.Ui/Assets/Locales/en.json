@@ -9,7 +9,8 @@
     "server": "Server",
     "logs": "Logs",
     "mods": "Mods",
-    "settings": "Settings"
+    "settings": "Settings",
+    "addons": "Addons"
   },
   "status": {
     "server": "Server: {0}",
@@ -125,7 +126,8 @@
     "configs": "Configs",
     "configsEmpty": "This mod ships no configs.",
     "openConfigs": "Open the config folder",
-    "kind": "Kind"
+    "kind": "Kind",
+    "browse": "Browse & install mods"
   },
   "forge": {
     "title": "Forge",
@@ -162,7 +164,17 @@
     "sourceCode": "Source code",
     "virusTotal": "VirusTotal",
     "noDependents": "No installed mod depends on this one.",
-    "noCompatibleVersion": "This mod has no version for SPT {0}."
+    "noCompatibleVersion": "This mod has no version for SPT {0}.",
+    "addonsTitle": "Addons",
+    "useAsParent": "Add-ons for this mod",
+    "parent": "Add-ons for",
+    "parentUnknown": "This mod has no GUID, so its addons cannot be matched.",
+    "parentInstalled": "Parent installed: {0} {1}",
+    "parentMissing": "Parent not installed: {0} — install it first",
+    "addonNeedsOtherParent": "Needs {0} {1}",
+    "installAddon": "Install",
+    "addonInstalled": "Installed addon {0} {1}",
+    "noAddons": "No addons for this mod."
   },
   "server": {
     "title": "Server",
@@ -296,5 +308,13 @@
     "newBase": "A base install will be created at: {0}",
     "existingBase": "The base install is reused: {0}",
     "kept": "Kept as modifications:"
+  },
+  "addons": {
+    "title": "Addons",
+    "install": "Install addons",
+    "empty": "No addons installed",
+    "emptyHint": "Addons extend a mod that is already installed. Use “Install addons” to pick the parent first.",
+    "count": "{0} addons",
+    "files": "{0} files"
   }
 }

@@ -26,6 +26,8 @@ public partial class App : Application
 
     private InstanceManagerWindow? _manager;
 
+    private ForgeWindow? _forge;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -73,6 +75,7 @@ public partial class App : Application
         var windows = _services.GetRequiredService<WindowController>();
         windows.Attach(window);
         windows.AttachManager(OpenManager);
+        windows.AttachForge(OpenForge);
 
         // A detached pair survives the launcher, so closing with one running asks first (D22).
         window.Closing += OnClosing;
@@ -100,6 +103,25 @@ public partial class App : Application
 
         _shell?.Navigate(section);
         return _manager;
+    }
+
+    /// <summary>Shows the Forge window, switching it between browsing mods and browsing addons.</summary>
+    private Window? OpenForge(Navigation.ForgeBrowserMode mode)
+    {
+        if (_services is null)
+        {
+            return null;
+        }
+
+        var page = _services.GetRequiredService<ForgePageViewModel>();
+        if (_forge is null)
+        {
+            Log.Information("Startup: building the Forge window");
+            _forge = new ForgeWindow { DataContext = page };
+        }
+
+        page.Mode = mode;
+        return _forge;
     }
 
     private static async Task LoadAsync(HomeViewModel home)

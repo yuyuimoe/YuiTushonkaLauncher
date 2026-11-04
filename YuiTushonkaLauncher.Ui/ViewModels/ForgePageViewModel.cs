@@ -46,6 +46,7 @@ public partial class ForgePageViewModel : PageViewModel
     private readonly IThumbnailCache _thumbnails;
     private readonly IForgePageReader _pages;
     private readonly IUrlOpener _urls;
+    private readonly IAddonService _addons;
     private readonly TimeProvider _time;
     private readonly NavigationHistory<int> _history = new();
     private readonly Dictionary<int, ForgeModPageInfo?> _pageCache = [];
@@ -64,6 +65,7 @@ public partial class ForgePageViewModel : PageViewModel
         IThumbnailCache thumbnails,
         IForgePageReader pages,
         IUrlOpener urls,
+        IAddonService addons,
         TimeProvider time
     )
         : base(localizer)
@@ -77,6 +79,7 @@ public partial class ForgePageViewModel : PageViewModel
         _thumbnails = thumbnails;
         _pages = pages;
         _urls = urls;
+        _addons = addons;
         _time = time;
 
         foreach (var choice in ForgeSorts.All)
@@ -104,6 +107,9 @@ public partial class ForgePageViewModel : PageViewModel
     public ObservableCollection<ForgeLinkViewModel> SourceLinks { get; } = [];
 
     public ObservableCollection<ForgeLinkViewModel> ScanLinks { get; } = [];
+
+    /// <summary>The addons of the chosen parent, when this window is in addon mode.</summary>
+    public ObservableCollection<ForgeAddonRowViewModel> AddonResults { get; } = [];
 
     [ObservableProperty]
     public partial string Search { get; set; } = string.Empty;
@@ -134,6 +140,21 @@ public partial class ForgePageViewModel : PageViewModel
     [ObservableProperty]
     public partial ForgeDetailTab ActiveTab { get; set; } = ForgeDetailTab.Details;
 
+    /// <summary>Whether this window is looking for a mod or for an addon of one.</summary>
+    [ObservableProperty]
+    public partial ForgeBrowserMode Mode { get; set; } = ForgeBrowserMode.Mods;
+
+    /// <summary>The mod an addon would belong to, chosen from the results.</summary>
+    [ObservableProperty]
+    public partial ForgeModRowViewModel? Parent { get; set; }
+
+    /// <summary>What is needed before an addon can be installed, in the colour the user asked for.</summary>
+    [ObservableProperty]
+    public partial string RequirementText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsRequirementMet { get; set; }
+
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;
 
@@ -145,7 +166,50 @@ public partial class ForgePageViewModel : PageViewModel
 
     public string Title
     {
-        get { return Text("forge.title"); }
+        get { return Text(Mode == ForgeBrowserMode.Addons ? "forge.addonsTitle" : "forge.title"); }
+    }
+
+    /// <summary>True when the window is looking for addons, which changes what the buttons mean.</summary>
+    public bool IsAddonMode
+    {
+        get { return Mode == ForgeBrowserMode.Addons; }
+    }
+
+    public string UseAsParentLabel
+    {
+        get { return Text("forge.useAsParent"); }
+    }
+
+    public string ParentLabel
+    {
+        get { return Text("forge.parent"); }
+    }
+
+    public string InstallAddonLabel
+    {
+        get { return Text("forge.installAddon"); }
+    }
+
+    public bool HasAddonResults
+    {
+        get { return AddonResults.Count > 0; }
+    }
+
+    public bool HasParent
+    {
+        get { return Parent is not null; }
+    }
+
+    partial void OnModeChanged(ForgeBrowserMode value)
+    {
+        OnPropertyChanged(nameof(IsAddonMode));
+        OnPropertyChanged(nameof(Title));
+        if (value == ForgeBrowserMode.Mods)
+        {
+            AddonResults.Clear();
+            Parent = null;
+            OnPropertyChanged(nameof(HasParent));
+        }
     }
 
     public string SearchPlaceholder
@@ -508,6 +572,127 @@ public partial class ForgePageViewModel : PageViewModel
         {
             DetailsLoading = NavigateToAsync(reference.ModId, recordHistory: true, CancellationToken.None);
         }
+    }
+
+    /// <summary>Addon mode: this result becomes the parent whose addons are listed.</summary>
+    [RelayCommand]
+    private async Task UseAsParentAsync(ForgeModRowViewModel? row, CancellationToken cancellationToken)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        Parent = row;
+        OnPropertyChanged(nameof(HasParent));
+        DetailsLoading = LoadAddonsAsync(row, cancellationToken);
+        await DetailsLoading;
+    }
+
+    /// <summary>Installs one addon next to its parent, through the addon service that owns the constraint check.</summary>
+    [RelayCommand]
+    private async Task InstallAddonAsync(ForgeAddonRowViewModel? row, CancellationToken cancellationToken)
+    {
+        if (Parent is not { } parent || row is null)
+        {
+            return;
+        }
+
+        if (_context.ActiveId is not { } instanceId)
+        {
+            Error = Text("errors.noInstance");
+            return;
+        }
+
+        if (!row.CanInstall)
+        {
+            Error = row.RequirementText;
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            _downloads.Begin();
+            try
+            {
+                var result = await _addons.InstallAsync(
+                    new AddonInstallRequest
+                    {
+                        InstanceId = instanceId,
+                        ParentModGuid = parent.Guid ?? string.Empty,
+                        ForgeId = row.Id,
+                        DownloadUrl = new Uri(row.DownloadUrl),
+                        Version = row.Version,
+                        ModVersionConstraint = row.ModConstraint,
+                    },
+                    cancellationToken
+                );
+
+                Status = Localizer.Format("forge.addonInstalled", result.Guid, result.Version.ToString());
+                await LoadAddonsAsync(parent, cancellationToken);
+            }
+            finally
+            {
+                _downloads.End();
+            }
+        });
+    }
+
+    /// <summary>Lists a parent's addons and marks each one with whether it can be installed here.</summary>
+    private async Task LoadAddonsAsync(ForgeModRowViewModel parent, CancellationToken cancellationToken)
+    {
+        AddonResults.Clear();
+        RequirementText = string.Empty;
+        IsRequirementMet = false;
+        OnPropertyChanged(nameof(IsRequirementMet));
+        OnPropertyChanged(nameof(HasAddonResults));
+
+        if (parent.Guid is not { Length: > 0 } parentGuid)
+        {
+            RequirementText = Text("forge.parentUnknown");
+            return;
+        }
+
+        var installed = _context.ActiveId is { } instanceId ? await _instances.GetAsync(instanceId, cancellationToken) : null;
+        var installedParent = installed?.InstalledMods.FirstOrDefault(row =>
+            string.Equals(row.Guid, parentGuid, StringComparison.OrdinalIgnoreCase)
+        );
+
+        IsRequirementMet = installedParent is not null;
+        RequirementText = installedParent is { } found
+            ? Localizer.Format("forge.parentInstalled", parent.Name, found.Version.ToString())
+            : Localizer.Format("forge.parentMissing", parent.Name);
+        OnPropertyChanged(nameof(IsRequirementMet));
+        OnPropertyChanged(nameof(RequirementText));
+
+        var page = await _forge.GetAddonsAsync(new ForgeAddonQuery { ModId = parent.Id, IncludeVersions = true }, cancellationToken);
+        foreach (var addon in page.Items)
+        {
+            var versions = (await _forge.GetAddonVersionsAsync(addon.Id, cancellationToken))
+                .OrderByDescending(version => version.Version)
+                .ToList();
+            var chosen = versions.FirstOrDefault();
+            var admitted =
+                chosen is null || installedParent is null
+                    ? installedParent is not null
+                    : chosen.ModVersionConstraint.Satisfies(installedParent.Version);
+
+            AddonResults.Add(
+                new ForgeAddonRowViewModel(
+                    addon.Id,
+                    addon.Name,
+                    chosen?.Version ?? new SemanticVersion(0, 0, 0),
+                    chosen?.ModVersionConstraint,
+                    chosen?.DownloadUrl ?? string.Empty,
+                    CanInstall: installedParent is not null && admitted,
+                    RequirementText: installedParent is null ? Localizer.Format("forge.parentMissing", parent.Name)
+                        : admitted ? Localizer.Format("forge.parentInstalled", parent.Name, installedParent.Version.ToString())
+                        : Localizer.Format("forge.addonNeedsOtherParent", parent.Name, chosen!.ModVersionConstraint.ToString())
+                )
+            );
+        }
+
+        OnPropertyChanged(nameof(HasAddonResults));
     }
 
     /// <summary>Opens one of the sidebar's links in the system browser.</summary>
@@ -1104,4 +1289,32 @@ public sealed class ForgeVersionRowViewModel : ViewModelBase
     {
         get { return Row.DownloadUrl; }
     }
+}
+
+/// <summary>One addon of the chosen parent, with the requirement that decides whether it can be installed.</summary>
+public sealed class ForgeAddonRowViewModel(
+    int id,
+    string name,
+    SemanticVersion version,
+    VersionRange? modConstraint,
+    string downloadUrl,
+    bool CanInstall,
+    string RequirementText
+)
+{
+    public int Id { get; } = id;
+
+    public string Name { get; } = name;
+
+    public SemanticVersion Version { get; } = version;
+
+    public VersionRange? ModConstraint { get; } = modConstraint;
+
+    public string DownloadUrl { get; } = downloadUrl;
+
+    /// <summary>False when the parent is missing or the addon wants another parent version.</summary>
+    public bool CanInstall { get; } = CanInstall;
+
+    /// <summary>The requirement line: green when it is met, red when it is not.</summary>
+    public string RequirementText { get; } = RequirementText;
 }

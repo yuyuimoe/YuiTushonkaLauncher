@@ -17,6 +17,9 @@ public enum LauncherSection
 
     Mods,
 
+    /// <summary>Installed addons, which hang off a parent mod.</summary>
+    Addons,
+
     Server,
 
     Logs,

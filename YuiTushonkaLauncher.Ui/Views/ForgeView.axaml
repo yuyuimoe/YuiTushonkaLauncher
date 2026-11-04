@@ -245,6 +245,51 @@
               </StackPanel>
 
               <!-- Versions, only the ones this instance's SPT release accepts. -->
+              <!-- Addon mode: the parent comes from the results, and the requirement decides the colour. -->
+              <StackPanel Spacing="4" Margin="0,6,0,0" IsVisible="{Binding IsAddonMode}">
+                <TextBlock Text="{Binding ParentLabel}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Shown.Name}" Classes="caption" IsVisible="{Binding HasParent}" />
+                <Button
+                  Command="{Binding UseAsParentCommand}"
+                  CommandParameter="{Binding Shown}"
+                  Content="{Binding UseAsParentLabel}"
+                  HorizontalAlignment="Stretch"
+                />
+                <TextBlock
+                  Text="{Binding RequirementText}"
+                  Classes="caption"
+                  Classes.ok="{Binding IsRequirementMet}"
+                  Classes.missing="{Binding !IsRequirementMet}"
+                  TextWrapping="Wrap"
+                />
+                <ItemsControl ItemsSource="{Binding AddonResults}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ForgeAddonRowViewModel">
+                      <Border Classes="card" Padding="6" Margin="0,0,0,4">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          <TextBlock
+                            Text="{Binding RequirementText}"
+                            Classes="caption"
+                            FontSize="10"
+                            Classes.ok="{Binding CanInstall}"
+                            Classes.missing="{Binding !CanInstall}"
+                            TextWrapping="Wrap"
+                          />
+                          <Button
+                            Content="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).InstallAddonLabel}"
+                            Command="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).InstallAddonCommand}"
+                            CommandParameter="{Binding}"
+                            IsEnabled="{Binding CanInstall}"
+                          />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding HasAddonResults, Converter={x:Static BoolConverters.Not}}" Classes="caption" />
+              </StackPanel>
+
               <StackPanel Spacing="4" Margin="0,6,0,0">
                 <TextBlock Text="{Binding VersionsLabel}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding Versions}" SelectedItem="{Binding SelectedVersion}" HorizontalAlignment="Stretch">

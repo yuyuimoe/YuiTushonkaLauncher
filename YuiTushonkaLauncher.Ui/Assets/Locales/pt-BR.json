@@ -9,7 +9,8 @@
     "server": "Servidor",
     "logs": "Logs",
     "settings": "Configurações",
-    "mods": "Mods"
+    "mods": "Mods",
+    "addons": "Addons"
   },
   "status": {
     "server": "Servidor: {0}",
@@ -125,7 +126,8 @@
     "configs": "Configs",
     "configsEmpty": "Este mod não traz configs.",
     "openConfigs": "Abrir a pasta de configs",
-    "kind": "Tipo"
+    "kind": "Tipo",
+    "browse": "Procurar e instalar mods"
   },
   "forge": {
     "title": "Forge",
@@ -162,7 +164,17 @@
     "sourceCode": "Código-fonte",
     "virusTotal": "VirusTotal",
     "noDependents": "Nenhum mod instalado depende deste.",
-    "noCompatibleVersion": "Este mod não tem versão para o SPT {0}."
+    "noCompatibleVersion": "Este mod não tem versão para o SPT {0}.",
+    "addonsTitle": "Addons",
+    "useAsParent": "Addons deste mod",
+    "parent": "Addons de",
+    "parentUnknown": "Este mod não tem GUID, então seus addons não podem ser associados.",
+    "parentInstalled": "Mod pai instalado: {0} {1}",
+    "parentMissing": "Mod pai não instalado: {0} — instale-o primeiro",
+    "addonNeedsOtherParent": "Exige {0} {1}",
+    "installAddon": "Instalar",
+    "addonInstalled": "Addon instalado {0} {1}",
+    "noAddons": "Nenhum addon para este mod."
   },
   "server": {
     "title": "Servidor",
@@ -296,5 +308,13 @@
     "newBase": "Uma instalação base será criada em: {0}",
     "existingBase": "A instalação base será reaproveitada: {0}",
     "kept": "Mantidos como modificação:"
+  },
+  "addons": {
+    "title": "Addons",
+    "install": "Instalar addons",
+    "empty": "Nenhum addon instalado",
+    "emptyHint": "Addons estendem um mod já instalado. Use “Instalar addons” para escolher o mod pai primeiro.",
+    "count": "{0} addons",
+    "files": "{0} arquivos"
   }
 }

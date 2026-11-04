@@ -257,6 +257,8 @@ public sealed class SptForgeClient : IForgeClient
             .Add("query", query.Search)
             .Add("sort", query.Sort)
             .AddFilter("published_between", Window(query.PublishedFrom, query.PublishedTo))
+            .AddFilter("mod_id", query.ModId)
+            .Add("include", query.IncludeVersions ? "versions" : null)
             .Add("page", query.Page)
             .Add("per_page", query.PerPage <= 0 ? _options.DefaultPageSize : query.PerPage);
 

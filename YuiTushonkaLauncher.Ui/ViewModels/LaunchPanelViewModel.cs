@@ -287,4 +287,7 @@ public interface IWindowController
 
     /// <summary>Shows the instance manager window on a section, creating it the first time.</summary>
     void OpenManager(Navigation.LauncherSection section);
+
+    /// <summary>Shows the Forge window, browsing mods or addons.</summary>
+    void OpenForge(Navigation.ForgeBrowserMode mode);
 }

@@ -18,6 +18,9 @@ public sealed class FakeForgeClient : IForgeClient
     /// <summary>Addon versions keyed by the addon's Forge id.</summary>
     public Dictionary<int, List<ForgeAddonVersion>> AddonVersions { get; } = [];
 
+    /// <summary>Addons keyed by the Forge id of their parent mod.</summary>
+    public Dictionary<int, List<ForgeAddon>> Addons { get; } = [];
+
     /// <summary>When set, every version lookup fails like an unreachable Forge.</summary>
     public bool Unreachable { get; set; }
 
@@ -173,13 +176,14 @@ public sealed class FakeForgeClient : IForgeClient
 
     public Task<ForgePage<ForgeAddon>> GetAddonsAsync(ForgeAddonQuery query, CancellationToken cancellationToken = default)
     {
+        var items = query.ModId is { } parent && Addons.TryGetValue(parent, out var found) ? found : [];
         return Task.FromResult(
             new ForgePage<ForgeAddon>
             {
-                Items = [],
+                Items = [.. items],
                 Page = 1,
                 PerPage = 25,
-                Total = 0,
+                Total = items.Count,
                 LastPage = 1,
             }
         );
