@@ -22,6 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Patching\Fixtures\*.bin;Patching\Fixtures\*.delta">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Infrastructure\YuiTushonkaLauncher.Infrastructure.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />

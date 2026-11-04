@@ -79,8 +79,16 @@ Mirror the official launcher's behaviour rather than inventing a new one:
   `YuiTushonkaLauncher.Patching`;
 - backup: `<file>.spt-bak`, created once, never overwritten; patch is always `backup → target`;
 - restore: walk for `*.spt-bak` (skipping reparse points on Linux), delete + copy back;
-- **added by us**: post-patch verification (size + SHA-256 recorded in `PatchInfo`), and a pre-patch
-  guard that refuses to patch a file whose hash matches no known pre-patch variant;
+- **added by us**: post-patch verification (size checked against the delta header, SHA-256 recorded in
+  `PatchInfo`), and a pre-patch guard that refuses a target whose size matches neither the delta's
+  declared input nor its declared output. The guard reads the **delta header** instead of a table of
+  known hashes: nothing to ship or keep current, and it works for any future delta (phase 7 deviation,
+  see `03-verified-facts.md#patching`);
+- **never written in place**: the engine writes `<file>.spt-patch`, the result is verified, then renamed
+  over the target. A rename gives the instance a new inode, so a hard link into the base install can
+  never be modified (D6) and a crash leaves the original;
+- a target that matches neither build is **re-patched from `.spt-bak`** when the backup is the
+  pre-patch build (an SPT upgrade, or a half-written file), and refused when it is not;
 - `SPT.ByteBanger` is not part of the design — it no longer exists in 4.x.
 
 ## D9. Two mod identity readers

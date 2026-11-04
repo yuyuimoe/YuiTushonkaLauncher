@@ -37,9 +37,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   and SPT compatibility.
 - Migration: adopt an existing SPT folder without moving a file, scan its mod folders by GUID (merging
   a "both halves" mod into one entry) and register the mods with their file hashes.
+- Binary patching: finds the SPT deltas, plans one decision per file, backs up before patching and
+  replaces the file by rename (never in place, so hard links into the base install are safe), refuses
+  builds the delta does not support, repairs a damaged file from its backup, and restores on request.
 - Headless commands: `--migrate-only`, `--inspect-base <path>` and
   `--create-instance <name> --from <base> --into <dir>` and
-  `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>`.
+  `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>` and `--patch-plan|--patch|--restore <instance>`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using YuiTushonkaLauncher.Core.Abstractions;
 using YuiTushonkaLauncher.Core.Instances;
+using YuiTushonkaLauncher.Core.Patching;
 using YuiTushonkaLauncher.Infrastructure.Instances;
 using YuiTushonkaLauncher.Infrastructure.Persistence;
 using YuiTushonkaLauncher.Startup;
@@ -29,6 +30,15 @@ internal static class HeadlessCommands
     /// <summary>Scans an instance's mod folders and reports what a migration would register.</summary>
     public const string MigrateScan = "--migrate-scan";
 
+    /// <summary>Plans, then applies, the SPT deltas of an instance (<c>--patch NAME</c>).</summary>
+    public const string Patch = "--patch";
+
+    /// <summary>Restores every <c>.spt-bak</c> in an instance (<c>--restore NAME</c>).</summary>
+    public const string Restore = "--restore";
+
+    /// <summary>Reports the patch plan of an instance without touching it (<c>--patch-plan NAME</c>).</summary>
+    public const string PatchPlan = "--patch-plan";
+
     /// <summary>Runs a headless command when one was requested.</summary>
     /// <returns><c>true</c> when a command ran and the process should exit with <paramref name="exitCode" />.</returns>
     public static bool TryRun(string[] args, IAppPaths paths, out int exitCode)
@@ -40,8 +50,20 @@ internal static class HeadlessCommands
         var createInstanceIndex = IndexOf(args, CreateInstance);
         var installModIndex = IndexOf(args, InstallMod);
         var migrateScanIndex = IndexOf(args, MigrateScan);
+        var patchIndex = IndexOf(args, Patch);
+        var restoreIndex = IndexOf(args, Restore);
+        var patchPlanIndex = IndexOf(args, PatchPlan);
 
-        if (!migrateOnly && inspectBaseIndex < 0 && createInstanceIndex < 0 && installModIndex < 0 && migrateScanIndex < 0)
+        if (
+            !migrateOnly
+            && inspectBaseIndex < 0
+            && createInstanceIndex < 0
+            && installModIndex < 0
+            && migrateScanIndex < 0
+            && patchIndex < 0
+            && restoreIndex < 0
+            && patchPlanIndex < 0
+        )
         {
             return false;
         }
@@ -70,6 +92,21 @@ internal static class HeadlessCommands
             if (migrateScanIndex >= 0)
             {
                 ScanForMigration(services, ValueAfter(args, migrateScanIndex));
+            }
+
+            if (patchPlanIndex >= 0)
+            {
+                PrintPatchPlan(services, ValueAfter(args, patchPlanIndex));
+            }
+
+            if (patchIndex >= 0)
+            {
+                ApplyPatches(services, ValueAfter(args, patchIndex));
+            }
+
+            if (restoreIndex >= 0)
+            {
+                RestorePatches(services, ValueAfter(args, restoreIndex));
             }
 
             Log.Information("Headless command finished; exiting");
@@ -219,6 +256,84 @@ internal static class HeadlessCommands
         {
             Log.Warning("  warning: {Warning}", warning);
         }
+    }
+
+    private static void PrintPatchPlan(IServiceProvider services, string instanceName)
+    {
+        var instance = FindInstance(services, instanceName);
+        var patching = services.GetRequiredService<IPatchService>();
+        var plan = patching.PlanAsync(instance.Id).GetAwaiter().GetResult();
+
+        Log.Information("Patch plan for {Instance}: {Summary}", instance.Name, plan.Summary);
+
+        foreach (var file in plan.Files)
+        {
+            Log.Information(
+                "  {Action}: {File} ({Size} bytes now, delta {Input:N0} -> {Output:N0})",
+                file.Action,
+                file.RelativePath,
+                file.CurrentSize?.ToString("N0") ?? "missing",
+                file.ExpectedInputSize,
+                file.ExpectedOutputSize
+            );
+            Log.Information("    {Reason}", file.Reason);
+        }
+    }
+
+    private static void ApplyPatches(IServiceProvider services, string instanceName)
+    {
+        var instance = FindInstance(services, instanceName);
+        var patching = services.GetRequiredService<IPatchService>();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var report = patching
+            .PatchAsync(
+                instance.Id,
+                new Progress<PatchProgress>(progress => Log.Debug("{File}: {Percent:F0}%", progress.FileName, progress.Percentage))
+            )
+            .GetAwaiter()
+            .GetResult();
+
+        stopwatch.Stop();
+        Log.Information("Patching {Instance} finished in {Elapsed}: {Summary}", instance.Name, stopwatch.Elapsed, report.Summary);
+
+        foreach (var file in report.Files)
+        {
+            Log.Information("  {Outcome}: {File} ({Message})", file.Outcome, file.RelativePath, file.Message);
+            Log.Information("    sha256 {Before} -> {After}", file.Sha256Before ?? "-", file.Sha256After ?? "-");
+        }
+
+        if (!report.Succeeded)
+        {
+            throw new InstanceValidationException([$"Patching {instance.Name} did not finish cleanly: {report.Summary}"]);
+        }
+    }
+
+    private static void RestorePatches(IServiceProvider services, string instanceName)
+    {
+        var instance = FindInstance(services, instanceName);
+        var patching = services.GetRequiredService<IPatchService>();
+        var report = patching.RestoreAsync(instance.Id).GetAwaiter().GetResult();
+
+        Log.Information("Restoring {Instance}: {Summary}", instance.Name, report.Summary);
+
+        foreach (var file in report.Files)
+        {
+            Log.Information("  {Outcome}: {File} ({Message})", file.Outcome, file.RelativePath, file.Message);
+        }
+
+        if (!report.Succeeded)
+        {
+            throw new InstanceValidationException([$"Restoring {instance.Name} did not finish cleanly: {report.Summary}"]);
+        }
+    }
+
+    private static Core.Domain.Instance FindInstance(IServiceProvider services, string instanceName)
+    {
+        var instances = services.GetRequiredService<IInstanceService>();
+        var instance = instances.ListAsync().GetAwaiter().GetResult().FirstOrDefault(row => row.Name == instanceName);
+
+        return instance ?? throw new InstanceValidationException([$"No instance named '{instanceName}'."]);
     }
 
     private static int IndexOf(string[] args, string name)
