@@ -123,3 +123,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D21.
+
+### Fixed
+
+- **Running the launcher from an IDE showed no window.** Building the window resolves the process spawner, whose
+  constructor asked the machine whether `systemd-run` works and *blocked* on that child process; the continuation was
+  posted to the Avalonia dispatcher, which has not started pumping yet, so start-up deadlocked before the first frame.
+  The probe is now decided on first use instead of in a constructor, `ProcessRunner` never captures a caller's
+  synchronisation context, and two regression tests keep the start-up path free of that dependency.
+- A crash on a background thread or an unobserved task no longer disappears without a log line.

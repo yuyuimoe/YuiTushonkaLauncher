@@ -79,3 +79,8 @@ and [Rider](https://plugins.jetbrains.com/plugin/18243-csharpier) format the fil
 - Conventional Commits are enforced by `.githooks/commit-msg`.
 - Docs and code comments are English; commit messages are English.
 - Details: [`docs/workflow/git.md`](docs/workflow/git.md) and [`AGENTS.md`](AGENTS.md).
+
+## Licence
+
+YuiTushonkaLauncher is licensed under the GNU Lesser General Public License, version 3 or later
+(`LGPL-3.0-or-later`). The full text is in [`LICENSE`](LICENSE).

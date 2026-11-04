@@ -151,3 +151,7 @@ Everything still unresolved, with who/what resolves it.
     after an `await` reports another thread's cumulative total; the log-tail test therefore "measured" 3 MB or 53 MB
     depending on where the continuation landed, and failed one run in six. It now blocks on the task, measures
     process-wide, and runs in a non-parallel collection. Numbers in `docs/qa/perf.md` were taken after the fix.
+
+30. **Licence — decided: LGPL-3.0-or-later.** `LICENSE` carries the GNU LGPL v3 text with an SPDX line, the README states
+    it, and the AppStream metadata declares `LGPL-3.0-or-later` (validated with `appstreamcli`). The installer and the
+    about box show the version only, which is all LGPL asks for.
