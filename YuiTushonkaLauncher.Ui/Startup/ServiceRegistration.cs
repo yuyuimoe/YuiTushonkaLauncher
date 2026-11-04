@@ -25,6 +25,7 @@ internal static class ServiceRegistration
         services.AddLauncherForge();
         services.AddLauncherInstances();
         services.AddLauncherMods();
+        services.AddLauncherRuntime();
         services.AddSingleton<ISingleInstanceGuard, SingleInstanceGuard>();
 
         services.AddSingleton<MainViewModel>();

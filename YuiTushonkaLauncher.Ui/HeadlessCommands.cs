@@ -14,7 +14,7 @@ namespace YuiTushonkaLauncher;
 /// Startup work that must also be runnable without a display: CI smoke tests, troubleshooting, and
 /// packaging scripts. Avalonia is never touched from here.
 /// </summary>
-internal static class HeadlessCommands
+internal static partial class HeadlessCommands
 {
     /// <summary>Applies migrations, prepares the database and exits.</summary>
     public const string MigrateOnly = "--migrate-only";
@@ -68,6 +68,7 @@ internal static class HeadlessCommands
         var patchPlanIndex = IndexOf(args, PatchPlan);
         var exportIndex = IndexOf(args, Export);
         var importIndex = IndexOf(args, Import);
+        var runtimeRequested = RuntimeCommandRequested(args);
 
         if (
             !migrateOnly
@@ -80,6 +81,7 @@ internal static class HeadlessCommands
             && patchPlanIndex < 0
             && exportIndex < 0
             && importIndex < 0
+            && !runtimeRequested
         )
         {
             return false;
@@ -134,6 +136,11 @@ internal static class HeadlessCommands
             if (importIndex >= 0)
             {
                 ImportPackage(services, args, ValueAfter(args, importIndex));
+            }
+
+            if (runtimeRequested)
+            {
+                RunRuntimeCommands(services, args);
             }
 
             Log.Information("Headless command finished; exiting");
