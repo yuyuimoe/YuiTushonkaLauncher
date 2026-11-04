@@ -50,12 +50,16 @@ public partial class App : Application
 
         // Migrations must finish before any view model touches the database. Avalonia's startup hook is synchronous,
         // so this is the one place a blocking wait is correct.
+        Log.Information("Startup: applying database migrations");
         _services.GetRequiredService<DatabaseInitializer>().InitializeAsync().GetAwaiter().GetResult();
 
+        Log.Information("Startup: reading settings");
         var settings = _services.GetRequiredService<Core.Abstractions.ISettingsService>();
         _services.GetRequiredService<IThemeController>().Apply(settings.Current.Theme);
 
+        Log.Information("Startup: building the shell");
         _shell = _services.GetRequiredService<ShellViewModel>();
+        Log.Information("Startup: creating the window");
         var window = new MainWindow { DataContext = _shell };
         _services.GetRequiredService<DialogService>().Attach(window);
         _services.GetRequiredService<WindowController>().Attach(window);
@@ -63,6 +67,7 @@ public partial class App : Application
         // A detached pair survives the launcher, so closing with one running asks first (D22).
         window.Closing += OnClosing;
         desktop.MainWindow = window;
+        Log.Information("Startup: window ready");
         desktop.Exit += OnDesktopExit;
 
         _ = LoadAsync(_shell);
@@ -88,6 +93,7 @@ public partial class App : Application
             return;
         }
 
+        Log.Information("Startup: reading settings");
         var settings = _services.GetRequiredService<Core.Abstractions.ISettingsService>();
         if (!settings.Current.AskBeforeStoppingProcesses || _shell.HasRunningProcesses())
         {

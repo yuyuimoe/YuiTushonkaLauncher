@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Microsoft.Extensions.Logging.Abstractions;
 using Serilog;
@@ -35,6 +36,16 @@ internal static class Program
             Console.Out.WriteLine(AppVersion.Current);
             return 0;
         }
+
+        // Nothing may die silently: an exception on a background thread or a task nobody awaited is a bug report, and
+        // the report starts in this file.
+        AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
+            Log.Fatal(eventArgs.ExceptionObject as Exception, "Unhandled exception on a background thread");
+        TaskScheduler.UnobservedTaskException += (_, eventArgs) =>
+        {
+            Log.Error(eventArgs.Exception, "Unobserved task exception");
+            eventArgs.SetObserved();
+        };
 
         Paths = new AppPaths();
         LanguageOverride = ReadLanguage(args);
