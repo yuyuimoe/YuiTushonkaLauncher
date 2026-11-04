@@ -146,3 +146,8 @@ Everything still unresolved, with who/what resolves it.
 28. **No one has looked at the pixels** (still open; the Linux matrix rows 1–8 and 11 are recorded, the screen
     itself is not). Every screen is driven headlessly; a manual pass on Windows and
     Linux (light/dark, 1000-row list, a small window) is the phase-13 job.
+
+29. **A perf assertion measured the wrong thing for a while.** `GC.GetAllocatedBytesForCurrentThread` sampled before and
+    after an `await` reports another thread's cumulative total; the log-tail test therefore "measured" 3 MB or 53 MB
+    depending on where the continuation landed, and failed one run in six. It now blocks on the task, measures
+    process-wide, and runs in a non-parallel collection. Numbers in `docs/qa/perf.md` were taken after the fix.

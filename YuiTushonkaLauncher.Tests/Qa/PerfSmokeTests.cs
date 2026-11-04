@@ -22,6 +22,7 @@ namespace YuiTushonkaLauncher.Tests.Qa;
 /// does not break the build but a change that turns a linear scan into a quadratic one does. The numbers from a real run
 /// are recorded in <c>docs/qa/perf.md</c>.
 /// </summary>
+[Collection(SerialCollection.Name)]
 public sealed class PerfSmokeTests(ITestOutputHelper output)
 {
     /// <summary>A thousand installed mods must be one pass over the rows, not a rebuild per row.</summary>
@@ -109,7 +110,7 @@ public sealed class PerfSmokeTests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     [Trait("Category", "Perf")]
-    public async Task TailingFiftyMegabytesAllocatesAWindowNotTheFile()
+    public void TailingFortyFiveMegabytesAllocatesAWindowNotTheFile()
     {
         using var temp = new TempDirectory();
         var paths = new AppPaths(temp.Combine("data"), temp.Combine("config"));
@@ -118,29 +119,34 @@ public sealed class PerfSmokeTests(ITestOutputHelper output)
         Directory.CreateDirectory(directory);
         var path = Path.Join(directory, "launcher-big.log");
 
-        await using (var stream = new StreamWriter(path))
+        // 45 MiB: below the 64 MiB follow limit, so the size refusal cannot be what saves the test.
+        var line = new string('x', 200);
+        using (var stream = new StreamWriter(path))
         {
-            var line = new string('x', 200);
-            for (var index = 0; index < 60_000; index++)
+            for (var index = 0; index < 220_000; index++)
             {
-                await stream.WriteLineAsync($"{index} {line}");
+                stream.WriteLine($"{index} {line}");
             }
         }
 
         var size = new FileInfo(path).Length;
+        size.Should().BeGreaterThan(40L * 1024 * 1024);
         var reader = new LogReader();
         var file = new LogFile(LogSourceKind.Launcher, path, "launcher-big.log", size, DateTimeOffset.UtcNow, IsDefault: true);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
+        // The counters are process-wide and the read hops threads, so the measurement waits for the task instead of
+        // sampling a thread's total around an await (which is how this test once "measured" 53 MB).
+        GC.Collect();
+        var before = GC.GetTotalAllocatedBytes();
         var timer = Stopwatch.StartNew();
-        var tail = await reader.ReadTailAsync(file, 200);
+        var tail = reader.ReadTailAsync(file, 200).GetAwaiter().GetResult();
         timer.Stop();
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        var allocated = GC.GetTotalAllocatedBytes() - before;
 
         output.WriteLine($"tail of {size / 1024 / 1024} MiB: {timer.Elapsed.TotalMilliseconds:F0} ms, {allocated / 1024} KiB allocated");
         tail.Lines.Should().HaveCount(200);
         tail.TooLarge.Should().BeFalse();
-        allocated.Should().BeLessThan(8 * 1024 * 1024, "the reader takes a window, it does not load the file");
+        allocated.Should().BeLessThan(20L * 1024 * 1024, "the reader takes a 512 KiB window, it does not load a 45 MiB file");
         timer.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5));
     }
 }

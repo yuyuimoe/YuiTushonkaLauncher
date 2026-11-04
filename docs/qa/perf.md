@@ -12,7 +12,7 @@ slow machine breaks nothing while a change that turns a linear pass into a quadr
 | Load 1000 installed mods from SQLite (`GetAsync`, with files) | **164 ms** | 5 s |
 | 100 filters over those 1000 rows (in-memory) | **3 ms** (≈0.03 ms per filter) | 2 s |
 | Create an instance from a 200+ file fake base (hard links) | **4 ms** | 20 s |
-| Tail of an 11 MiB log (200 lines) | **4 ms**, **3.1 MiB** allocated | 2 s, 8 MiB |
+| Tail of a 43 MiB log (200 lines) | **8 ms**, **3.3 MiB** allocated | 5 s, 20 MiB |
 | Filtering a 1000-row list in the UI (row reuse) | 50 filters under **2 s** (phase 12 test) | 2 s |
 
 ## Against real data (earlier runs, same machine)
@@ -30,6 +30,9 @@ slow machine breaks nothing while a change that turns a linear pass into a quadr
 
 ## What is not measured
 
+- **The allocation number is process-wide by necessity.** `GC.GetAllocatedBytesForCurrentThread` around an `await` is
+  meaningless (the continuation can run on another thread — that mistake once produced "53 MB allocated"), so the tail
+  test waits for the task and compares process-wide totals, alone in a non-parallel collection.
 - **Frame timing.** No benchmark harness renders a real frame loop; the phase 12 tests prove the list reuses its row
   objects instead of rebuilding them, which is the part that would cause per-frame allocation.
 - **A 5 GiB instance clone.** The real instance here is ~40 GiB of links; the measurement above is the same code path
