@@ -8,6 +8,9 @@
     - Domain/Catalog.cs           pure data bags: EF sets their properties by reflection, so their
     - Domain/Instances.cs         accessors are never executed by our own code.
     - Persistence/SettingsRecord.cs  the same, for the single settings row.
+    - Core/Forge/ForgeModels.cs   API-shaped records: pure data, no branches worth testing.
+    - Core/Forge/ForgeResults.cs  idem (the two computed properties are covered elsewhere).
+    - Core/Forge/ForgeQueries.cs  idem.
 -->
 <RunSettings>
   <DataCollectionRunSettings>
@@ -16,7 +19,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <Include>[YuiTushonkaLauncher.Core]*,[YuiTushonkaLauncher.Infrastructure]*</Include>
-          <ExcludeByFile>**/Migrations/**/*.cs,**/Domain/Catalog.cs,**/Domain/Instances.cs,**/Persistence/SettingsRecord.cs</ExcludeByFile>
+          <ExcludeByFile>**/Migrations/**/*.cs,**/Domain/Catalog.cs,**/Domain/Instances.cs,**/Persistence/SettingsRecord.cs,**/Forge/ForgeModels.cs,**/Forge/ForgeResults.cs,**/Forge/ForgeQueries.cs</ExcludeByFile>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>
         </Configuration>

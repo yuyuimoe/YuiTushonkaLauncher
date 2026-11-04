@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using YuiTushonkaLauncher.Core.Abstractions;
 using YuiTushonkaLauncher.Infrastructure;
+using YuiTushonkaLauncher.Infrastructure.Forge;
 using YuiTushonkaLauncher.Infrastructure.Processes;
 using YuiTushonkaLauncher.ViewModels;
 
@@ -21,6 +22,7 @@ internal static class ServiceRegistration
 
         services.AddSingleton(paths);
         services.AddLauncherPersistence();
+        services.AddLauncherForge();
         services.AddSingleton<ISingleInstanceGuard, SingleInstanceGuard>();
 
         services.AddSingleton<MainViewModel>();
