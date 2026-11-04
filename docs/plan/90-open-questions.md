@@ -58,7 +58,12 @@ Everything still unresolved, with who/what resolves it.
 14. **Config files the installer calls non-config.** `IsConfig` still misses `.txt` (and the integrity check
     therefore does not list an edited `MOTD.txt` under `ModifiedConfigs`). The export no longer depends on
     the flag; decide in phase 12 whether integrity should use the same extension rule.
-15. **The game root on Linux — blocks phase 11.** Official: one folder holds the game, BepInEx and
+15. **The game root — decided 2026-11-04.** The instance root **is** SPT's merged root (`EscapeFromTarkov.exe`,
+    `winhttp.dll`, `BepInEx/`, `SPT_Runtime/` together), which is what the official launcher's
+    `GetGamePath()` and Doorstop both require; the split `gamefiles/`+`spt/` shape the installer produces is
+    kept only as the untouched source used to create instances, and is never runnable. Existing instances are
+    migrated automatically. See [phase 11](phase-11-launch-logs.md).
+    *(Original text, kept for context:)* Official: one folder holds the game, BepInEx and
     `SPT_Runtime`, and `winhttp.dll` sits next to `EscapeFromTarkov.exe` (Doorstop needs that). Our
     instances keep `gamefiles/` and `spt/` apart, so neither is a valid working directory. Candidate
     answers: (a) build a per-instance *merged root* of hard links (cheap, uses the link layer we have, but
@@ -97,3 +102,13 @@ Everything still unresolved, with who/what resolves it.
     detached, adopted from their pid records on the next start, and never killed by the launcher exiting
     ([92-after-1.0](92-after-1.0.md#item-2-decided-2026-11-04--both-processes-are-detached)). The mechanism
     and the UI consequences are phase 11's design.
+
+16. **`--server-stale` naming.** Phase 10 generalises it into `--stale [--reap]`, which lists both the server
+    and the game of an instance (the pair lives in one record). The old flag can be kept as an alias for one
+    release or dropped outright; decide when the CLI is documented for users (phase 14).
+17. **Migration numbering.** The split→merged migration is "layout v2" of an instance. Whether the database
+    stores a `LayoutVersion` column or the layout is inferred from the files on disk (an instance root with
+    an `.exe` is merged) is a phase 11 implementation choice; inference means a half-migrated folder has to be
+    detected by the plan, which the migration does anyway.
+18. **Game logs above 64 MiB** stop following and point at the system editor (decided). Whether the same limit
+    applies to *exporting* a selection from such a file is a small UX choice for phase 12.

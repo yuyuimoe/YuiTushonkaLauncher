@@ -285,3 +285,28 @@ The SPT server is not "something the user starts"; it is part of the launch (D13
 - **The API is TLS-with-nothing-to-verify.** SPT's certificate is self-signed and created on first start, so
   the client accepts any certificate, exactly like the official launcher. No secret crosses it: a profile is
   selected by name.
+
+## D22. The server and the game are detached, and adopted
+
+Decided by the maintainer on 2026-11-04: **both** processes are spawned with no direct relationship to the
+launcher. An OOM kill or a crash of the launcher must not take them, and the launcher never kills them by
+merely exiting.
+
+- **Mechanism:** `systemd-run --user --scope` when the distro has systemd (its own cgroup, so a cgroup-wide
+  OOM kill of the launcher's scope does not reach it), otherwise `setsid`. The mechanism used is recorded.
+  Windows: a job object **without** `KILL_ON_JOB_CLOSE` plus `CREATE_BREAKAWAY_FROM_JOB`.
+  This replaces [D21](#d21-the-server-is-a-supervised-child-never-a-second-class-process)'s
+  `--pdeathsig` tie.
+- **The promise flips.** "Killing the app leaves no child process" becomes "an orphan is found, shown and
+  stoppable": the phase 10/11 acceptance criterion is rewritten, not silently dropped.
+- **One record per instance for the pair** (`server` + `game`), written *before* the process is released, so
+  there is no window in which a process exists and the record does not. Adoption requires pid **and** start
+  time **and** executable path to match; a recycled pid is never touched.
+- **Coherence is the launcher's job while it is open.** A game whose server died is presented as broken, with
+  the reason and a manual "restart server". Nothing auto-restarts (a mod crashing the server would loop) and
+  nothing kills the game (that would throw away the user's session).
+- **Closing the launcher asks**, defaulting to letting them run, and can be silenced by a setting. Two
+  convenience settings the maintainer asked for: "close the launcher when the game starts" and "minimise the
+  launcher when the game starts".
+- **Patching and migrating refuse while the pair runs**, naming the process: with detached processes,
+  "nothing else writes to these files" is no longer a safe assumption.

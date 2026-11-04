@@ -395,3 +395,42 @@ Read from a real SPT 4.1.6 install (`base_tarkov41`) started as its own `SPT.Ser
 - With that in place, `kill -9` of the launcher took the server with it within about a second (SIGTERM,
   graceful); without `setpriv`, the server survived and was found and stopped by `--server-stale --reap`
   from its pid record.
+
+## The playable layout and its logs, measured (2026-11-04)
+
+From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `tarkov_dev/spt41_dev` and
+`tarkov_dev/spt40_dev` (4.0). These are the shapes a user actually runs.
+
+### Merged, not split
+
+- A runnable folder has **one root**: `EscapeFromTarkov.exe`, `EscapeFromTarkov_Data/`, `UnityPlayer.dll`,
+  `winhttp.dll`, `doorstop_config.ini`, `BepInEx/`, `SPT_Runtime/` (4.1+) or `SPT/` (4.0), `Logs/`, plus
+  whatever the user added (`Greed.exe`, `Name Plate.exe`, `SSPTMM/`, `dxvk.conf`).
+- The official launcher confirms it in code: it runs from inside `SPT_Runtime` and
+  `GetGamePath()` returns `Directory.GetParent(cwd)` unless the user set a path; `Path.Join(GetGamePath(),
+  "EscapeFromTarkov.exe")` is the game, and `Paths.CoreDllPath` = `BepInEx/plugins/spt/spt-core.dll` relative
+  to that same root.
+- **What the installer produces is different**: `base_tarkov41/{gamefiles, spt}` — `winhttp.dll` under `spt/`,
+  the game under `gamefiles/`. That is a *source of untouched files*, not something SPT can run. The
+  installer's own `create-spt-instance.sh` keeps that split and hard-links it, so it does not solve the
+  merge either.
+- Link counts in a real merged instance: `EscapeFromTarkov.exe` 4, `winhttp.dll` 3, `SPT.Server.Linux` 3,
+  **`Assembly-CSharp.dll` 1** with a `.spt-bak` beside it — exactly the isolation the patcher needs
+  ([D5](04-decisions.md#d5-assembly-csharpdll-is-never-linked)).
+- `SPT_Runtime/user/` in a played 4.1 instance: `cache`, `certs`, `credentials`, `Launcher`, `logs`, `mods`,
+  `patchers`, `profileData`, `profiles`, `sptappdata`, `sptRegistry`, `sptSettings`.
+- `SPT_Runtime/SPT_Data/Launcher/Patches/SPT-core` holds the delta set.
+
+### Logs, all four of them
+
+| Source | Path | Shape |
+|---|---|---|
+| Game (SPT) | `<root>/Logs/<date>_<version>/` | **one folder per run**; `application.log`, `assetBundle.log`, `_backend.log`, ` errors.log`, ` traces.log` |
+| BepInEx | `<root>/BepInEx/LogOutput.log` | one file, rewritten per run; `redirect_output_log = false` in `doorstop_config.ini` |
+| Server | `<root>/SPT_Runtime/user/logs/spt/spt<yyyymmdd>.log` | **daily**, appended |
+| Launcher (the official one) | `<root>/SPT_Runtime/user/logs/Launcher.log` | what our own log replaces |
+
+- **The game's logs are enormous**: one real session produced `_backend.log` 81 MB, ` errors.log` 81 MB,
+  ` traces.log` 163 MB, `application.log` 30 KB, `assetBundle.log` 582 B. Any view must tail, not load.
+- SPT **does not rotate** that `Logs/` folder: it deletes and regenerates it, which is why a run after a crash
+  loses the evidence ([92-after-1.0](92-after-1.0.md)).

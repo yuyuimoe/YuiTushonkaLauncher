@@ -12,7 +12,7 @@ here has to be closed for the release. Add an item only with the user's agreemen
 ## Item 2: decided (2026-11-04) — both processes are detached
 
 **The maintainer decided: the server *and* the game are spawned with no direct relationship to the
-launcher.** That settles the tension below in favour of detaching both, and it overrides the phase 10/11
+launcher** — implemented in phase 11 as [D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted). That settles the tension below in favour of detaching both, and it overrides the phase 10/11
 rule "killing the app leaves no child process alive" ([D21](04-decisions.md#d21-the-server-is-a-supervised-child-never-a-second-class-process)).
 The consequences that phase 11 must carry:
 
@@ -28,7 +28,9 @@ The consequences that phase 11 must carry:
   owned variables must be captured in the record (or re-derived from the instance) so adoption shows the
   truth; nothing can be inherited from a launcher that no longer exists.
 
-## Item 2 (superseded): the tension to resolve first
+## Item 2 (settled): the design, see [D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted)
+
+Kept for the record of why the tension existed at all.
 
 Phase 10 and 11 promise that *killing the app leaves no child process alive*. That is the right default
 for the **server** and for a launch that is still starting. A detached game does the opposite on purpose:
