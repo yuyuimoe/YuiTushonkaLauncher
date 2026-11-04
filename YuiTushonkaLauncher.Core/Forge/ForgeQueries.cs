@@ -1,3 +1,4 @@
+using System;
 using YuiTushonkaLauncher.Core.Domain;
 
 namespace YuiTushonkaLauncher.Core.Forge;
@@ -34,6 +35,12 @@ public sealed record ForgeModQuery
     /// <summary>Sort expression, e.g. <c>downloads</c> or <c>-updated_at</c>.</summary>
     public string? Sort { get; init; }
 
+    /// <summary>Only mods published on or after this instant (<c>filter[published_between]</c>).</summary>
+    public DateTimeOffset? PublishedFrom { get; init; }
+
+    /// <summary>Only mods published on or before this instant.</summary>
+    public DateTimeOffset? PublishedTo { get; init; }
+
     public int Page { get; init; } = 1;
 
     public int PerPage { get; init; } = 25;
@@ -49,6 +56,12 @@ public sealed record ForgeAddonQuery
     public bool? IsDetached { get; init; }
 
     public string? Sort { get; init; }
+
+    /// <summary>Only addons published on or after this instant.</summary>
+    public DateTimeOffset? PublishedFrom { get; init; }
+
+    /// <summary>Only addons published on or before this instant.</summary>
+    public DateTimeOffset? PublishedTo { get; init; }
 
     public int Page { get; init; } = 1;
 

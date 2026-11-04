@@ -22,6 +22,9 @@ public sealed record ForgeMod
 
     public string? ThumbnailUrl { get; init; }
 
+    /// <summary>The mod's page on the site (<c>detail_url</c>), where licence, source and scans live.</summary>
+    public string? DetailUrl { get; init; }
+
     public string? Author { get; init; }
 
     public int Downloads { get; init; }
@@ -84,6 +87,9 @@ public sealed record ForgeAddon
     public string? Teaser { get; init; }
 
     public string? ThumbnailUrl { get; init; }
+
+    /// <summary>The mod's page on the site (<c>detail_url</c>), where licence, source and scans live.</summary>
+    public string? DetailUrl { get; init; }
 
     public int Downloads { get; init; }
 

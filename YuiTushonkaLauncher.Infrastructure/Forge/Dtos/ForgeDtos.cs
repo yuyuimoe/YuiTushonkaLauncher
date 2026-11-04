@@ -63,6 +63,9 @@ internal sealed class ModDto
     [JsonPropertyName("thumbnail")]
     public string? Thumbnail { get; set; }
 
+    [JsonPropertyName("detail_url")]
+    public string? DetailUrl { get; set; }
+
     [JsonPropertyName("downloads")]
     public int Downloads { get; set; }
 
@@ -146,6 +149,9 @@ internal sealed class AddonDto
 
     [JsonPropertyName("thumbnail")]
     public string? Thumbnail { get; set; }
+
+    [JsonPropertyName("detail_url")]
+    public string? DetailUrl { get; set; }
 
     [JsonPropertyName("is_detached")]
     public bool IsDetached { get; set; }
