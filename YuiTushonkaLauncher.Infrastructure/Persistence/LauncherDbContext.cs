@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YuiTushonkaLauncher.Core.Domain;
 
 namespace YuiTushonkaLauncher.Infrastructure.Persistence;
@@ -74,6 +75,16 @@ public sealed class LauncherDbContext(DbContextOptions<LauncherDbContext> option
     internal DbSet<SettingsRecord> Settings
     {
         get { return Set<SettingsRecord>(); }
+    }
+
+    /// <inheritdoc />
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        // SQLite cannot ORDER BY or compare DateTimeOffset stored as text; binary keeps the order.
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetToBinaryConverter>();
+        configurationBuilder.Properties<DateTimeOffset?>().HaveConversion<DateTimeOffsetToBinaryConverter>();
     }
 
     /// <inheritdoc />

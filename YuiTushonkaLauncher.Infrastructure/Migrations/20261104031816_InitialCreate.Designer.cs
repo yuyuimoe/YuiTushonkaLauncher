@@ -11,7 +11,7 @@ using YuiTushonkaLauncher.Infrastructure.Persistence;
 namespace YuiTushonkaLauncher.Infrastructure.Migrations
 {
     [DbContext(typeof(LauncherDbContext))]
-    [Migration("20261104025643_InitialCreate")]
+    [Migration("20261104031816_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -49,8 +49,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("UpdatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -84,8 +84,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("PublishedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("PublishedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Version")
                         .IsRequired()
@@ -187,8 +187,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("InstalledAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("InstalledAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("InstanceId")
                         .HasColumnType("TEXT");
@@ -245,11 +245,11 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("LastLaunchedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("LastLaunchedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Layout")
                         .IsRequired()
@@ -326,8 +326,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("UpdatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -346,8 +346,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ManifestSha256")
                         .HasMaxLength(64)
@@ -432,8 +432,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<Guid>("ModId")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("PublishedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("PublishedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Sha256")
                         .HasMaxLength(64)
@@ -526,8 +526,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<int>("Port")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -543,8 +543,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("FetchedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("FetchedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("ForgeId")
                         .HasColumnType("INTEGER");
@@ -662,8 +662,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                             b1.Property<Guid>("InstanceId")
                                 .HasColumnType("TEXT");
 
-                            b1.Property<DateTimeOffset?>("AppliedAt")
-                                .HasColumnType("TEXT");
+                            b1.Property<long?>("AppliedAt")
+                                .HasColumnType("INTEGER");
 
                             b1.Property<string>("BackupPath")
                                 .HasMaxLength(1024)

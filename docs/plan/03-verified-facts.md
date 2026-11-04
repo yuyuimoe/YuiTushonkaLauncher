@@ -106,6 +106,42 @@ spt/
     user/{certs,logs,profiles,sptsettings,sptappdata,cache,mods,patchers,sptRegistry/registry.json}
 ```
 
+### Version and patch facts read from the installs
+
+- **SPT version**: `SPT.Server.deps.json` → `libraries` keys look like
+  `SPT.Server/4.1.6-RELEASE+731d7a2.20260918`. First `SPT.Server/<x.y.z>` match wins; the 4.0 base
+  reports `4.0.13`, the 4.1 base `4.1.6`.
+- **Tarkov version**: the PE `FileVersion` resource of `EscapeFromTarkov.exe` says `0.16.9.40743`
+  (ProductVersion `0.16.9.5-40743-f137e819`). `System.Diagnostics.FileVersionInfo` is Windows-only, so
+  the launcher reads the resource directly (`PeVersionReader`).
+- **Patch state is observable**: `base_tarkov41` has
+  `gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll` (links=1, 16 225 280 B) next to
+  `Assembly-CSharp.dll.spt-bak` (links=3, 15 994 432 B) → patched. `base_tarkov` (4.0) has **no**
+  `.spt-bak`, so its state is `Unknown` by our rule. Note the base's `.spt-bak` is itself hard-linked
+  (3 links) — one more reason an instance must copy the backup instead of linking it.
+- **Layout** is detectable without SPT metadata: `spt/SPT_Runtime` → 4.1+, `spt/SPT` → 4.0.
+- `.NET 10` is confirmed by `SPT.Server.runtimeconfig.json` (`tfm: net10.0`, frameworks 10.0.0).
+
+### Creating an instance for real (2026-11-05)
+
+`--create-instance smoke --from base_tarkov41 --into ~/Games/ytt-instances`:
+
+```
+Plan: 10203 linked (58785 MiB), 34 copied (32 MiB), 4 skipped, 8 directories
+Created smoke at …/smoke in 00:00:00.36 (patch state stored: True)
+```
+
+- `UnityPlayer.dll` links=4 afterwards (shared), instance `Assembly-CSharp.dll` links=1 and the base's
+  is still links=1 → the copy rule holds in practice.
+- Per-instance `spt/SPT_Runtime/user/{cache,certs,logs,mods,profiles}` created; `BepInEx/plugins`
+  contains only `spt/` (SPT's own plugins), user mods and profiles from the base are not copied.
+- **Cross-volume refusal works**: `/tmp` is a different device than `$HOME` here, and the pre-flight
+  aborted with the actionable message instead of a raw `EXDEV`.
+- **`du` lies with hard links** (it reported 58 G for an instance that physically costs ~32 MiB): use
+  link counts, not apparent size, to reason about disk usage. The base root also contained
+  `create-spt-instance.sh`, which the "unknown top-level → copy" rule brought along; that is the
+  intended safe default.
+
 ### SPT 4.0 (`base_tarkov`)
 
 Same shape but the runtime dir is `spt/SPT/` instead of `spt/SPT_Runtime/`. The manager must detect
