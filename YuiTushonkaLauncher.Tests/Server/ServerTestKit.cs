@@ -507,7 +507,9 @@ public sealed class ServerWorld : IDisposable
     public Instance CreateInstance(string name, int port = 6969, string ip = "127.0.0.1", InstanceLayout layout = InstanceLayout.Spt41Plus)
     {
         var path = _temp.Combine(name);
-        var runtime = Path.Combine(path, layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime");
+
+        // An instance is always SPT's merged shape: the runtime sits at the root, next to the executable.
+        var runtime = Path.Combine(path, InstancePaths.RuntimeDirectory(layout));
 
         Directory.CreateDirectory(Path.Combine(runtime, "SPT_Data", "configs"));
         Directory.CreateDirectory(Path.Combine(runtime, "user", "profiles"));
@@ -529,7 +531,7 @@ public sealed class ServerWorld : IDisposable
 
     public static string RuntimeOf(Instance instance)
     {
-        return Path.Combine(instance.Path, instance.Layout == InstanceLayout.Spt40 ? "spt/SPT" : "spt/SPT_Runtime");
+        return Path.Combine(instance.Path, Core.Instances.InstancePaths.RuntimeDirectory(instance.Layout));
     }
 
     public static string HttpConfigOf(Instance instance)

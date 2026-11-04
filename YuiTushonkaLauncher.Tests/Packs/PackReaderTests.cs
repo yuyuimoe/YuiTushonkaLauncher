@@ -15,7 +15,7 @@ namespace YuiTushonkaLauncher.Tests.Packs;
 public sealed class PackReaderTests : IDisposable
 {
     private const string Owner = "com.fixture.clientmod";
-    private const string ConfigPath = "spt/BepInEx/config/com.fixture.clientmod.cfg";
+    private const string ConfigPath = "BepInEx/config/com.fixture.clientmod.cfg";
 
     private readonly TempDirectory _temp = new();
     private readonly PackReader _reader = new(NullLogger<PackReader>.Instance);
@@ -295,7 +295,7 @@ public sealed class PackReaderTests : IDisposable
     [Fact]
     public void Read_AManifestDeclaringABinaryConfig_IsForbidden()
     {
-        var manifest = PackCrafter.Manifest(configs: [PackCrafter.Config(Owner, "spt/BepInEx/plugins/x/Mod.dll", "x")]);
+        var manifest = PackCrafter.Manifest(configs: [PackCrafter.Config(Owner, "BepInEx/plugins/x/Mod.dll", "x")]);
         var path = PackCrafter.Zip(NewPath(), PackCrafter.ManifestEntry(manifest));
 
         Refused(path).Problem.Should().Be(PackProblem.ForbiddenFile);

@@ -8,8 +8,8 @@ namespace YuiTushonkaLauncher.Tests.Packs;
 public sealed class PackRulesTests
 {
     [Theory]
-    [InlineData("spt/BepInEx/config/com.mod.cfg")]
-    [InlineData("spt/SPT_Runtime/user/mods/[SVM] Server Value Modifier/config.json")]
+    [InlineData("BepInEx/config/com.mod.cfg")]
+    [InlineData("SPT_Runtime/user/mods/[SVM] Server Value Modifier/config.json")]
     [InlineData("a.json")]
     [InlineData("dir with spaces/file name.json")]
     [InlineData("naïve/ünïcode.json")]
@@ -121,7 +121,7 @@ public sealed class PackRulesTests
     [Fact]
     public void ConfigEntryName_PutsTheConfigUnderTheConfigsDirectory()
     {
-        PackRules.ConfigEntryName("spt/BepInEx/config/x.cfg").Should().Be("configs/spt/BepInEx/config/x.cfg");
+        PackRules.ConfigEntryName("BepInEx/config/x.cfg").Should().Be("configs/BepInEx/config/x.cfg");
     }
 
     [Fact]

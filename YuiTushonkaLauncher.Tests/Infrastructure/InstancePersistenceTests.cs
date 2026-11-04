@@ -36,7 +36,7 @@ public sealed class InstancePersistenceTests
                         PatchSetVersion = "4.1.6",
                         OriginalSha256 = new string('a', 64),
                         PatchedSha256 = new string('b', 64),
-                        BackupPath = "/games/spt/instances/vanilla/gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak",
+                        BackupPath = "/games/spt/instances/vanilla/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak",
                         AppliedAt = createdAt,
                     },
                 }

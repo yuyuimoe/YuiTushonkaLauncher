@@ -119,7 +119,7 @@ public sealed class BaseInstallProbeTests
     {
         using var temp = new Infrastructure.TempDirectory();
 
-        BaseInstallProbe.DetectLayout(temp.Path).Should().BeNull();
+        BaseInstallProbe.DetectLayout(temp.Path, InstallShape.Split).Should().BeNull();
     }
 
     [Fact]

@@ -67,7 +67,7 @@ public sealed class PatchingTestContext : IAsyncDisposable
     }
 
     /// <summary>Instance-relative path of the binary a delta patches.</summary>
-    public const string TargetRelative = "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll";
+    public const string TargetRelative = "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll";
 
     public string TargetPath
     {

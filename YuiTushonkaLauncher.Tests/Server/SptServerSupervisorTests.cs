@@ -35,7 +35,7 @@ public sealed class SptServerSupervisorTests : IDisposable
 
         var start = _h.Spawner.Starts.Should().ContainSingle().Subject;
         start.Command.FileName.Should().EndWith("SPT.Server.Linux");
-        start.Command.WorkingDirectory.Should().EndWith("spt/SPT_Runtime");
+        start.Command.WorkingDirectory.Should().EndWith("SPT_Runtime");
         _h.RuntimeLauncher.Requests.Should()
             .ContainSingle()
             .Which.Target.Should()

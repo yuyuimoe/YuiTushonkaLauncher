@@ -25,7 +25,7 @@ public sealed class PatchPlannerTests : IDisposable
 
     private string Target
     {
-        get { return Path.Combine(Root, "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll"); }
+        get { return Path.Combine(Root, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll"); }
     }
 
     private string Backup
@@ -133,7 +133,7 @@ public sealed class PatchPlannerTests : IDisposable
         _temp.Dispose();
     }
 
-    private static DeltaDescriptor Delta(string relative = "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll")
+    private static DeltaDescriptor Delta(string relative = "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll")
     {
         return new DeltaDescriptor
         {

@@ -31,12 +31,12 @@ public sealed class MigrationServiceTests
         await using var context = await ModTestContext.CreateAsync();
 
         // A mod folder with a real assembly nobody in the catalogue knows.
-        var unknownFolder = Path.Combine(context.Instance.Path, "spt/BepInEx/plugins/unknown", "Unknown.dll");
+        var unknownFolder = Path.Combine(context.Instance.Path, "BepInEx/plugins/unknown", "Unknown.dll");
         Directory.CreateDirectory(Path.GetDirectoryName(unknownFolder)!);
         await File.WriteAllBytesAsync(unknownFolder, await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "ClientMod.dll")));
 
         // And a folder with no assembly at all.
-        var noGuidFile = Path.Combine(context.Instance.Path, "spt/BepInEx/plugins/mystery/readme.txt");
+        var noGuidFile = Path.Combine(context.Instance.Path, "BepInEx/plugins/mystery/readme.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(noGuidFile)!);
         await File.WriteAllTextAsync(noGuidFile, "no dll here");
 
@@ -55,7 +55,7 @@ public sealed class MigrationServiceTests
         // Build a folder that looks like a hand-made install: base layout plus a mod the user dropped in.
         var adoptedRoot = context.Locations.Combine("adopted");
         CopyDirectory(context.Install.Root, adoptedRoot);
-        var modFile = Path.Combine(adoptedRoot, "spt/BepInEx/plugins/fixture/FixturePlugin.dll");
+        var modFile = Path.Combine(adoptedRoot, "BepInEx/plugins/fixture/FixturePlugin.dll");
         Directory.CreateDirectory(Path.GetDirectoryName(modFile)!);
         await File.WriteAllBytesAsync(modFile, await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "ClientMod.dll")));
 
@@ -92,7 +92,7 @@ public sealed class MigrationServiceTests
     {
         await using var context = await ModTestContext.CreateAsync();
 
-        var folder = Path.Combine(context.Instance.Path, "spt/BepInEx/plugins/legacy");
+        var folder = Path.Combine(context.Instance.Path, "BepInEx/plugins/legacy");
         Directory.CreateDirectory(folder);
         await File.WriteAllBytesAsync(
             Path.Combine(folder, "Legacy.dll"),

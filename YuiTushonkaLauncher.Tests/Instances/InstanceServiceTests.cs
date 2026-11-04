@@ -66,12 +66,12 @@ public sealed class InstanceServiceTests : IAsyncLifetime
         instance.Layout.Should().Be(InstanceLayout.Spt41Plus);
         instance.Patch.IsPatched.Should().BeTrue();
 
-        var baseAssembly = Path.Combine(install.Root, "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
-        var instanceAssembly = Path.Combine(instance.Path, "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+        var baseAssembly = Path.Combine(install.Root, "gamefiles", "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll");
+        var instanceAssembly = Path.Combine(instance.Path, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
         _links.GetLinkCount(instanceAssembly).Should().Be(1, "the patched binary must never be shared");
 
-        var baseBundle = Path.Combine(install.Root, "gamefiles/EscapeFromTarkov_Data/Resources/bundle.bundle");
-        var instanceBundle = Path.Combine(instance.Path, "gamefiles/EscapeFromTarkov_Data/Resources/bundle.bundle");
+        var baseBundle = Path.Combine(install.Root, "gamefiles", "EscapeFromTarkov_Data", "Resources", "bundle.bundle");
+        var instanceBundle = Path.Combine(instance.Path, "EscapeFromTarkov_Data/Resources/bundle.bundle");
         _links.GetLinkCount(instanceBundle).Should().Be(2, "unchanged game files are hard-linked");
         File.ReadAllText(baseBundle).Should().Be(File.ReadAllText(instanceBundle));
         _links.GetLinkCount(baseAssembly).Should().Be(1, "creating an instance must not touch the base install");
@@ -84,14 +84,14 @@ public sealed class InstanceServiceTests : IAsyncLifetime
 
         var instance = await _service.CreateAsync(Request(install, "private"));
 
-        Directory.Exists(Path.Combine(instance.Path, "spt/BepInEx/plugins")).Should().BeTrue();
-        Directory.Exists(Path.Combine(instance.Path, "spt/SPT_Runtime/user/profiles")).Should().BeTrue();
-        Directory.Exists(Path.Combine(instance.Path, "spt/SPT_Runtime/user/mods")).Should().BeTrue();
+        Directory.Exists(Path.Combine(instance.Path, "BepInEx/plugins")).Should().BeTrue();
+        Directory.Exists(Path.Combine(instance.Path, "SPT_Runtime/user/profiles")).Should().BeTrue();
+        Directory.Exists(Path.Combine(instance.Path, "SPT_Runtime/user/mods")).Should().BeTrue();
 
-        File.Exists(Path.Combine(instance.Path, "spt/BepInEx/plugins/UserMod/UserMod.dll")).Should().BeFalse("user mods are per instance");
-        File.Exists(Path.Combine(instance.Path, "spt/SPT_Runtime/user/profiles/base.json")).Should().BeFalse("profiles are per instance");
-        File.Exists(Path.Combine(instance.Path, "spt/BepInEx/cache/chainloader.dat")).Should().BeFalse("caches are regenerated");
-        File.Exists(Path.Combine(instance.Path, "spt/BepInEx/plugins/spt/spt-core.dll")).Should().BeTrue("SPT's own plugins are required");
+        File.Exists(Path.Combine(instance.Path, "BepInEx/plugins/UserMod/UserMod.dll")).Should().BeFalse("user mods are per instance");
+        File.Exists(Path.Combine(instance.Path, "SPT_Runtime/user/profiles/base.json")).Should().BeFalse("profiles are per instance");
+        File.Exists(Path.Combine(instance.Path, "BepInEx/cache/chainloader.dat")).Should().BeFalse("caches are regenerated");
+        File.Exists(Path.Combine(instance.Path, "BepInEx/plugins/spt/spt-core.dll")).Should().BeTrue("SPT's own plugins are required");
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class InstanceServiceTests : IAsyncLifetime
         var instance = await _service.CreateAsync(Request(install, "patchy"));
 
         // Restore the "original" to simulate a client that was never patched.
-        var target = Path.Combine(instance.Path, "gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
+        var target = Path.Combine(instance.Path, "EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
         await File.WriteAllTextAsync(target, "original-assembly");
 
         var state = await _service.DetectPatchStateAsync(instance.Id);

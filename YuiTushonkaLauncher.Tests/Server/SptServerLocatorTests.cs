@@ -29,8 +29,8 @@ public sealed class SptServerLocatorTests : IDisposable
         var location = Linux().Locate(instance);
 
         location.IsComplete.Should().BeTrue();
-        location.ExecutablePath.Should().EndWith("spt/SPT_Runtime/SPT.Server.Linux");
-        location.WorkingDirectory.Should().EndWith("spt/SPT_Runtime");
+        location.ExecutablePath.Should().EndWith("SPT_Runtime/SPT.Server.Linux");
+        location.WorkingDirectory.Should().EndWith("SPT_Runtime");
         location.Endpoint.Port.Should().Be(6975);
         location.ProfilesDirectory.Should().EndWith(Path.Combine("user", "profiles"));
     }
@@ -51,7 +51,7 @@ public sealed class SptServerLocatorTests : IDisposable
         var location = Linux().Locate(instance);
 
         location.IsComplete.Should().BeTrue();
-        location.WorkingDirectory.Should().EndWith("spt/SPT");
+        location.WorkingDirectory.Should().EndWith("SPT");
     }
 
     [Fact]

@@ -21,9 +21,9 @@ public sealed class PackPathGuardTests : IDisposable
     {
         Directory.CreateDirectory(Root);
 
-        var full = PackPathGuard.Resolve(Root, "spt/BepInEx/config/x.cfg");
+        var full = PackPathGuard.Resolve(Root, "BepInEx/config/x.cfg");
 
-        full.Should().Be(Path.Combine(Path.GetFullPath(Root), "spt", "BepInEx", "config", "x.cfg"));
+        full.Should().Be(Path.Combine(Path.GetFullPath(Root), "BepInEx", "config", "x.cfg"));
     }
 
     [Theory]

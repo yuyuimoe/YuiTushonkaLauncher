@@ -40,7 +40,7 @@ public sealed class PackManifestSerializerTests
     {
         var manifest = PackCrafter.Manifest(
             [PackCrafter.Mod(), PackCrafter.Mod("com.other", "2.0.0", null)],
-            [PackCrafter.Config("com.fixture.clientmod", "spt/BepInEx/config/x.cfg", "a=1")]
+            [PackCrafter.Config("com.fixture.clientmod", "BepInEx/config/x.cfg", "a=1")]
         );
 
         var parsed = PackManifestSerializer.Deserialize(PackManifestSerializer.Serialize(manifest));
