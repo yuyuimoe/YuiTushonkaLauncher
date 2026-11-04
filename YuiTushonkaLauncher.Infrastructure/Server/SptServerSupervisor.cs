@@ -166,7 +166,6 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         {
             entry.Cancellation?.Dispose();
             entry.Cancellation = new CancellationTokenSource();
-            entry.StopRequested = false;
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, entry.Cancellation.Token);
             return await StartCoreAsync(entry, instance, options ?? new ServerStartOptions(), 0, linked.Token);
@@ -186,7 +185,6 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         }
 
         // Cancel first: a start or a restart that is still waiting for ping must give up before the gate can be had.
-        entry.StopRequested = true;
         entry.Cancellation?.Cancel();
 
         await entry.Gate.WaitAsync(cancellationToken);
@@ -442,8 +440,9 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
 
         try
         {
-            // A stop owns the shutdown and reports it; only an exit nobody asked for is a failure.
-            if (!ReferenceEquals(entry.Child, child) || entry.StopRequested)
+            // A stop owns the shutdown and reports it; only an exit nobody asked for is a failure. By the time a stop
+            // releases the gate it has already forgotten the child, so this one check covers every order.
+            if (!ReferenceEquals(entry.Child, child))
             {
                 return;
             }
@@ -718,7 +717,5 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         public IChildProcess? Child { get; set; }
 
         public CancellationTokenSource? Cancellation { get; set; }
-
-        public volatile bool StopRequested;
     }
 }
