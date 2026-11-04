@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Coverage configuration (phase 13 owns the 90 % gate; this file exists so the number is comparable
+  from the start).
+
+  Exclusions, each justified:
+    - **/Migrations/**            EF Core generated migration code.
+    - Domain/Catalog.cs           pure data bags: EF sets their properties by reflection, so their
+    - Domain/Instances.cs         accessors are never executed by our own code.
+    - Persistence/SettingsRecord.cs  the same, for the single settings row.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[YuiTushonkaLauncher.Core]*,[YuiTushonkaLauncher.Infrastructure]*</Include>
+          <ExcludeByFile>**/Migrations/**/*.cs,**/Domain/Catalog.cs,**/Domain/Instances.cs,**/Persistence/SettingsRecord.cs</ExcludeByFile>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>true</UseSourceLink>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
