@@ -282,6 +282,8 @@ public sealed class FakeChild : IChildProcess
 
     public int ProcessId { get; }
 
+    public string? Scope { get; init; }
+
     public DateTimeOffset StartedAt { get; }
 
     public bool HasExited { get; private set; }
@@ -327,7 +329,7 @@ public sealed class FakeSpawner : IChildProcessSpawner
 
     public List<FakeChild> Children { get; } = [];
 
-    public TimeProvider Time { get; init; } = TimeProvider.System;
+    public TimeProvider Time { get; set; } = TimeProvider.System;
 
     /// <summary>Builds the child for a start request; the default one stays alive until stopped.</summary>
     public Func<ChildProcessStart, FakeChild>? Factory { get; set; }
@@ -368,6 +370,7 @@ public sealed class FakeInspector : IProcessInspector
     public Task<bool> StopAsync(int processId, TimeSpan grace, CancellationToken cancellationToken = default)
     {
         StopRequests.Add(processId);
+        GroupStopRequests.RemoveAll(request => request == processId);
 
         if (CanStop)
         {
@@ -375,6 +378,48 @@ public sealed class FakeInspector : IProcessInspector
         }
 
         return Task.FromResult(CanStop);
+    }
+
+    /// <summary>Groups that are still alive, by process group id.</summary>
+    public HashSet<int> Groups { get; } = [];
+
+    public List<int> GroupStopRequests { get; } = [];
+
+    public bool IsGroupAlive(int processGroupId)
+    {
+        return Groups.Contains(processGroupId);
+    }
+
+    public Task<bool> StopGroupAsync(int processGroupId, TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        GroupStopRequests.Add(processGroupId);
+
+        if (CanStop)
+        {
+            Groups.Remove(processGroupId);
+        }
+
+        return Task.FromResult(CanStop);
+    }
+}
+
+/// <summary>Fake systemd units: a set of active unit names.</summary>
+public sealed class FakeScopes : IScopeService
+{
+    public HashSet<string> Active { get; } = [];
+
+    public List<string> StopRequests { get; } = [];
+
+    public bool IsActive(string unit)
+    {
+        return Active.Contains(unit);
+    }
+
+    public Task<bool> StopAsync(string unit, TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        StopRequests.Add(unit);
+        Active.Remove(unit);
+        return Task.FromResult(true);
     }
 }
 
@@ -391,7 +436,12 @@ public sealed class FakeRuntimeLauncher : IRuntimeLauncher
 
         return new LaunchPlan
         {
-            Command = new LaunchCommand { FileName = request.Program, WorkingDirectory = request.WorkingDirectory },
+            Command = new LaunchCommand
+            {
+                FileName = request.Program,
+                Arguments = request.Arguments,
+                WorkingDirectory = request.WorkingDirectory,
+            },
             Problems = Problems,
         };
     }

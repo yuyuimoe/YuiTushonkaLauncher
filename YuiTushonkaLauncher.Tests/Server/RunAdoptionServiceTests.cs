@@ -17,6 +17,8 @@ public sealed class RunAdoptionServiceTests : IDisposable
 
     private readonly FakeInspector _launchers = new();
 
+    private readonly FakeScopes _scopes = new();
+
     private readonly RunAdoptionService _service;
 
     private readonly DateTimeOffset _started = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
@@ -26,7 +28,7 @@ public sealed class RunAdoptionServiceTests : IDisposable
         var paths = _temp.CreateAppPaths();
         paths.EnsureCreated();
         _store = new InstanceRunStore(paths, NullLogger<InstanceRunStore>.Instance);
-        _service = new RunAdoptionService(_store, _inspector, _launchers, NullLogger<RunAdoptionService>.Instance);
+        _service = new RunAdoptionService(_store, _inspector, _launchers, _scopes, NullLogger<RunAdoptionService>.Instance);
     }
 
     public void Dispose()
@@ -126,6 +128,50 @@ public sealed class RunAdoptionServiceTests : IDisposable
         var adopted = (await _service.FindLeftoversAsync()).Single();
 
         adopted.Server!.State.Should().Be(AdoptedProcessState.NotOurs);
+    }
+
+    [Fact]
+    public async Task ARunWhoseWrapperForkedAndExited_IsStillFoundAlive_ThroughItsScope()
+    {
+        // umu-run, Proton and a shell all fork: the pid that was recorded dies, the game lives in the scope.
+        var run = new InstanceRun
+        {
+            InstanceId = Guid.NewGuid(),
+            InstanceName = "one",
+            LauncherProcessId = 500,
+        };
+        run = run.WithGame(new RunProcess(900, _started, "/usr/bin/umu-run", RunMechanism.SystemdScope, Scope: "ytt-abc"));
+        _store.Save(run);
+        _scopes.Active.Add("ytt-abc");
+
+        var leftover = (await _service.FindLeftoversAsync()).Should().ContainSingle().Subject;
+
+        leftover.Game!.State.Should().Be(AdoptedProcessState.Running);
+
+        (await _service.StopAsync(leftover)).Should().Be(1);
+        _scopes.StopRequests.Should().Equal(["ytt-abc"], "the unit is what can still be stopped");
+        _store.ReadAll().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ARunWhoseWrapperForkedAndExited_IsStillFoundAlive_ThroughItsProcessGroup()
+    {
+        var run = new InstanceRun
+        {
+            InstanceId = Guid.NewGuid(),
+            InstanceName = "one",
+            LauncherProcessId = 500,
+        };
+        run = run.WithServer(new RunProcess(901, _started, "/srv/SPT.Server.Linux", RunMechanism.Setsid, 6969));
+        _store.Save(run);
+        _inspector.Groups.Add(901);
+
+        var leftover = (await _service.FindLeftoversAsync()).Should().ContainSingle().Subject;
+
+        leftover.Server!.State.Should().Be(AdoptedProcessState.Running);
+
+        (await _service.StopAsync(leftover)).Should().Be(1);
+        _inspector.GroupStopRequests.Should().Equal([901]);
     }
 
     [Fact]

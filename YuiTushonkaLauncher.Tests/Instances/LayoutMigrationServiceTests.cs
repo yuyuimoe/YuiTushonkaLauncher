@@ -32,7 +32,12 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await _database.InitializeAsync();
-        _service = new LayoutMigrationService(_database.UnitOfWork, _links, _supervisor, NullLogger<LayoutMigrationService>.Instance);
+        _service = new LayoutMigrationService(
+            _database.UnitOfWork,
+            _links,
+            new Guard(_supervisor),
+            NullLogger<LayoutMigrationService>.Instance
+        );
         _instance = await CreateSplitInstanceAsync("legacy");
     }
 
@@ -211,11 +216,12 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
         var plan = await Plan();
 
         plan.CanMigrate.Should().BeFalse();
-        plan.Issues.Should().ContainSingle().Which.Should().Contain("server").And.Contain("running");
+        plan.Issues.Should().ContainSingle().Which.Should().Contain("running");
 
         var act = () => _service.MigrateAsync(_instance.Id);
 
-        await act.Should().ThrowAsync<InstanceValidationException>().WithMessage("*stop it before migrating*");
+        // Whichever layer answers, the message names the process and nothing moves.
+        await act.Should().ThrowAsync<Exception>().WithMessage("*is running*");
         File.Exists(Path.Combine(Root, "gamefiles", "EscapeFromTarkov.exe")).Should().BeTrue("nothing moved");
     }
 
@@ -364,6 +370,34 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
         return Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories).Count();
     }
 
+    /// <summary>The real guard around the fake supervisor: it is what refuses a migration over a running server.</summary>
+    private sealed class Guard(ISptServerSupervisor supervisor) : Core.Launch.IInstanceBusyGuard
+    {
+        public Task<IReadOnlyList<Core.Launch.InstanceActivity>> FindActivityAsync(
+            Guid instanceId,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var status = supervisor.GetStatus(instanceId);
+
+            return Task.FromResult<IReadOnlyList<Core.Launch.InstanceActivity>>(
+                status.State == ServerState.Running && status.ProcessId is { } pid
+                    ? [new Core.Launch.InstanceActivity("the server", pid, "")]
+                    : []
+            );
+        }
+
+        public async Task EnsureIdleAsync(Guid instanceId, string operation, CancellationToken cancellationToken = default)
+        {
+            var activity = await FindActivityAsync(instanceId, cancellationToken);
+
+            if (activity.Count > 0)
+            {
+                throw new Core.Launch.InstanceBusyException($"{operation} cannot run while '{activity[0]}' is running.", activity);
+            }
+        }
+    }
+
     /// <summary>A supervisor whose only job is to answer "is the server running".</summary>
     private sealed class FakeSptSupervisor : ISptServerSupervisor
     {
@@ -371,7 +405,12 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
 
         public void SetState(Guid instanceId, ServerState state)
         {
-            _states[instanceId] = new ServerStatus { InstanceId = instanceId, State = state };
+            _states[instanceId] = new ServerStatus
+            {
+                InstanceId = instanceId,
+                State = state,
+                ProcessId = 4242,
+            };
         }
 
         public event EventHandler<ServerStatus>? StatusChanged

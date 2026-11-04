@@ -443,15 +443,16 @@ public sealed class SptServerSupervisorTests : IDisposable
     }
 
     [Fact]
-    public async Task Dispose_StopsEveryServerItStarted()
+    public async Task Dispose_LeavesTheDetachedServersRunning()
     {
         await _h.Supervisor.StartAsync(_h.AddInstance("one", port: 6969));
         await _h.Supervisor.StartAsync(_h.AddInstance("two", port: 6970));
 
         await _h.Supervisor.DisposeAsync();
 
-        _h.Spawner.Children.Should().OnlyContain(child => child.StopWasRequested);
-        _h.Runs.ReadAll().Should().BeEmpty();
+        // D22: the launcher exiting is not a stop. The record stays so the next session can adopt the pair.
+        _h.Spawner.Children.Should().OnlyContain(child => !child.StopWasRequested && !child.WasKilled);
+        _h.Runs.ReadAll().Should().HaveCount(2);
     }
 
     [Fact]
