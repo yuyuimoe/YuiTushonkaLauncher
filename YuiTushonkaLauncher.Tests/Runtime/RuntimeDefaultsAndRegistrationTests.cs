@@ -79,8 +79,9 @@ public sealed class RuntimeDefaultsAndRegistrationTests
     [Fact]
     public void AddLauncherRuntime_RegistersEveryServiceOnce()
     {
+        using var temp = new TempDirectory();
         var provider = new ServiceCollection().AddLogging().AddLauncherPersistence().AddLauncherRuntime();
-        using var scope = provider.AddSingleton<IAppPaths>(new TempDirectory().CreateAppPaths()).BuildServiceProvider();
+        using var scope = provider.AddSingleton<IAppPaths>(temp.CreateAppPaths()).BuildServiceProvider();
 
         scope.GetRequiredService<IPlatformInfo>().Should().BeOfType<PlatformInfo>();
         scope.GetRequiredService<IRuntimeLocator>().Should().BeOfType<RuntimeLocator>();
