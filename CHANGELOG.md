@@ -32,9 +32,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   execution), archive inspection and zip-slip-proof extraction, game-root → instance path mapping,
   install/uninstall/pin with recorded hashes, and an integrity check that flags edited configs and
   missing files.
+- Dependencies and addons: dependency resolution with cycle detection and install ordering, addons
+  validated against the parent mod version and stored next to it, and an update plan that honours pins
+  and SPT compatibility.
+- Migration: adopt an existing SPT folder without moving a file, scan its mod folders by GUID (merging
+  a "both halves" mod into one entry) and register the mods with their file hashes.
 - Headless commands: `--migrate-only`, `--inspect-base <path>` and
   `--create-instance <name> --from <base> --into <dir>` and
-  `--install-mod <archive> --instance <name>`.
+  `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.

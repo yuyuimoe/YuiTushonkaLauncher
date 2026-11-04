@@ -16,8 +16,8 @@ for what has to exist when the branch merges.
 | 3 | [phase-03-forge-api](phase-03-forge-api.md) | ☑ done |
 | 4 | [phase-04-instances](phase-04-instances.md) | ☑ done |
 | 5 | [phase-05-mod-install](phase-05-mod-install.md) | ☑ done |
-| 6 | [phase-06-dependencies-migration](phase-06-dependencies-migration.md) | ☐ next |
-| 7 | [phase-07-patching](phase-07-patching.md) | ☐ |
+| 6 | [phase-06-dependencies-migration](phase-06-dependencies-migration.md) | ☑ done |
+| 7 | [phase-07-patching](phase-07-patching.md) | ☐ next |
 | 8 | [phase-08-export-import](phase-08-export-import.md) | ☐ |
 | 9 | [phase-09-linux-proton](phase-09-linux-proton.md) | ☐ |
 | 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☐ |

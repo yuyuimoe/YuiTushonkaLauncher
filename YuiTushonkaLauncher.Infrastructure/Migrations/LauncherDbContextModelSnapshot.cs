@@ -206,6 +206,10 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ParentModGuid")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Recognition")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -227,6 +231,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
 
                     b.HasIndex("InstanceId", "Guid")
                         .IsUnique();
+
+                    b.HasIndex("InstanceId", "ParentModGuid");
 
                     b.ToTable("InstalledMods", (string)null);
                 });
