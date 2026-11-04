@@ -8,6 +8,7 @@ using YuiTushonkaLauncher.Dialogs;
 using YuiTushonkaLauncher.Infrastructure;
 using YuiTushonkaLauncher.Infrastructure.Forge;
 using YuiTushonkaLauncher.Infrastructure.Processes;
+using YuiTushonkaLauncher.Infrastructure.Updates;
 using YuiTushonkaLauncher.Localization;
 using YuiTushonkaLauncher.Navigation;
 using YuiTushonkaLauncher.Services;
@@ -22,7 +23,12 @@ namespace YuiTushonkaLauncher.Startup;
 public static class ServiceRegistration
 {
     /// <summary>Registers paths, logging, services and view models.</summary>
-    public static IServiceCollection AddLauncherServices(this IServiceCollection services, IAppPaths paths, string? language = null)
+    public static IServiceCollection AddLauncherServices(
+        this IServiceCollection services,
+        IAppPaths paths,
+        string? language = null,
+        string? version = null
+    )
     {
         // Serilog owns the sinks; the Microsoft.Extensions.Logging bridge lets services take ILogger<T>.
         services.AddLogging(builder => builder.AddSerilog(Log.Logger, dispose: false));
@@ -36,6 +42,7 @@ public static class ServiceRegistration
         services.AddLauncherServer();
         services.AddLauncherLaunch();
         services.AddLauncherLogs();
+        services.AddLauncherUpdates(version ?? AppVersion.Current);
         services.AddSingleton<ISingleInstanceGuard, SingleInstanceGuard>();
 
         services.AddLauncherUi(language);
@@ -58,6 +65,7 @@ public static class ServiceRegistration
         services.AddSingleton<ShellNavigation>();
         services.AddSingleton<INavigationService>(provider => provider.GetRequiredService<ShellNavigation>());
         services.AddSingleton<IDownloadActivity, DownloadActivity>();
+        services.AddSingleton<IUrlOpener, UrlOpener>();
         services.AddSingleton<DialogService>();
         services.AddSingleton<IDialogService>(provider => provider.GetRequiredService<DialogService>());
 

@@ -19,6 +19,35 @@ internal static partial class HeadlessCommands
     /// <summary>Applies migrations, prepares the database and exits.</summary>
     public const string MigrateOnly = "--migrate-only";
 
+    /// <summary>Prints the newest release; a failed check exits non-zero so a script can tell the two apart.</summary>
+    private static int CheckForUpdates(IServiceProvider services)
+    {
+        var result = services.GetRequiredService<Core.Updates.IUpdateChecker>().CheckAsync().GetAwaiter().GetResult();
+        Log.Information("Running version: {Current}", result.Current ?? "unknown");
+
+        if (result.Latest is { } latest)
+        {
+            Log.Information("Newest release: {Tag} ({Url}) published {Published}", latest.Tag, latest.Url, latest.PublishedAt);
+        }
+
+        if (result.Failed)
+        {
+            Log.Warning("Update check failed: {Reason}", result.Reason);
+            return 1;
+        }
+
+        if (result.HasUpdate)
+        {
+            Log.Information("A newer release is available.");
+        }
+        else
+        {
+            Log.Information("This build is up to date (or ahead of the last release).");
+        }
+
+        return 0;
+    }
+
     /// <summary>Inspects an SPT install and prints what the launcher detected, then exits.</summary>
     public const string InspectBase = "--inspect-base";
 
@@ -59,6 +88,9 @@ internal static partial class HeadlessCommands
     /// </summary>
     public const string Import = "--import";
 
+    /// <summary>Asks GitHub for the newest release and prints the answer (<c>--check-updates</c>).</summary>
+    public const string CheckUpdates = "--check-updates";
+
     /// <summary>Runs a headless command when one was requested.</summary>
     /// <returns><c>true</c> when a command ran and the process should exit with <paramref name="exitCode" />.</returns>
     public static bool TryRun(string[] args, IAppPaths paths, out int exitCode)
@@ -80,6 +112,7 @@ internal static partial class HeadlessCommands
         var serverRequested = ServerCommandRequested(args);
         var launchRequested = LaunchCommandRequested(args);
         var logsRequested = LogCommandRequested(args);
+        var checkUpdates = args.Contains(CheckUpdates, StringComparer.Ordinal);
 
         if (
             !migrateOnly
@@ -97,6 +130,7 @@ internal static partial class HeadlessCommands
             && !serverRequested
             && !launchRequested
             && !logsRequested
+            && !checkUpdates
         )
         {
             return false;
@@ -107,6 +141,11 @@ internal static partial class HeadlessCommands
         try
         {
             services.GetRequiredService<DatabaseInitializer>().InitializeAsync().GetAwaiter().GetResult();
+
+            if (checkUpdates)
+            {
+                exitCode = CheckForUpdates(services);
+            }
 
             if (inspectBaseIndex >= 0)
             {

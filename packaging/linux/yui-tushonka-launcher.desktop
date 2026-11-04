@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=YuiTushonkaLauncher
+GenericName=SPT Launcher
+Comment=Manage SPT instances, mods and the local server
+Exec=YuiTushonkaLauncher %f
+TryExec=YuiTushonkaLauncher
+Icon=com.sptushonka.YuiTushonkaLauncher
+Terminal=false
+Categories=Game;Utility;
+Keywords=spt;tarkov;mods;launcher;
+MimeType=application/x-sptpack;
+StartupNotify=true
+StartupWMClass=YuiTushonkaLauncher

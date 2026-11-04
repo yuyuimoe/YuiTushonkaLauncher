@@ -10,7 +10,7 @@
   d:DesignHeight="680"
   x:Class="YuiTushonkaLauncher.Views.MainWindow"
   x:DataType="vm:ShellViewModel"
-  Icon="/Assets/avalonia-logo.ico"
+  Icon="/Assets/icon.ico"
   Width="1000"
   Height="680"
   MinWidth="760"

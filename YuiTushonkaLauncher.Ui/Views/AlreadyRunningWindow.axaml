@@ -9,7 +9,7 @@
   d:DesignHeight="180"
   x:Class="YuiTushonkaLauncher.Views.AlreadyRunningWindow"
   x:DataType="vm:AlreadyRunningViewModel"
-  Icon="/Assets/avalonia-logo.ico"
+  Icon="/Assets/icon.ico"
   Width="420"
   SizeToContent="Height"
   CanResize="False"

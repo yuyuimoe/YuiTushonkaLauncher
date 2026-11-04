@@ -234,7 +234,11 @@
     "logsDirectory": "Logs do launcher",
     "instancesDirectory": "Instâncias",
     "about": "Sobre",
-    "version": "Versão"
+    "version": "Versão",
+    "checkUpdates": "Verificar atualizações",
+    "openRelease": "Abrir a página da versão",
+    "updateAvailable": "{0} está disponível",
+    "upToDate": "Esta versão está atualizada."
   },
   "errors": {
     "generic": "Algo deu errado: {0}",

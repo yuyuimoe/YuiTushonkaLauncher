@@ -64,6 +64,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   profile and starts the game detached, reporting each step by name. `--launch-plan` does all of it without
   starting anything. Patching, restoring and the layout migration refuse while the instance has a running
   process, naming it, and so do pack export and import.
+- Packaging: `scripts/publish.sh` publishes both platforms framework-dependent (primary, since SPT needs .NET 10) and
+  self-contained (fallback), single-file, with a Windows Inno Setup installer (per-user, `.sptpack` association,
+  shortcut) and Linux `tar.gz` + AppImage with desktop entry, MIME type and AppStream metadata; checksums are published
+  next to the artifacts.
+- Versioning: a tag names the release everywhere (`--version`, about box, installer properties); a development build
+  keeps its sha and `-pre` suffix and is never told to update.
+- Update check: manual, against the newest GitHub release, with a link; nothing is downloaded or replaced.
+- CI: a tag builds and publishes the artifacts, with release notes generated from Conventional Commits.
 - QA: a coverage gate that fails below 90 % on Core and Infrastructure (97.7 % / 93.6 % today), a named test for
   each of the seven domain invariants, performed-and-recorded manual QA rows, performance smoke tests that print their
   numbers, a nightly-only live Forge workflow, and a mutation harness that refuses to judge a run whose test count

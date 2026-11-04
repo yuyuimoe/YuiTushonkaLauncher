@@ -9,7 +9,9 @@ using CommunityToolkit.Mvvm.Input;
 using YuiTushonkaLauncher.Core.Abstractions;
 using YuiTushonkaLauncher.Core.Configuration;
 using YuiTushonkaLauncher.Core.Localization;
+using YuiTushonkaLauncher.Core.Updates;
 using YuiTushonkaLauncher.Services;
+using YuiTushonkaLauncher.Startup;
 
 namespace YuiTushonkaLauncher.ViewModels;
 
@@ -22,13 +24,24 @@ public partial class SettingsPageViewModel : PageViewModel
     private readonly ISettingsService _settings;
     private readonly IThemeController _theme;
     private readonly IAppPaths _paths;
+    private readonly IUpdateChecker? _updates;
+    private readonly IUrlOpener? _links;
 
-    public SettingsPageViewModel(ILocalizer localizer, ISettingsService settings, IThemeController theme, IAppPaths paths)
+    public SettingsPageViewModel(
+        ILocalizer localizer,
+        ISettingsService settings,
+        IThemeController theme,
+        IAppPaths paths,
+        IUpdateChecker? updates = null,
+        IUrlOpener? links = null
+    )
         : base(localizer)
     {
         _settings = settings;
         _theme = theme;
         _paths = paths;
+        _updates = updates;
+        _links = links;
 
         Languages = [.. localizer.AvailableLanguages.Select(language => new LanguageOption(language.Code, language.NativeName))];
         Themes =
@@ -185,6 +198,63 @@ public partial class SettingsPageViewModel : PageViewModel
     public string VersionText
     {
         get { return AppVersion.Current; }
+    }
+
+    [ObservableProperty]
+    public partial string UpdateText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string UpdateUrl { get; set; } = string.Empty;
+
+    public string UpdateCheckLabel
+    {
+        get { return Text("settings.checkUpdates"); }
+    }
+
+    public string UpdateOpenLabel
+    {
+        get { return Text("settings.openRelease"); }
+    }
+
+    public bool HasUpdateUrl
+    {
+        get { return UpdateUrl.Length > 0; }
+    }
+
+    /// <summary>Asks GitHub; never automatic, because a launcher that phones home on start is a launcher nobody trusts.</summary>
+    [RelayCommand]
+    private async Task CheckUpdatesAsync(CancellationToken cancellationToken)
+    {
+        if (_updates is null)
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            var result = await _updates.CheckAsync(cancellationToken);
+            if (result.Failed)
+            {
+                UpdateText = result.Reason ?? Text("forge.offline");
+                UpdateUrl = string.Empty;
+            }
+            else if (result.Latest is { } latest)
+            {
+                UpdateText = result.HasUpdate ? Localizer.Format("settings.updateAvailable", latest.Tag) : Text("settings.upToDate");
+                UpdateUrl = result.HasUpdate ? latest.Url : string.Empty;
+            }
+
+            OnPropertyChanged(nameof(HasUpdateUrl));
+        });
+    }
+
+    [RelayCommand]
+    private void OpenRelease()
+    {
+        if (UpdateUrl.Length > 0)
+        {
+            _links?.Open(UpdateUrl);
+        }
     }
 
     [RelayCommand]
