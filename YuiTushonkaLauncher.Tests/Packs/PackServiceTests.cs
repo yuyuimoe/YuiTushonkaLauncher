@@ -698,4 +698,57 @@ public sealed class PackServiceTests : IDisposable
 
         plan.Items.Single().Action.Should().Be(ImportAction.Install);
     }
+
+    [Fact]
+    public async Task Export_RefusesWhileThePairRuns()
+    {
+        await using var context = await ModTestContext.CreateAsync("busy");
+        using var archive = ModArchive();
+        await InstallFromForgeAsync(context, archive);
+        context.Busy = new BusyWith("the game", 900);
+
+        var act = () => context.Packs.ExportAsync(context.Instance.Id, NewPackage());
+
+        var failure = (await act.Should().ThrowAsync<YuiTushonkaLauncher.Core.Launch.InstanceBusyException>()).Which;
+        failure.Message.Should().Contain("Exporting").And.Contain("the game");
+    }
+
+    [Fact]
+    public async Task Import_RefusesWhileThePairRuns()
+    {
+        await using var context = await ModTestContext.CreateAsync("busy-import");
+        using var archive = ModArchive();
+        await InstallFromForgeAsync(context, archive);
+        var package = NewPackage();
+        await context.Packs.ExportAsync(context.Instance.Id, package);
+        context.Busy = new BusyWith("the server", 555);
+
+        var act = () => context.Packs.ImportAsync(context.Instance.Id, package, new ImportOptions());
+
+        (await act.Should().ThrowAsync<YuiTushonkaLauncher.Core.Launch.InstanceBusyException>())
+            .Which.Message.Should()
+            .Contain("Importing");
+    }
+
+    /// <summary>A guard that always reports one running process.</summary>
+    private sealed class BusyWith(string kind, int pid) : YuiTushonkaLauncher.Core.Launch.IInstanceBusyGuard
+    {
+        private readonly YuiTushonkaLauncher.Core.Launch.InstanceActivity _activity = new(kind, pid, "/srv/thing");
+
+        public Task<IReadOnlyList<YuiTushonkaLauncher.Core.Launch.InstanceActivity>> FindActivityAsync(
+            Guid instanceId,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult<IReadOnlyList<YuiTushonkaLauncher.Core.Launch.InstanceActivity>>([_activity]);
+        }
+
+        public Task EnsureIdleAsync(Guid instanceId, string operation, CancellationToken cancellationToken = default)
+        {
+            throw new YuiTushonkaLauncher.Core.Launch.InstanceBusyException(
+                $"{operation} cannot run while '{_activity}' is running.",
+                [_activity]
+            );
+        }
+    }
 }

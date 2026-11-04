@@ -37,13 +37,20 @@ public sealed class PatchingTestContext : IAsyncDisposable
             new PatchPlanner(),
             new BackupScanner(),
             Writer,
-            Busy,
+            _busy,
             NullLogger<PatchingService>.Instance
         );
     }
 
     /// <summary>What decides whether patching may touch the files; a test replaces it to model a running game.</summary>
-    public Core.Launch.IInstanceBusyGuard Busy { get; set; } = new Server.IdleBusyGuard();
+    private readonly Server.SwitchableBusyGuard _busy = new();
+
+    /// <summary>What decides whether the service may touch the files; setting it changes what the service sees.</summary>
+    public Core.Launch.IInstanceBusyGuard Busy
+    {
+        get { return _busy.Current; }
+        set { _busy.Current = value; }
+    }
 
     public TestDatabase Database { get; }
 

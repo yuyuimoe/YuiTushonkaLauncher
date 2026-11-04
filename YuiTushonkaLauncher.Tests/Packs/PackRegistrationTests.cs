@@ -23,6 +23,11 @@ public sealed class PackRegistrationTests
         services.AddLauncherInstances();
         services.AddLauncherMods();
 
+        // Packs refuse while the instance's processes run, so the pack service needs the server layer's guard (and the
+        // runtime layer it uses to find the port and the runtime).
+        services.AddLauncherRuntime();
+        services.AddLauncherServer();
+
         using var provider = services.BuildServiceProvider();
 
         provider.GetRequiredService<IPackService>().Should().BeOfType<PackService>();

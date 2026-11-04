@@ -88,8 +88,19 @@ public sealed class ModTestContext : IAsyncDisposable
             Addons,
             new LinkAwareFileWriter(links),
             new PackReader(NullLogger<PackReader>.Instance),
-            NullLogger<PackService>.Instance
+            NullLogger<PackService>.Instance,
+            _busy
         );
+    }
+
+    /// <summary>What decides whether the pack service may touch the files; a test makes it busy to prove a refusal.</summary>
+    private readonly Server.SwitchableBusyGuard _busy = new();
+
+    /// <summary>What decides whether the service may touch the files; setting it changes what the service sees.</summary>
+    public Core.Launch.IInstanceBusyGuard Busy
+    {
+        get { return _busy.Current; }
+        set { _busy.Current = value; }
     }
 
     public TestDatabase Database { get; }

@@ -563,6 +563,12 @@ public sealed class ServerWorld : IDisposable
 
         Directory.CreateDirectory(Path.Combine(runtime, "SPT_Data", "configs"));
         Directory.CreateDirectory(Path.Combine(runtime, "user", "profiles"));
+        File.WriteAllText(Path.Combine(path, "EscapeFromTarkov.exe"), "MZ");
+        File.WriteAllText(Path.Combine(path, "UnityPlayer.dll"), "unity");
+        File.WriteAllText(Path.Combine(path, "winhttp.dll"), "doorstop");
+        File.WriteAllText(Path.Combine(path, "doorstop_config.ini"), "[General]");
+        Directory.CreateDirectory(Path.Combine(path, "BepInEx", "core"));
+        File.WriteAllText(Path.Combine(path, "BepInEx", "core", "BepInEx.Preloader.dll"), "preloader");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.Linux"), "#!/bin/sh");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.exe"), "MZ");
         File.WriteAllText(Path.Combine(runtime, "SPT.Server.Linux.runtimeconfig.json"), RuntimeConfig);
@@ -576,6 +582,7 @@ public sealed class ServerWorld : IDisposable
             Path = path,
             Layout = layout,
             ServerPort = port,
+            SptVersion = Core.Domain.SemanticVersion.Parse(layout == InstanceLayout.Spt40 ? "4.0.13" : "4.1.6"),
         };
     }
 
