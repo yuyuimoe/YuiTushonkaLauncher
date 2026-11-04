@@ -33,6 +33,8 @@
   `--server-profile-remove|wipe <instance> <name> --yes`, `--server-profile-select <instance> <name>`,
   `--server-port <instance> [port]`, `--server-sync <instance> [--server host:port] [--apply] [--override-pins]`,
   `--server-stale [--reap]`
+- Logs: `--logs <instance> [--kind game|server|bepinex|launcher] [--lines N] [--export FILE]`,
+  `--diagnostics <instance> [--output FILE]`, `--logs-prune`
 - Open points that must close before 1.0: `docs/plan/91-before-1.0.md`; deliberately postponed:
   `docs/plan/92-after-1.0.md`
 - Real-delta tests: `YTT_SPT_BASE=<spt-installer-output> dotnet test --filter Live=Spt`

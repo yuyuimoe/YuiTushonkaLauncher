@@ -460,3 +460,16 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   both and the units disappeared.
 - A detached server left without its record is invisible to the launcher: the next launch says the port is
   in use. Worth remembering before deleting anything in `<data>/run/`.
+
+### Reading SPT's logs on a real install (2026-11-04)
+
+- A real `Logs/` folder for one session measured **312 MiB**: `application.log` 30 KiB, `assetBundle.log` 582 B,
+  `_backend.log` 78 MiB, ` errors.log` 78 MiB, `traces.log` 156 MiB (the earlier numbers were the uncompressed
+  ones; the copies measured here are the same session).
+- The launcher's own log lives in the application data folder (`<data>/logs/launcher-<date>.log`), separate from
+  the instance.
+- Retention measured with the real command: 26 plain files → 20 gzipped into `archive/`, 5 deleted by age, the
+  active file untouched, and a second pass did nothing.
+- A windowed tail of a file larger than the window drops the partial first line, so a cut word never appears as
+  a log entry; the line numbers a view shows are positions within the tail, not file line numbers (counting from
+  the start would mean reading the whole file).

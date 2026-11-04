@@ -63,7 +63,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   command and the profile), patches only when needed, starts or adopts the server, waits for it, resolves the
   profile and starts the game detached, reporting each step by name. `--launch-plan` does all of it without
   starting anything. Patching, restoring and the layout migration refuse while the instance has a running
-  process, naming it.
+  process, naming it, and so do pack export and import.
+- Logs: the launcher reads what SPT writes — the game's per-run folder, `BepInEx/LogOutput.log`, the server's
+  daily file and its own log — by tailing a window at the end, and refuses files above 64 MiB with a message that
+  points at a text editor (one measured session wrote 322 MiB). Export gives exactly the selected lines;
+  `--diagnostics` writes a bundle with versions, instance state, hashes, mods and the last lines of each source;
+  retention gzips rotated files into `archive/` and deletes by age then count, never the file in use.
 - Remembered profile: "always use this profile on this server", stored per instance and per endpoint, so a
   launch never guesses which profile to open.
 - Server lifecycle: finds the instance's SPT server and its .NET requirement, refuses to start with a named

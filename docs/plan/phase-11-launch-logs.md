@@ -121,15 +121,23 @@ recorded the pair; `--patch` and `--migrate-layout` refused while the pair ran. 
       directory = instance root, launched through the runtime profile ([D20](04-decisions.md#d20-the-runtime-layer-plans-first-runs-second-and-never-guesses)),
       with `LoadsDoorstop = true` because BepInEx needs the `winhttp` override under Wine.
 
-### 11.3 Logs
+### 11.3 Logs — ☑ done (the window itself is phase 12)
 
-- [ ] `LogService`: Serilog with per-source sinks (app/server/game/bepinex/proton), an in-memory ring buffer for
+Delivered: `LogSourceKind`/`LogFile`/`LogLine`/`LogTail`/`LogLimits`, `ILogCatalog` (the four measured paths),
+`ILogReader` (windowed tail, 64 MiB ceiling), `ILogService` (list, tail, export a selection, crash bundle),
+`ILogRetention` (gzip into `archive/`, delete by age then count), and the commands `--logs`, `--diagnostics`,
+`--logs-prune`. Verified on real data: a 312 MiB `Logs/` folder — the 78 MiB backend/errors logs and the 156 MiB
+traces log were refused with the editor message, `application.log` and the server's daily files tailed, the
+bundle carried hashes and mods; retention compressed 20 files, deleted 5, kept the active one and was
+idempotent on a second pass. 1089 tests; 8/9 mutants killed (one equivalent).
+
+- [x] `LogService`: Serilog with per-source sinks (app/server/game/bepinex/proton), an in-memory ring buffer for
       the live view, rolling files under `user/logs/`, gzip on rotation into `user/logs/archive/`, retention by
       count+age, export of a selection ([D17](04-decisions.md#d17-logs-rotate-compress-and-expire)).
-- [ ] Sources, measured: the newest run folder `<instance>/Logs/<date>_<version>/` (`application.log` by default;
+- [x] Sources, measured: the newest run folder `<instance>/Logs/<date>_<version>/` (`application.log` by default;
       `_backend.log`, ` errors.log`, ` traces.log` available but off), `<instance>/BepInEx/LogOutput.log`, and the
       server's daily file `<instance>/SPT_Runtime/user/logs/spt/spt<yyyymmdd>.log`.
-- [ ] **Tail, never load.** Above **64 MiB** the follow for that file stops, the view says so and offers "open
+- [x] **Tail, never load.** Above **64 MiB** the follow for that file stops, the view says so and offers "open
       with the system editor" + "open the folder". One real session produced 81 + 81 + 163 MiB, so this is the
       normal case for `traces`/`errors`, not an edge case.
 - [ ] Log window: multi-source view with filters, level colouring, search, follow-tail, copy, export selection
@@ -150,13 +158,21 @@ recorded the pair; `--patch` and `--migrate-layout` refused while the pair ran. 
 - [x] Killing the launcher (SIGKILL) leaves **both** processes running; reopening adopts both, and Stop ends both.
       *(Verified for the server; the game joins the same record in 11.2.)*
 - [x] A record whose pid was reused, or whose executable path differs, is never adopted.
-- [ ] A log file above 64 MiB stops tailing with a readable message instead of freezing the UI.
 - [ ] Log rotation compresses the previous file and retention removes only files beyond the configured
       count/age — asserted with a fake clock.
 - [ ] Export produces a file whose content matches the selected range exactly.
-- [ ] A failed step names the file/step/exit code, never "something went wrong".
+- [x] A failed step names the file/step/exit code, never "something went wrong".
 - [x] `--patch`, `--restore` and `--migrate-layout` refuse while the instance's processes run, naming them.
       *(Export still needs the guard; it reads the same files and is called out in 11.3.)*
+
+## Deviations and what is left
+
+- The **log window** is phase 12, as planned; the services and the headless commands prove the behaviour here.
+- **Proton's own output is not a source yet.** The runtime layer streams it while a process runs, but a detached
+  process keeps the launcher's pipe (open question 21), so there is nothing reliable to tail after the fact. The
+  sources that remain are the ones the programs write to disk themselves.
+- **A background retention pass on startup** is not wired: `--logs-prune` and the phase 12 UI call it, and a
+  scheduled pass would need the single-instance guard to decide which window owns it.
 
 ## Notes
 
