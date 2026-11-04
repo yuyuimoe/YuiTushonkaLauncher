@@ -51,7 +51,8 @@ public partial class App : Application
         // Migrations must finish before any view model touches the database. Avalonia's startup hook is synchronous,
         // so this is the one place a blocking wait is correct.
         Log.Information("Startup: applying database migrations");
-        _services.GetRequiredService<DatabaseInitializer>().InitializeAsync().GetAwaiter().GetResult();
+        // On a pool thread: a blocking wait is only safe when the work does not need this thread's message loop.
+        Task.Run(() => _services.GetRequiredService<DatabaseInitializer>().InitializeAsync()).GetAwaiter().GetResult();
 
         Log.Information("Startup: reading settings");
         var settings = _services.GetRequiredService<Core.Abstractions.ISettingsService>();

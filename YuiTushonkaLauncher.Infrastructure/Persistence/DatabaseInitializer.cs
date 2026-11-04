@@ -21,20 +21,20 @@ public sealed class DatabaseInitializer(
             Directory.CreateDirectory(directory);
         }
 
-        await using (var context = await contextFactory.CreateDbContextAsync(cancellationToken))
+        await using (var context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false))
         {
-            var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+            var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
             if (pending.Count > 0)
             {
                 logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pending.Count, string.Join(", ", pending));
-                await context.Database.MigrateAsync(cancellationToken);
+                await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // WAL is a property of the file, so setting it once is enough; it also survives upgrades.
-            await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", cancellationToken);
+            await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", cancellationToken).ConfigureAwait(false);
         }
 
-        var settings = await settingsService.LoadAsync(cancellationToken);
+        var settings = await settingsService.LoadAsync(cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Database ready at {DatabaseFile}; language {Language}", paths.DatabaseFile, settings.Language);
     }
 }
