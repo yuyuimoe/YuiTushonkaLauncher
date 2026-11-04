@@ -170,3 +170,17 @@ Per-source Serilog files + a session-scoped stream for the UI. On rotation the p
 gzipped into `user/logs/archive/`; retention by count and age (configurable, Prism-Launcher-like),
 with export of a selection as `.txt`/`.log`. Unified view merges app / server / game / Proton with
 per-source filters and timestamps normalized to local time.
+
+## D18. Code style is the official launcher's
+
+Follow `SP-Tushonka/launcher` exactly, so contributions can move between the two projects:
+
+- **CSharpier** owns formatting, pinned as a local tool (`.config/dotnet-tools.json`, currently 1.3.0).
+  `dotnet tool restore` then `dotnet csharpier format .`; CI runs `dotnet csharpier check .` and fails
+  the PR otherwise. `.csharpierignore` excludes build output, migrations and hand-aligned path tables.
+- **`.editorconfig`** carries the semantic rules (CSharpier ignores them): 140-column limit, 4-space
+  indent, file-scoped namespaces, braces always, block-bodied members (expression bodies only for
+  lambdas), `var` preferred, `_camelCase` private/internal fields, PascalCase constants, `using` outside
+  the namespace, `CS1591` and `CA1822` suppressed.
+- `EnforceCodeStyleInBuild` is on, so violations surface as build warnings instead of review comments.
+

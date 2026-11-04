@@ -1,0 +1,44 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="720"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.MainWindow"
+  x:DataType="vm:MainViewModel"
+  Icon="/Assets/avalonia-logo.ico"
+  Width="720"
+  Height="480"
+  Title="YuiTushonkaLauncher"
+>
+  <Border Padding="24">
+    <StackPanel Spacing="12">
+      <TextBlock Text="{Binding Greeting}" FontSize="22" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Version}" Opacity="0.7" />
+
+      <Separator Margin="0,8" />
+
+      <TextBlock Text="Data directory" FontWeight="SemiBold" />
+      <SelectableTextBlock Text="{Binding DataRoot}" />
+
+      <TextBlock Text="Config directory" FontWeight="SemiBold" />
+      <SelectableTextBlock Text="{Binding ConfigRoot}" />
+
+      <TextBlock Text="Logs" FontWeight="SemiBold" />
+      <SelectableTextBlock Text="{Binding LogsDirectory}" />
+
+      <TextBlock Text="Instances" FontWeight="SemiBold" />
+      <SelectableTextBlock Text="{Binding InstancesDirectory}" />
+
+      <Separator Margin="0,8" />
+
+      <TextBlock Text="Settings" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding Settings.Language, StringFormat='Language: {0}'}" />
+      <TextBlock Text="{Binding Settings.MaxConcurrentDownloads, StringFormat='Concurrent downloads: {0}'}" />
+      <TextBlock Text="{Binding Settings.LogRetentionDays, StringFormat='Log retention (days): {0}'}" />
+    </StackPanel>
+  </Border>
+</Window>

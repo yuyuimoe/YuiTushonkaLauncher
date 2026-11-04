@@ -76,7 +76,7 @@ Enforced by `.githooks/commit-msg` (`git config core.hooksPath .githooks`):
 
 ## Pre-merge checklist
 
-1. `dotnet build --nologo -c Release` clean.
+1. `dotnet csharpier format .` run (CI checks it) and `dotnet build --nologo -c Release` clean.
 2. `dotnet test` green, coverage target met for touched projects
    ([phase 13](../plan/phase-13-qa.md)).
 3. Phase file updated: task boxes ticked, deviations recorded, or items moved to

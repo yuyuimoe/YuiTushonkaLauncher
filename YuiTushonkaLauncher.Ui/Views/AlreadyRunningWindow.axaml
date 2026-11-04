@@ -1,0 +1,27 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="420"
+  d:DesignHeight="180"
+  x:Class="YuiTushonkaLauncher.Views.AlreadyRunningWindow"
+  Icon="/Assets/avalonia-logo.ico"
+  Width="420"
+  SizeToContent="Height"
+  CanResize="False"
+  WindowStartupLocation="CenterScreen"
+  Title="YuiTushonkaLauncher is already running"
+>
+  <Border Padding="24">
+    <StackPanel Spacing="16">
+      <TextBlock Text="YuiTushonkaLauncher is already running." FontSize="16" FontWeight="SemiBold" />
+      <TextBlock
+        TextWrapping="Wrap"
+        Text="Only one launcher instance can manage instances at a time. Switch to the window that is already open."
+      />
+      <Button Content="Close" HorizontalAlignment="Right" Click="OnCloseClick" />
+    </StackPanel>
+  </Border>
+</Window>
