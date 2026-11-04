@@ -15,6 +15,9 @@ public static class ModServiceCollectionExtensions
         services.AddSingleton<IArchiveExtractor, SafeExtractor>();
         services.AddSingleton<IModInstaller, ModInstaller>();
         services.AddSingleton<IIntegrityService, IntegrityService>();
+        services.AddSingleton<IDependencyResolver, DependencyResolver>();
+        services.AddSingleton<IAddonService, AddonService>();
+        services.AddSingleton<IModUpdateService, ModUpdateService>();
 
         return services;
     }

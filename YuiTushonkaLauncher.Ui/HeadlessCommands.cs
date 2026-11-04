@@ -26,6 +26,9 @@ internal static class HeadlessCommands
     /// <summary>Installs a local archive into an instance (<c>--install-mod ARCHIVE --instance NAME</c>).</summary>
     public const string InstallMod = "--install-mod";
 
+    /// <summary>Scans an instance's mod folders and reports what a migration would register.</summary>
+    public const string MigrateScan = "--migrate-scan";
+
     /// <summary>Runs a headless command when one was requested.</summary>
     /// <returns><c>true</c> when a command ran and the process should exit with <paramref name="exitCode" />.</returns>
     public static bool TryRun(string[] args, IAppPaths paths, out int exitCode)
@@ -36,8 +39,9 @@ internal static class HeadlessCommands
         var inspectBaseIndex = IndexOf(args, InspectBase);
         var createInstanceIndex = IndexOf(args, CreateInstance);
         var installModIndex = IndexOf(args, InstallMod);
+        var migrateScanIndex = IndexOf(args, MigrateScan);
 
-        if (!migrateOnly && inspectBaseIndex < 0 && createInstanceIndex < 0 && installModIndex < 0)
+        if (!migrateOnly && inspectBaseIndex < 0 && createInstanceIndex < 0 && installModIndex < 0 && migrateScanIndex < 0)
         {
             return false;
         }
@@ -61,6 +65,11 @@ internal static class HeadlessCommands
             if (installModIndex >= 0)
             {
                 InstallModFromArchive(services, ValueAfter(args, installModIndex));
+            }
+
+            if (migrateScanIndex >= 0)
+            {
+                ScanForMigration(services, ValueAfter(args, migrateScanIndex));
             }
 
             Log.Information("Headless command finished; exiting");
@@ -171,6 +180,45 @@ internal static class HeadlessCommands
 
         var report = integrity.VerifyAsync(instance.Id).GetAwaiter().GetResult();
         Log.Information("  integrity after install: clean={Clean}", report.IsClean);
+    }
+
+    private static void ScanForMigration(IServiceProvider services, string instanceName)
+    {
+        var instances = services.GetRequiredService<IInstanceService>();
+        var migration = services.GetRequiredService<Core.Instances.IMigrationService>();
+
+        var instance = instances.ListAsync().GetAwaiter().GetResult().FirstOrDefault(row => row.Name == instanceName);
+        if (instance is null)
+        {
+            throw new Core.Instances.InstanceValidationException([$"No instance named '{instanceName}'."]);
+        }
+
+        var plan = migration.ScanAsync(instance.Id).GetAwaiter().GetResult();
+
+        Log.Information(
+            "Migration scan of {Path}: {Recognized} recognized, {Unknown} unknown to Forge, {NoGuid} without GUID, {Orphans} orphan file(s)",
+            plan.InstancePath,
+            plan.Recognized.Count,
+            plan.Unrecognized.Count,
+            plan.WithoutGuid.Count,
+            plan.OrphanFiles.Count
+        );
+
+        foreach (var entry in plan.Recognized.Concat(plan.Unrecognized).Concat(plan.WithoutGuid))
+        {
+            Log.Information(
+                "  {Match}: {Name} ({Guid}) {Files} file(s)",
+                entry.Match,
+                entry.Name,
+                entry.Guid ?? "<no guid>",
+                entry.Files.Count
+            );
+        }
+
+        foreach (var warning in plan.Warnings)
+        {
+            Log.Warning("  warning: {Warning}", warning);
+        }
     }
 
     private static int IndexOf(string[] args, string name)

@@ -17,6 +17,7 @@ public static class InstanceServiceCollectionExtensions
         services.AddSingleton<BaseInstallProbe>();
         services.AddSingleton<PatchStateDetector>();
         services.AddSingleton<IInstanceService, InstanceService>();
+        services.AddSingleton<IMigrationService, MigrationService>();
 
         return services;
     }

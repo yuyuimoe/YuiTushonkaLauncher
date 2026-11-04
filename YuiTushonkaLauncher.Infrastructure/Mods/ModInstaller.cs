@@ -293,30 +293,44 @@ public sealed partial class ModInstaller(
         string guid
     )
     {
-        var folderName = InstancePathMapper.DefaultModFolder(guid);
-        var clientRoot = $"spt/BepInEx/plugins/{folderName}";
-        var serverRoot = $"{InstancePathMapper.ModRoot(ModKind.Server, layout, folderName)}";
-
         var plan = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var files = Directory.EnumerateFiles(staging, "*", SearchOption.AllDirectories).ToList();
 
-        foreach (var file in Directory.EnumerateFiles(staging, "*", SearchOption.AllDirectories))
+        // First pass: everything the archive already roots at the instance layout.
+        foreach (var file in files)
         {
             var relative = Path.GetRelativePath(staging, file).Replace('\\', '/');
-
             if (InstancePathMapper.IsLayoutPath(relative, layout))
             {
                 plan[file] = InstancePathMapper.Map(relative, layout);
+            }
+        }
+
+        // The anchor is the folder holding the first placed assembly: bare files (a README, a helper
+        // executable) belong with it, not in a separate folder named after the GUID.
+        var anchor = plan.Where(pair => pair.Value.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            .Select(pair => Path.GetDirectoryName(pair.Value)?.Replace('\\', '/'))
+            .FirstOrDefault(folder => !string.IsNullOrEmpty(folder));
+
+        anchor ??=
+            kind == ModKind.Server
+                ? InstancePathMapper.ModRoot(ModKind.Server, layout, InstancePathMapper.DefaultModFolder(guid))
+                : InstancePathMapper.ModRoot(ModKind.Client, layout, InstancePathMapper.DefaultModFolder(guid));
+
+        foreach (var file in files)
+        {
+            if (plan.ContainsKey(file))
+            {
                 continue;
             }
 
-            // A bare assembly (or a mod without a layout root) is placed where the mod kind belongs.
-            var target = kind == ModKind.Server ? serverRoot : clientRoot;
-            plan[file] = $"{target}/{relative}";
+            var relative = Path.GetRelativePath(staging, file).Replace('\\', '/');
+            plan[file] = $"{anchor}/{relative}";
         }
 
         if (identity.Source == ModIdentitySource.BepInPluginAttribute && kind == ModKind.Server)
         {
-            logger.LogWarning("Identity came from a plugin attribute but the archive looks server-side; using {ServerRoot}", serverRoot);
+            logger.LogWarning("Identity came from a plugin attribute but the archive looks server-side; using {Anchor}", anchor);
         }
 
         return plan;
