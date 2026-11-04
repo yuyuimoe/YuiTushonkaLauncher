@@ -39,6 +39,18 @@ public sealed class ProcessInspector : IProcessInspector
         }
     }
 
+    private static string? ReadLinuxExecutable(int processId)
+    {
+        try
+        {
+            return new FileInfo($"/proc/{processId}/exe").ResolveLinkTarget(returnFinalTarget: true)?.FullName;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     /// <inheritdoc />
     public bool IsAlive(int processId)
     {

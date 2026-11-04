@@ -146,7 +146,17 @@ internal sealed class ManagedChild : IChildProcess
     {
         _process = process;
         ProcessId = process.Id;
-        StartedAt = new DateTimeOffset(process.StartTime.ToUniversalTime(), TimeSpan.Zero);
+
+        // A program that exits at once (a server that fails on its first line) has no readable StartTime any more. The record
+        // exists so a later launcher can recognise this process; "about now" is enough, and losing it must not lose the exit.
+        try
+        {
+            StartedAt = new DateTimeOffset(process.StartTime.ToUniversalTime(), TimeSpan.Zero);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            StartedAt = DateTimeOffset.UtcNow;
+        }
 
         var readers = Task.WhenAll(Pump(process.StandardOutput, false, onOutput), Pump(process.StandardError, true, onOutput));
         Exited = WaitAsync(readers);
