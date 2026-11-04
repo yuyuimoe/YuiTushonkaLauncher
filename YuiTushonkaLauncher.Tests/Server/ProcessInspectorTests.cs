@@ -1,14 +1,28 @@
 using System.Diagnostics;
 using FluentAssertions;
 using Xunit;
+using YuiTushonkaLauncher.Core.Runtime;
 using YuiTushonkaLauncher.Infrastructure.Server;
+using YuiTushonkaLauncher.Tests.Infrastructure;
 using YuiTushonkaLauncher.Tests.Runtime;
 
 namespace YuiTushonkaLauncher.Tests.Server;
 
-public sealed class ProcessInspectorTests
+/// <remarks>
+/// Every test here starts its own copy of <c>sleep</c> under a unique name. A shared name would be a shared resource:
+/// xunit runs classes in parallel, other tests kill their own <c>sleep</c>, and a recycled pid would then be read as
+/// somebody else's process.
+/// </remarks>
+public sealed class ProcessInspectorTests : IDisposable
 {
     private readonly ProcessInspector _inspector = new();
+
+    private readonly TempDirectory _temp = new();
+
+    public void Dispose()
+    {
+        _temp.Dispose();
+    }
 
     private static Process StartShell(string script)
     {
@@ -18,26 +32,45 @@ public sealed class ProcessInspectorTests
         return Process.Start(info)!;
     }
 
-    private static Process StartSleep()
+    /// <summary>Starts a copy of <c>sleep</c> whose file name is unique, so nothing else in the suite can match it.</summary>
+    private Process StartSleep()
     {
-        return Process.Start(new ProcessStartInfo("sleep", "60") { UseShellExecute = false })!;
+        var directory = _temp.Combine("probe");
+        Directory.CreateDirectory(directory);
+        var executable = Path.Combine(directory, $"ytt-probe-{Guid.NewGuid():n}");
+
+        File.Copy("/bin/sleep", executable);
+
+        if (OperatingSystem.IsLinux())
+        {
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        return Process.Start(new ProcessStartInfo(executable, "60") { UseShellExecute = false })!;
     }
 
     [LinuxFact]
-    public void Find_DescribesARunningProcess_ByStartTimeAndExecutable()
+    public async Task Find_DescribesARunningProcess_ByStartTimeAndExecutable()
     {
+        var before = DateTimeOffset.UtcNow;
         using var process = StartSleep();
 
         try
         {
-            var identity = _inspector.Find(process.Id);
+            // Reading another process's module list can fail for an instant under load; the inspector is allowed to answer
+            // "cannot tell", so the test waits for the instant it can tell instead of asserting on the first attempt.
+            ProcessIdentity? identity = null;
+
+            for (var attempt = 0; attempt < 100 && identity?.ExecutablePath is null; attempt++)
+            {
+                identity = _inspector.Find(process.Id);
+                await Task.Delay(20);
+            }
 
             identity.Should().NotBeNull();
             identity!.ProcessId.Should().Be(process.Id);
-            identity.ExecutablePath.Should().EndWith("sleep");
-            identity
-                .StartedAt.Should()
-                .BeCloseTo(new DateTimeOffset(process.StartTime.ToUniversalTime(), TimeSpan.Zero), TimeSpan.FromSeconds(1));
+            identity.ExecutablePath.Should().StartWith(_temp.Combine("probe")).And.Contain("ytt-probe-");
+            identity.StartedAt.Should().BeOnOrAfter(before.AddSeconds(-1)).And.BeBefore(DateTimeOffset.UtcNow.AddSeconds(2));
         }
         finally
         {

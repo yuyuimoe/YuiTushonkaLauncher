@@ -601,6 +601,85 @@ public sealed class SptServerSupervisorTests : IDisposable
     }
 
     [Fact]
+    public async Task AStopAfterTheServerAlreadyCrashed_KeepsTheFailure_AndRestartsNothing()
+    {
+        // The order matters and this pins it: the crash is noticed first, so the instance stays "Failed" (the reason a user
+        // needs) and a later Stop only cleans up the process, it does not pretend nothing happened nor start anything.
+        var instance = _h.AddInstance("one");
+        await _h.Supervisor.StartAsync(instance);
+
+        _h.Spawner.Last.Exit(134);
+        await SupervisorHarness.WaitForAsync(
+            () => _h.Supervisor.GetStatus(instance.Id).State == ServerState.Failed,
+            "the crash is noticed"
+        );
+
+        var status = await _h.Supervisor.StopAsync(instance.Id);
+        await Task.Delay(50);
+
+        status.State.Should().Be(ServerState.Failed);
+        status.FailureReason.Should().Contain("134");
+        _h.Spawner.Children.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task Stop_SaysStopped_WhenItRunsWhileTheServerIsStillStarting()
+    {
+        var instance = _h.AddInstance("one");
+        var asked = new TaskCompletionSource();
+        _h.Client.PingBehavior = async token =>
+        {
+            asked.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return false;
+        };
+
+        var starting = _h.Supervisor.StartAsync(instance);
+        await asked.Task;
+        var status = await _h.Supervisor.StopAsync(instance.Id);
+
+        status.State.Should().Be(ServerState.Stopped, "a start that never finished leaves nothing to report as failed");
+        await FluentActions.Awaiting(() => starting).Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task TwoStopsAtOnce_NeitherReportsACrashNorRestarts()
+    {
+        // One stop holds the gate and waits out its grace period; the server dies meanwhile, so the monitor queues behind
+        // that stop, and a second stop queues after the monitor. The monitor must not call the exit a crash just because
+        // it got the gate while the first stop was still finishing.
+        var crashed = 0;
+
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var instance = _h.AddInstance($"double-stop-{attempt}");
+            await _h.Supervisor.StartAsync(instance, new ServerStartOptions { RestartOnCrash = true, MaxRestarts = 2 });
+            var child = _h.Spawner.Last;
+            _h.Supervisor.StatusChanged += (_, status) =>
+            {
+                if (status.State == ServerState.Failed)
+                {
+                    Interlocked.Increment(ref crashed);
+                }
+            };
+
+            child.OnRequestStop = _ => { };
+            var first = _h.Supervisor.StopAsync(instance.Id, TimeSpan.FromSeconds(5));
+            await Task.Delay(20);
+            child.Exit(0);
+            var second = _h.Supervisor.StopAsync(instance.Id, TimeSpan.FromSeconds(5));
+
+            await Task.WhenAll(first, second);
+
+            (await first).State.Should().Be(ServerState.Stopped);
+            (await second).State.Should().Be(ServerState.Stopped);
+        }
+
+        crashed.Should().Be(0, "the exit was asked for by a stop, so it is not a failure and must not trigger a restart");
+        _h.Spawner.Children.Should().HaveCount(10);
+    }
+
+    [Fact]
     public async Task RecentOutput_KeepsTheNewestLines_AndNeverGrowsWithoutBound()
     {
         var instance = _h.AddInstance("one");

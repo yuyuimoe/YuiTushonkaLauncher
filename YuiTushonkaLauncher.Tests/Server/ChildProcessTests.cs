@@ -225,6 +225,19 @@ public sealed class ChildProcessTests
     }
 
     [LinuxFact]
+    public async Task Start_SurvivesAProgramThatExitsImmediately_AndStillReportsItsExitCode()
+    {
+        // Regression: Process.StartTime throws once the process is gone, which a server that fails on its first line does
+        // at once. The child must still exist and report the code, or the real reason for the failure would be lost.
+        using var spawner = Spawner();
+
+        var child = spawner.Start(Shell("exit 9"));
+
+        (await ExitAsync(child)).Should().Be(9);
+        child.StartedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(30));
+    }
+
+    [LinuxFact]
     public void Start_ThrowsForAProgramThatDoesNotExist()
     {
         using var spawner = Spawner();
