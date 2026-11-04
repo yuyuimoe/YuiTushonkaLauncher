@@ -24,7 +24,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   the advertised 300/min, `cache-control`-aware response cache, retries with `Retry-After` and jitter,
   archive downloads with redirect following, `Range` resume and streaming SHA-256, plus the SPT
   release catalogue sync.
-- Headless `--migrate-only` command for CI smoke tests and troubleshooting.
+- Instances: hard-link based creation from an SPT install (per-path link policy, `Assembly-CSharp.dll`
+  always copied), copy-on-write writer, layout detection (4.0 vs 4.1+), SPT/Tarkov version probing,
+  patch-state detection, rename/delete, pre-flight checks (same volume, free space, link probe) and
+  rollback on failure.
+- Headless commands: `--migrate-only`, `--inspect-base <path>` and
+  `--create-instance <name> --from <base> --into <dir>`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.

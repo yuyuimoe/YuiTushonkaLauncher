@@ -16,6 +16,9 @@
   - `dotnet ef migrations add <Name> -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
   - `dotnet ef database update -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
 - Smoke test without a display: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-only`
+- Inspect an SPT install: `dotnet run --project YuiTushonkaLauncher.Ui -- --inspect-base <path>`
+- Create an instance headlessly:
+  `dotnet run --project YuiTushonkaLauncher.Ui -- --create-instance <name> --from <base> --into <dir>`
 - Coverage: `dotnet test YuiTushonkaLauncher.slnx --settings coverlet.runsettings --collect:"XPlat Code Coverage"`
 
 ## Code style
