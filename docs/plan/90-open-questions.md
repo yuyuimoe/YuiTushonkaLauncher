@@ -55,4 +55,23 @@ Everything still unresolved, with who/what resolves it.
 14. **Config files the installer calls non-config.** `IsConfig` still misses `.txt` (and the integrity check
     therefore does not list an edited `MOTD.txt` under `ModifiedConfigs`). The export no longer depends on
     the flag; decide in phase 12 whether integrity should use the same extension rule.
+15. **The game root on Linux — blocks phase 11.** Official: one folder holds the game, BepInEx and
+    `SPT_Runtime`, and `winhttp.dll` sits next to `EscapeFromTarkov.exe` (Doorstop needs that). Our
+    instances keep `gamefiles/` and `spt/` apart, so neither is a valid working directory. Candidate
+    answers: (a) build a per-instance *merged root* of hard links (cheap, uses the link layer we have, but
+    new files written by BepInEx/mods land in the merged root, not in `spt/`); (b) an overlay mount (not
+    portable, needs privileges); (c) copy `gamefiles/` into `spt/`. Needs a grilling session at the start of
+    phase 11, and a look at what the user's own Lutris setup does with the two folders.
+16. **Windows has never run this.** The native path is tested with a fake platform only. See
+    [91-before-1.0.md](91-before-1.0.md) item 6.
+17. **GameMode.** The `gamemoderun` wrapper and the daemon warning are tested with fakes; GameMode is not
+    installed here.
+18. **umu `GAMEID`.** Profiles use `umu-default`; check umu's database for a Tarkov entry and for what a
+    store of `none` costs.
+19. **Prefix size and cloning.** A prefix is 0.4–0.7 GB and lives in the instance by default. Options:
+    shared prefix per profile (cheap, but mods/registry shared), per-instance copy of a golden prefix with
+    reflinks where the file system supports them, or leave it. Also decide whether *clone instance* and
+    *export* should skip it (the pack already ignores everything but config files).
+20. **Output of Windows programs under Proton.** stdout does not reach the pipe (measured). Phase 11 must
+    treat the game's log files as the primary game source and umu/Proton stderr as the "proton" source.
 

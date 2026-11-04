@@ -223,3 +223,33 @@ carry as little authority as possible (phase 8). The defaults listed in open que
   `OriginalSha256` keeps what the mod shipped, so an imported instance is integrity-clean and a re-export
   reproduces the same package.
 
+## D20. The runtime layer plans first, runs second, and never guesses
+
+How a Windows program starts on Linux (phase 9) follows the official launcher's discovery rules and
+`umu-run` model, with these differences:
+
+- **A plan is a value.** `IRuntimeLauncher.Plan` returns a command plus every problem found, and writes
+  nothing, so misconfiguration is reported with the exact path *before* anything starts. Errors block;
+  warnings (a missing `winhttp=n,b` override, umu absent, GameMode not running, a prefix still to be
+  created) do not.
+- **Preference order:** `umu-run` with a Proton build → Proton's own `proton` script → plain `wine`. A
+  Proton profile uses umu whenever it is installed. All three were run for real (a Windows `cmd.exe` writing
+  a file inside a fresh prefix).
+- **The launcher owns six variables** (`WINEPREFIX`, `PROTONPATH`, `GAMEID`, `STORE`,
+  `STEAM_COMPAT_DATA_PATH`, `STEAM_COMPAT_CLIENT_INSTALL_PATH`). A profile cannot override them: two
+  settings fighting over the prefix is worse than a refusal.
+- **`WINEDLLOVERRIDES=winhttp=n,b` is a default, not a hardcode.** BepInEx loads through Unity Doorstop's
+  `winhttp.dll`, which Wine only uses when told to. New profiles start with it (as the official launcher's
+  `DefaultEnv`); removing it yields a warning that names the consequence.
+- **Never wipe, never guess a prefix.** A folder that is not empty and has none of Wine's files is refused
+  untouched; a partial prefix is repaired in place by `wineboot`; nothing deletes a prefix. After
+  `wineboot` exits the launcher waits (bounded) for `system.reg`/`user.reg`: Wine's server writes them
+  seconds later.
+- **The prefix lives in the instance** (`<instance>/wineprefix`) unless the profile names one, so an
+  instance is self-contained. Its cost (0.4–0.7 GB) is recorded as an open question.
+- **Wine's output is logged, not echoed**, and no TTY is needed: stdin is closed so a tool that asks a
+  question fails instead of hanging; the whole process tree is killed on timeout or cancel; a daemon that
+  keeps the pipes open cannot hang the runner.
+- **On Windows the layer is inert.** Every request resolves to a direct native command, the locator
+  searches nothing, and the Linux settings stay hidden.
+

@@ -9,7 +9,7 @@ using YuiTushonkaLauncher.Tests.Infrastructure;
 
 namespace YuiTushonkaLauncher.Tests.Mods;
 
-public sealed class SafeExtractorTests
+public sealed class SafeExtractorTests : IDisposable
 {
     private readonly SafeExtractor _extractor = new(NullLogger<SafeExtractor>.Instance);
     private readonly TempDirectory _temp = new();
@@ -38,5 +38,10 @@ public sealed class SafeExtractorTests
 
         await act.Should().ThrowAsync<FileLinkException>();
         File.Exists(_temp.Combine("escape.txt")).Should().BeFalse();
+    }
+
+    public void Dispose()
+    {
+        _temp.Dispose();
     }
 }

@@ -6,7 +6,7 @@ using YuiTushonkaLauncher.Tests.Infrastructure;
 
 namespace YuiTushonkaLauncher.Tests.Instances;
 
-public sealed class LinkAwareFileWriterTests
+public sealed class LinkAwareFileWriterTests : IDisposable
 {
     private readonly TempDirectory _temp = new();
     private readonly FileLinkService _links;
@@ -83,5 +83,10 @@ public sealed class LinkAwareFileWriterTests
         var act = async () => await writer.CopyFileAsync(source, destination, overwrite: false);
 
         await act.Should().ThrowAsync<IOException>();
+    }
+
+    public void Dispose()
+    {
+        _temp.Dispose();
     }
 }

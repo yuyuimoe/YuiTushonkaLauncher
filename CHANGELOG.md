@@ -46,10 +46,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   validated hard (zip-slip, symlinks, binaries, size bombs, tampering) before anything is written.
 - Fixes found on real data: versions with build metadata (`1.8.0+h4`) no longer break a mod's version list;
   downloads are no longer named after their version; addons remember their Forge id.
+- Linux runtime: finds Proton builds (Steam, Flatpak, Valve's own, your folders), `umu-run`, Wine and
+  GameMode; plans how to run a program through `umu-run`, Proton or Wine and reports every problem
+  (missing Proton, prefix on a read-only path, no `wine`, no BepInEx DLL override) with the exact path
+  before anything starts; creates and repairs Wine prefixes without ever touching a folder that is not one;
+  stores runtime profiles with their prefix and environment. On Windows the whole layer is inert.
+- Fixes found on real data: every Proton build was listed twice (`~/.steam/steam` is a link); a healthy
+  Wine prefix was reported broken because `wineboot` exits before the registry is written.
 - Headless commands: `--migrate-only`, `--inspect-base <path>` and
   `--create-instance <name> --from <base> --into <dir>` and
   `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>` and `--patch-plan|--patch|--restore <instance>` and `--export <instance> <file>` and
-  `--import <file> --instance <name> [--apply]`.
+  `--import <file> --instance <name> [--apply]` and `--runtimes`, `--runtime-profile-add`, `--runtime-assign`,
+  `--runtime-plan`, `--prefix-init`, `--runtime-run`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.

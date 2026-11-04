@@ -7,7 +7,7 @@ using YuiTushonkaLauncher.Tests.Infrastructure;
 
 namespace YuiTushonkaLauncher.Tests.Instances;
 
-public sealed class FileLinkServiceTests
+public sealed class FileLinkServiceTests : IDisposable
 {
     private readonly TempDirectory _temp = new();
     private readonly FileLinkService _links;
@@ -145,5 +145,10 @@ public sealed class FileLinkServiceTests
             .Throw<FileLinkException>()
             .Which.Error.Should()
             .BeOneOf(FileLinkError.NotFound, FileLinkError.Unknown, FileLinkError.PermissionDenied);
+    }
+
+    public void Dispose()
+    {
+        _temp.Dispose();
     }
 }

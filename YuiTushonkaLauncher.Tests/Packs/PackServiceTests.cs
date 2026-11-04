@@ -409,7 +409,8 @@ public sealed class PackServiceTests : IDisposable
         await using var fresh = await ModTestContext.CreateAsync("fresh");
         await fresh.InstallClientModAsync();
         fresh.Forge.WithMod(ModGuid, "1.5.0", 7);
-        fresh.DownloadSource = ModArchive().Path;
+        using var freshArchive = ModArchive();
+        fresh.DownloadSource = freshArchive.Path;
         var package = PackCrafter.Zip(NewPackage(), PackCrafter.ManifestEntry(PackCrafter.Manifest([PackCrafter.Mod(version: "1.5.0")])));
 
         var plan = await fresh.Packs.PlanImportAsync(fresh.Instance.Id, package);
@@ -519,7 +520,8 @@ public sealed class PackServiceTests : IDisposable
     {
         await using var fresh = await ModTestContext.CreateAsync("fresh");
         fresh.Forge.WithMod(ModGuid, "1.4.2", 7);
-        fresh.DownloadSource = ModArchive().Path;
+        using var freshArchive = ModArchive();
+        fresh.DownloadSource = freshArchive.Path;
         const string foreign = "spt/BepInEx/config/not-a-file-of-the-mod.cfg";
         var manifest = PackCrafter.Manifest(configs: [PackCrafter.Config(ModGuid, foreign, "planted")]);
         var package = PackCrafter.Zip(NewPackage(), PackCrafter.ManifestEntry(manifest), PackCrafter.ConfigEntry(foreign, "planted"));
