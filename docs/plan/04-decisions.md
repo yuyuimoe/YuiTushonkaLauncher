@@ -253,3 +253,35 @@ How a Windows program starts on Linux (phase 9) follows the official launcher's 
 - **On Windows the layer is inert.** Every request resolves to a direct native command, the locator
   searches nothing, and the Linux settings stay hidden.
 
+
+## D21. The server is a supervised child, never a second-class process
+
+The SPT server is not "something the user starts"; it is part of the launch (D13). Phase 10 fixes how we own it.
+
+- **One supervisor owns every instance's server.** `ISptServerSupervisor` keeps at most one server per
+  instance, keyed by instance id, with a per-instance gate: concurrent start/stop calls queue instead of
+  racing, and the status is a value the UI can read at any time.
+- **Plan before start, always.** `PlanAsync` reports the executable, the working directory, the endpoint,
+  the .NET requirement and every problem (missing file, missing runtime, busy port, port configured for
+  another instance, dead-server signal unavailable) with the exact path. Errors block; "another instance is
+  configured for this port" and "listens on the whole LAN" only warn.
+- **Readiness is a ping, never a sleep**, and a ping counts only while the process we started is alive: a
+  different server on the same port would answer just as well, and the real server exits **0** on a busy
+  port, so the exit code proves nothing.
+- **Children are tied to the launcher's life.** Linux: `setpriv --pdeathsig TERM` in front of the command,
+  started from one dedicated thread that never ends (the signal belongs to the creating *thread*); Windows: a
+  job object with kill-on-close. When the machine cannot do it (no `setpriv`), the plan says so and a leftover
+  is found later from the pid record.
+- **A leftover is recognised by more than its pid:** the record stores the instance, the start time, the
+  executable path and the launcher's pid, and a candidate must match the start time and the path; a recycled
+  pid is never touched. A server whose launcher is still alive is never a leftover.
+- **Stopping is polite first.** `SIGTERM`, then kill after the grace period; the same stop owns the monitor's
+  view, so an exit the user asked for is never reported as a crash nor restarted.
+- **The server owns its profiles.** Everything goes through its API; the launcher validates because the
+  server does not, refuses to destroy anything without an explicit confirmation, and copies the profile file
+  (verified byte-for-byte) before asking the server to delete or wipe.
+- **One source for the port: `http.json`.** The database row mirrors it; the writer is copy-on-write, so an
+  instance never edits the base install's file.
+- **The API is TLS-with-nothing-to-verify.** SPT's certificate is self-signed and created on first start, so
+  the client accepts any certificate, exactly like the official launcher. No secret crosses it: a profile is
+  selected by name.

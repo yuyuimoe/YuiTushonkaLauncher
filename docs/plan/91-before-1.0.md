@@ -17,3 +17,5 @@ evidence.
 | 8 | **GameMode path is only tested with fakes** — GameMode is not installed on the development machine. | Run `--runtime-plan` with a profile that has GameMode on, on a machine that has it. | Q17 |
 | 9 | **umu `GAMEID`** — profiles use `umu-default`, so umu applies no per-game fixes. | Check whether the umu database has an entry for Tarkov and use it if so. | Q18 |
 | 10 | **Prefix size** — a per-instance prefix is 0.4–0.7 GB. | Decide whether the default stays per-instance, becomes shared, or is cloned copy-on-write. | Q19 |
+| 11 | **Server mods that are not on the Forge** cannot be installed by `--server-sync --apply`; only named. | A user syncing to a server that runs a private mod needs a way to get it, and a release cannot answer "where is it?". | Q16 |
+| 12 | **The `ip` in `http.json`** can be `0.0.0.0` (LAN-reachable). We warn but never change it. | Deciding the default for new instances is a release-time UX decision, not a bug. | Q18 |

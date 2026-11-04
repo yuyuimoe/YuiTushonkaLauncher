@@ -26,7 +26,13 @@
 - Linux runtime: `--runtimes` (what was found), `--runtime-profile-add <name> --auto`,
   `--runtime-assign <instance> <profile>`, `--runtime-plan <instance>` (read-only, exits 1 on an error),
   `--prefix-init <instance>`, `--runtime-run <instance> --exe <path> [--args "…"]`
-- Open points that must close before 1.0: `docs/plan/91-before-1.0.md`
+- SPT server: `--server-info <instance>` (read-only, exits 1 on an error), `--server-run <instance> [--seconds N] [--restart]`,
+  `--server-profiles <instance>` (starts a temporary server if none answers), `--server-profile-add <instance> <name> [--edition E]`,
+  `--server-profile-remove|wipe <instance> <name> --yes`, `--server-profile-select <instance> <name>`,
+  `--server-port <instance> [port]`, `--server-sync <instance> [--server host:port] [--apply] [--override-pins]`,
+  `--server-stale [--reap]`
+- Open points that must close before 1.0: `docs/plan/91-before-1.0.md`; deliberately postponed:
+  `docs/plan/92-after-1.0.md`
 - Real-delta tests: `YTT_SPT_BASE=<spt-installer-output> dotnet test --filter Live=Spt`
 - Scan an instance for migration: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-scan <name>`
 - Install a local mod archive:

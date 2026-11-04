@@ -20,8 +20,8 @@ for what has to exist when the branch merges.
 | 7 | [phase-07-patching](phase-07-patching.md) | ☑ done |
 | 8 | [phase-08-export-import](phase-08-export-import.md) | ☑ done |
 | 9 | [phase-09-linux-proton](phase-09-linux-proton.md) | ☑ done |
-| 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☐ next |
-| 11 | [phase-11-launch-logs](phase-11-launch-logs.md) | ☐ |
+| 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☑ done |
+| 11 | [phase-11-launch-logs](phase-11-launch-logs.md) | ☐ next |
 | 12 | [phase-12-ui](phase-12-ui.md) | ☐ |
 | 13 | [phase-13-qa](phase-13-qa.md) | ☐ |
 | 14 | [phase-14-packaging](phase-14-packaging.md) | ☐ |

@@ -69,6 +69,7 @@ internal static partial class HeadlessCommands
         var exportIndex = IndexOf(args, Export);
         var importIndex = IndexOf(args, Import);
         var runtimeRequested = RuntimeCommandRequested(args);
+        var serverRequested = ServerCommandRequested(args);
 
         if (
             !migrateOnly
@@ -82,6 +83,7 @@ internal static partial class HeadlessCommands
             && exportIndex < 0
             && importIndex < 0
             && !runtimeRequested
+            && !serverRequested
         )
         {
             return false;
@@ -141,6 +143,11 @@ internal static partial class HeadlessCommands
             if (runtimeRequested)
             {
                 RunRuntimeCommands(services, args);
+            }
+
+            if (serverRequested)
+            {
+                RunServerCommands(services, args);
             }
 
             Log.Information("Headless command finished; exiting");

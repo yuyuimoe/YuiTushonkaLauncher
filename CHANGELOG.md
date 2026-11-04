@@ -57,7 +57,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   `--create-instance <name> --from <base> --into <dir>` and
   `--install-mod <archive> --instance <name>` and `--migrate-scan <instance>` and `--patch-plan|--patch|--restore <instance>` and `--export <instance> <file>` and
   `--import <file> --instance <name> [--apply]` and `--runtimes`, `--runtime-profile-add`, `--runtime-assign`,
-  `--runtime-plan`, `--prefix-init`, `--runtime-run`.
+  `--runtime-plan`, `--prefix-init`, `--runtime-run`, `--server-info`, `--server-run`, `--server-profiles`,
+  `--server-profile-add|remove|wipe|select`, `--server-port`, `--server-sync`, `--server-stale`.
+- Server lifecycle: finds the instance's SPT server and its .NET requirement, refuses to start with a named
+  reason (missing file, missing runtime, busy port, port claimed by another instance), and starts it with
+  readiness by `ping` polling instead of sleeping. Readiness never trusts the exit code, because a busy port
+  makes the real server exit **0**. Stop is `SIGTERM` first, then a kill; the server is tied to the launcher
+  (`setpriv --pdeathsig TERM` on Linux, a job object on Windows) so even a `kill -9` of the launcher leaves no
+  server, and a leftover from a crash is found from a pid record and stopped.
+- The SPT launcher API: `/launcher/v2/{ping,version,types,profiles,profile,login,register,remove,wipe,mods,mod-pages}`
+  over HTTPS with SPT's self-signed certificate and zlib-compressed JSON, plus the profile's recorded client
+  mods.
+- Profiles: list, create, select, delete and wipe through the server, validated here because the server
+  validates nothing (it accepts an unknown edition or an empty name), with an explicit confirmation and a
+  verified copy of the profile file before anything destructive.
+- Ports: `http.json` is the single source, edited through the copy-on-write writer, mirrored in the database,
+  with the next free port suggested and a refusal to give two instances the same one.
+- Server sync: compares an instance with what a server runs and installs the exact versions from the Forge,
+  honouring pins; the client-mod half is compared, never written, because the game records it.
+- Fixes found on real data: `SPT.Server.Linux` has no extension to strip, so the locator read the Windows
+  runtimeconfig; a child that exits at once crashed the spawner on `Process.StartTime`; a busy port ends in
+  exit code 0; `MainModule` can fail for another process and now falls back to `/proc/<pid>/exe`; the free-port
+  search found nothing when started below 1024.
+- Headless commands: `--server-info`, `--server-run`, `--server-profiles`,
+  `--server-profile-add|remove|wipe|select`, `--server-port`, `--server-sync`, `--server-stale`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
-- Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.
+- Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D21.
