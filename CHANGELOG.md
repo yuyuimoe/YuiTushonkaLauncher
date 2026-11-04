@@ -69,6 +69,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   points at a text editor (one measured session wrote 322 MiB). Export gives exactly the selected lines;
   `--diagnostics` writes a bundle with versions, instance state, hashes, mods and the last lines of each source;
   retention gzips rotated files into `archive/` and deletes by age then count, never the file in use.
+- Launch button state machine: `LaunchSession` maps every step to the state a button shows, allows cancelling only
+  until the game starts and offers Stop only once the pair runs.
 - Remembered profile: "always use this profile on this server", stored per instance and per endpoint, so a
   launch never guesses which profile to open.
 - Server lifecycle: finds the instance's SPT server and its .NET requirement, refuses to start with a named

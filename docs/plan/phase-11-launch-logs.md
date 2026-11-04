@@ -4,8 +4,13 @@
 
 ## Status
 
-☐ next. Designed by a grilling session on 2026-11-04; every decision below is the maintainer's, and the
-facts it rests on were measured on real installs (`tarkov_runs/spt41_live`, `tarkov_dev/spt40_dev`).
+☑ done: 11.0 layout, 11.1 detached pair, 11.2 launch pipeline, 11.3 logs. **1098 tests**; Core 97 %+,
+Infrastructure 94 %+; Release warning-free; CSharpier clean. Designed by a grilling session on 2026-11-04; every
+decision below is the maintainer's, and the facts it rests on were measured on real installs
+(`tarkov_runs/spt41_live`, `tarkov_dev/spt40_dev`) and against a real 4.1.6 server.
+
+What remains for phase 12 (the window): the server control panel, the profile manager, the wipe flow, the sync
+dialog, the log window and the launch button itself (its state machine is done and tested here).
 
 ## Goal
 
@@ -144,8 +149,8 @@ idempotent on a second pass. 1089 tests; 8/9 mutants killed (one equivalent).
       (`.txt`/`.log`), opening an archived `.gz` transparently.
 - [ ] Crash diagnostics: on a failed step, a bundle (versions, instance state, last N lines, file hashes) the
       user can paste into a bug report.
-- [ ] UI: launch button state machine matching the `LaunchStep` names, with cancel only where the contract
-      allows it. (The window itself is phase 12; the state machine and its tests are here.)
+- [x] UI: launch button state machine (`LaunchSession`) matching the `LaunchStep` names, with cancel only
+      until the game starts and Stop only once it runs. (The window itself is phase 12.)
 
 ## Acceptance criteria
 
