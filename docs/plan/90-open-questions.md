@@ -21,11 +21,14 @@ Everything still unresolved, with who/what resolves it.
 3. **SPT version upgrade path.** In-place `Restore()` → swap runtime → re-`Patch()` on the same
    instance, or "create a new instance and copy `user/`"? Affects `ICompatibilityService.CanUpgradeSpt`
    and the UI flow.
-4. **Multi-instance server ports.** Fixed default 6969 with automatic conflict resolution, or the
-   server's config file edited per instance? Need to confirm where the 4.x server reads its port from
-   (`SPT_Data/configs/http.json` observed — see [03-verified-facts](03-verified-facts.md)).
+4. **Multi-instance server ports — decided in phase 10.** `SPT_Data/configs/http.json` is the single
+   source (verified: changing it changes what the server binds); our instances get their own copy, so each
+   instance edits only its own file through the copy-on-write writer, and the database row mirrors it
+   ([D21](04-decisions.md#d21-the-server-is-a-supervised-child-never-a-second-class-process)).
 5. **Bundle sync.** `/singleplayer/bundles` + `/files/bundle/` look like an asset sync we might need
-   to drive. Confirm semantics before Phase 10; a wrong guess wastes download bandwidth.
+   to drive. **Still open after phase 10:** the routes exist in the server assembly but were not exercised;
+   the mod sync did not need them (the server publishes its mod list). Exercise them before phase 11 or 12
+   if the game expects the launcher to drive the download; a wrong guess wastes download bandwidth.
 6. **`.sptpack` MIME + shell integration.** Double-click import on Windows (registry) and Linux
    (`.desktop` + MIME XML). Deferred to Phase 14.
 7. **Update channel for the app itself.** The official launcher has a signed manifest updater
@@ -75,3 +78,20 @@ Everything still unresolved, with who/what resolves it.
 20. **Output of Windows programs under Proton.** stdout does not reach the pipe (measured). Phase 11 must
     treat the game's log files as the primary game source and umu/Proton stderr as the "proton" source.
 
+
+16. **Server mods that the Forge does not have.** `--server-sync --apply` installs the exact versions the
+    server runs, but a mod that is not on the Forge (a private build, a hand-edited assembly) can only be
+    reported, never fetched. Decide in phase 12 what the UI offers: a link to the author's page, a "copy from
+    this install" flow, or nothing. Today the CLI names the GUID and the version it needs.
+17. **The server's own profile backups.** 4.1.6 writes `user/profiles/backups/<date>/` on a schedule and
+    keeps them; ours are per destructive operation. Decide whether the launcher should expose, prune or
+    compress the server's archive (and whether that belongs with the log retention of [D17](04-decisions.md#d17-logs-rotate-compress-and-expire)),
+    or leave it entirely to the server.
+18. **Which `ip` a new instance gets.** The installer's `http.json` may say `0.0.0.0` (one base install here
+    did), which makes the server reachable from the LAN. We warn, but do not change it: rewriting someone's
+    config silently is worse. Decide in phase 12 whether the instance creation flow should default it to
+    `127.0.0.1`.
+19. **`SPT.Server` on Windows was not run.** The server path is platform-neutral (native program, job object),
+    but only Linux was exercised; see [91-before-1.0](91-before-1.0.md), item 6.
+20. **The game is a child of the launcher.** Deliberately postponed: it conflicts with "no orphans"
+    ([92-after-1.0](92-after-1.0.md)).

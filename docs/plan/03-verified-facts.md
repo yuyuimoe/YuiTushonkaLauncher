@@ -330,3 +330,68 @@ the cloned sources.
 That is the acceptance behaviour for [phase 4](phase-04-instances.md), with two additions: copy-on-write
 for everything else that gets written later, and an explicit per-path link policy instead of "link
 everything then fix one file".
+
+## The SPT server, measured (2026-11-04)
+
+Read from a real SPT 4.1.6 install (`base_tarkov41`) started as its own `SPT.Server.Linux`, plus the
+4.0 install for the older layout. Nothing here is from documentation.
+
+### Starting and stopping
+
+- **Startup:** prints its banner, generates/loads `user/certs/server.crt`, starts the webserver and the
+  websocket, loads server mods, then prints `Server has started, happy playing`. **Ready in 3.6–5 s** on this
+  machine; `GET /launcher/v2/ping` answers `{"Response":"Pong!"}` (after zlib — the body is `78 da …`).
+- **A second server on the same port does not fail loudly:** it prints
+  `Failed to start the web server on 0.0.0.0:6969. Socket error: AddressAlreadyInUse (98).` and **exits
+  with code 0**. Only the output says what happened.
+- **`SIGTERM` is graceful:** it prints `Stopping server...` and exits 0 in about 100 ms. `SIGKILL` works
+  too; there is no separate shutdown route in the launcher API.
+- **The port really comes from `SPT_Data/configs/http.json`** (`ip`, `port`, `backendIp`, `backendPort`):
+  changing `port` to 6970 and `ip` to `127.0.0.1` made it listen on exactly that, verified with `ss -ltnp`.
+- **The .NET requirement comes from `SPT.Server.Linux.runtimeconfig.json`:** 4.1.6 needs
+  `Microsoft.NETCore.App` + `Microsoft.AspNetCore.App` **10.0.0**; 4.0 needs **9.0.0**.
+- **A Linux build has no extension:** the file is `SPT.Server.Linux`, so `Path.ChangeExtension(x, null)`
+  yields `SPT.Server` and reads the *Windows* runtimeconfig.
+
+### The launcher API
+
+- **Transport:** HTTPS with a **self-signed certificate** the server creates on first start, and **both
+  request and response bodies are zlib-compressed JSON**. Reads are `GET`, changes are `PUT`, no body-less
+  change exists. Cookies are not used.
+- **Routes that exist** (read from `SPTarkov.Server.Core.dll` and exercised with `curl`): `ping`, `version`,
+  `types`, `profiles`, `profile`, `login`, `register`, `remove`, `wipe`, `mods`, `mod-pages`, and the older
+  `/launcher/profiles` + `/launcher/profile/info`. Bundles: `/singleplayer/bundles`, `/files/bundle/`.
+- **`/launcher/v2/mods` is the server mod list**, an object keyed by a short name:
+  `{"SVM":{"ModGuid":"fika.ghostfenixx.svm","Name":"SVM","Author":"GhostFenixx","Version":"2.2.3","SptVersion":"~4.1.3",…}}`.
+  It appeared only after a server mod was installed.
+- **`mod-pages` was empty** on a stock install with one server mod, so it is not how client mods are
+  reported.
+- **Client mods live in the profile:** `user/profiles/<id>.json` has an `spt` object the game writes
+  (`{"version":"4.1.6 (40743)","mods":[{"name","version","author","dateAdded","url"}]}`). `/profiles` returns
+  it as `sptData.mods`, and a profile that was never played has an empty list.
+- **The server validates almost nothing:** `register` accepted `"edition":"NoSuchEdition"` and
+  `"username":""` (both created profiles), and `remove` with an empty name removed a profile. Duplicate
+  names and unknown logins are refused (`"Response":false`). The launcher must validate.
+- **`wipe` only flags:** the profile comes back with `"wipe":true` and the file keeps `"wipe": true` in
+  `info`; the actual wipe happens when the game starts.
+- **Profile shape** (fresh, 4.1.6): `info{id,scavId,aid,username,wipe,edition}`, `characters{pmc,scav}`,
+  `inraid`, `insurance`, then `dialogues`, `spt` once played.
+- **Editions offered by `types`:** Standard, Left Behind, Prepare To Escape, Edge Of Darkness, Unheard,
+  SPT Developer, SPT Easy start, SPT Zero to hero.
+- **The server backs profiles up itself** into `user/profiles/backups/<yyyy-MM-dd_HH-mm-ss>/` (profile files
+  plus `activeMods.json`); its own log line is `Profile backup created in: …`.
+- **`user/` is per instance** (created empty by the installer: `cache`, `certs`, `credentials`, `logs`,
+  `mods`, `profiles`), while `SPT_Data/configs/http.json` is a **copy**, not a link, in an instance created
+  by us — so editing the port per instance is safe, and still goes through the copy-on-write writer.
+
+### No orphans on Linux
+
+- `setpriv --pdeathsig TERM` makes the kernel signal the child when its **parent thread** dies, and
+  `setpriv --dump` run *inside* the wrapper shows `Parent death signal: TERM`.
+- The signal is tied to the **thread that created the child**, not the process: a child started from a
+  thread-pool thread is killed when the pool retires that thread (measured: the child was gone after ~35 s
+  with the launcher alive), while a child started from a thread that never ends survives until the process
+  does.
+- With that in place, `kill -9` of the launcher took the server with it within about a second (SIGTERM,
+  graceful); without `setpriv`, the server survived and was found and stopped by `--server-stale --reap`
+  from its pid record.
