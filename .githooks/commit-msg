@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+#
+# Conventional Commits gate.
+#
+# Enabled via: git config core.hooksPath .githooks
+#
+# Accepted:
+#   type(scope)!: subject
+#   type: subject
+#   type(scope): subject
+#
+# types: build ci chore docs feat fix perf refactor revert style test
+# Bypass (intentionally, e.g. git-flow merges): git commit --no-verify
+
+msg_file="$1"
+first_line=$(head -n 1 "$msg_file")
+
+# git-flow / git merge writes "Merge branch '...'" — always allowed.
+case "$first_line" in
+Merge* | Revert* | fixup!* | squash!*) exit 0 ;;
+esac
+
+pattern='^(build|ci|chore|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._/-]+\))?!?: .+$'
+
+if ! printf '%s' "$first_line" | grep -Eq "$pattern"; then
+    cat >&2 <<EOF
+✗ Commit message does not follow Conventional Commits.
+
+  got:      $first_line
+  expected: <type>(<scope>)!: <subject>
+
+  types: build ci chore docs feat fix perf refactor revert style test
+  example: feat(instances): add hard-link clone with copy-on-write guard
+
+  Docs and code comments are English; only conversation with the user is Portuguese.
+EOF
+    exit 1
+fi
+
+# Reject a subject that ends with a period, and cap the header length.
+case "$first_line" in
+*. ) echo "✗ Subject must not end with a period." >&2; exit 1 ;;
+esac
+
+if [ "${#first_line}" -gt 100 ]; then
+    echo "✗ Header is ${#first_line} characters; keep it at 100 or fewer." >&2
+    exit 1
+fi
+
+exit 0
