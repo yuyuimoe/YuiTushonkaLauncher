@@ -65,3 +65,36 @@ Three tabs: **Details**, **Dependencies**, **Dependents**.
 * Thumbnails appear for mods that have one, placeholders for those that do not, and the cache does not grow past its cap.
 * The sidebar shows the six sections in order; dependencies and dependents are navigable with history.
 * Release build warning-free, CSharpier clean, tests green.
+
+## What was built
+
+* `ForgeSort` / `ForgeSorts` in Core: seven orderings, each mapped to the sort expression and date window the API
+  accepts. `ForgeModQuery` grew `PublishedFrom`/`PublishedTo`, serialised as `filter[published_between]=YYYY-MM-DD,YYYY-MM-DD`.
+* `ForgeVersionCompatibility`: a version fits when the API's resolved `SupportedSptVersions` says so, otherwise when the
+  constraint is satisfied. The browser offers only fitting versions and explains the absence of any.
+* `ThumbnailCache`: disk cache under `<data>/cache/thumbnails`, 512 KiB and 200 files, least recently used evicted,
+  one download per URL. **The file host answers 403 to a request without a `Referer` from the site and 200 with one**
+  (measured against `files.sp-mod.com`), so the request carries it.
+* `ForgePageReader`: licence, source code and VirusTotal links from the three labelled sections of the mod page; a
+  forgiving parser, tested against a trimmed copy of a real page.
+* `ForgeDescription`: the HTML description reduced to lines a text block can show.
+* `NavigationHistory<T>`: back and forward, with the rule that a new selection drops the forward stack.
+* The page: sort and category pickers, results with thumbnails and letter tiles, a sidebar with the six sections in the
+  order the user asked for, three tabs (details, dependencies, dependents), back/forward, double-click to open, and an
+  install button that is off — with the reason — when no version fits the instance.
+
+## Verified against the live catalogue and the live page
+
+* Four orderings produced four different result lists (featured, windowed endorsements, newest, recently updated).
+* 47 of the top 50 mods by downloads have a thumbnail; they download and decode (23 KB PNGs measured).
+* BigBrain publishes 12 versions, of which **1** is compatible with SPT 4.1.6 — the filter is not cosmetic.
+* Its page yields `MIT License`, `https://choosealicense.com/licenses/mit/`, one source-code link and one VirusTotal
+  link; the API yields none of those.
+* The API rejects `spt_version=0.0.0` with `VALIDATION_FAILED`; with no instance open the sidebar therefore shows no
+  dependencies instead of asking the wrong question.
+
+## Still open
+
+* Endorsement windows cannot be exact: the API reports a total per mod, not votes over time. The label says
+  "most endorsed · last 7 days" and the tooltip in `forge.sortEndorsedWeek` explains the approximation.
+* The sidebar's long description is plain text; links inside it are not clickable.

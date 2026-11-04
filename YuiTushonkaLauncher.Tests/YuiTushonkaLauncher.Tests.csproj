@@ -27,6 +27,9 @@
     <None Include="Patching\Fixtures\*.bin;Patching\Fixtures\*.delta">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Forge\Fixtures\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
