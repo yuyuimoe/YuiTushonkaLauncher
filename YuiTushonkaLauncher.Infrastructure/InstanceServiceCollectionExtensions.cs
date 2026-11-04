@@ -18,6 +18,8 @@ public static class InstanceServiceCollectionExtensions
         services.AddSingleton<ILinkAwareFileWriter, LinkAwareFileWriter>();
         services.AddSingleton<BaseInstallProbe>();
         services.AddSingleton<PatchStateDetector>();
+        services.AddSingleton<IInstallDetector, InstallDetector>();
+        services.AddSingleton<IAdoptService, AdoptService>();
         services.AddSingleton<IInstanceService, InstanceService>();
         services.AddSingleton<IMigrationService, MigrationService>();
 
