@@ -19,6 +19,12 @@ public enum UpdateDecision
 
     /// <summary>Forge asked for the update to be held back.</summary>
     Blocked,
+
+    /// <summary>
+    /// The launcher could not confirm what the mod is (its GUID is unknown to the Forge, or could not be read at all),
+    /// so it is never updated automatically: the invariant is that an unrecognised mod is left alone.
+    /// </summary>
+    Unrecognized,
 }
 
 /// <summary>One mod's update status.</summary>
