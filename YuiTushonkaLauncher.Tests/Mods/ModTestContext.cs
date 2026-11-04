@@ -7,6 +7,7 @@ using YuiTushonkaLauncher.Core.Mods;
 using YuiTushonkaLauncher.Infrastructure.FileSystem;
 using YuiTushonkaLauncher.Infrastructure.Instances;
 using YuiTushonkaLauncher.Infrastructure.Mods;
+using YuiTushonkaLauncher.Infrastructure.Packs;
 using YuiTushonkaLauncher.Infrastructure.Paths;
 using YuiTushonkaLauncher.Tests.Forge;
 using YuiTushonkaLauncher.Tests.Infrastructure;
@@ -46,7 +47,7 @@ public sealed class ModTestContext : IAsyncDisposable
 
         Installer = new ModInstaller(
             database.UnitOfWork,
-            new CopyingDownloader(() => DownloadSource),
+            new CopyingDownloader(url => DownloadSources.GetValueOrDefault(url.ToString()) ?? DownloadSource),
             new ArchiveInspector(NullLogger<ArchiveInspector>.Instance),
             new SafeExtractor(NullLogger<SafeExtractor>.Instance),
             new ModIdentityReader(NullLogger<ModIdentityReader>.Instance),
@@ -57,7 +58,7 @@ public sealed class ModTestContext : IAsyncDisposable
 
         Addons = new AddonService(
             database.UnitOfWork,
-            new CopyingDownloader(() => DownloadSource),
+            new CopyingDownloader(url => DownloadSources.GetValueOrDefault(url.ToString()) ?? DownloadSource),
             new ArchiveInspector(NullLogger<ArchiveInspector>.Instance),
             new SafeExtractor(NullLogger<SafeExtractor>.Instance),
             new ModIdentityReader(NullLogger<ModIdentityReader>.Instance),
@@ -79,6 +80,16 @@ public sealed class ModTestContext : IAsyncDisposable
         );
 
         Resolver = new DependencyResolver(database.UnitOfWork, forge, NullLogger<DependencyResolver>.Instance);
+
+        Packs = new PackService(
+            database.UnitOfWork,
+            forge,
+            Installer,
+            Addons,
+            new LinkAwareFileWriter(links),
+            new PackReader(NullLogger<PackReader>.Instance),
+            NullLogger<PackService>.Instance
+        );
     }
 
     public TestDatabase Database { get; }
@@ -106,6 +117,8 @@ public sealed class ModTestContext : IAsyncDisposable
     public MigrationService Migration { get; }
 
     public DependencyResolver Resolver { get; }
+
+    public PackService Packs { get; }
 
     public static async Task<ModTestContext> CreateAsync(string instanceName = "mods")
     {
@@ -139,8 +152,11 @@ public sealed class ModTestContext : IAsyncDisposable
 
     public Instance Instance { get; private set; } = null!;
 
-    /// <summary>Archive the fake downloader hands out when a download is requested.</summary>
+    /// <summary>Archive the fake downloader hands out when no per-URL archive is registered.</summary>
     public string? DownloadSource { get; set; }
+
+    /// <summary>Archives by download URL, for tests that fetch more than one thing.</summary>
+    public Dictionary<string, string> DownloadSources { get; } = [];
 
     /// <summary>Installs a client mod from a prepared archive and returns the result.</summary>
     public Task<ModInstallResult> InstallClientModAsync()
@@ -160,7 +176,7 @@ public sealed class ModTestContext : IAsyncDisposable
     }
 
     /// <summary>Copies a prepared archive into the download directory, mimicking <c>IForgeDownloader</c>.</summary>
-    private sealed class CopyingDownloader(Func<string?> sourceArchiveProvider) : IForgeDownloader
+    private sealed class CopyingDownloader(Func<Uri, string?> sourceArchiveProvider) : IForgeDownloader
     {
         public async Task<ForgeDownloadResult> DownloadAsync(
             Uri url,
@@ -170,7 +186,7 @@ public sealed class ModTestContext : IAsyncDisposable
             CancellationToken cancellationToken = default
         )
         {
-            var sourceArchive = sourceArchiveProvider();
+            var sourceArchive = sourceArchiveProvider(url);
             if (sourceArchive is null)
             {
                 throw new InvalidOperationException("No source archive was configured for the fake downloader.");

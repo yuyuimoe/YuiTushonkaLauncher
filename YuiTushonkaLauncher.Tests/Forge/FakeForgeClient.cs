@@ -15,6 +15,12 @@ public sealed class FakeForgeClient : IForgeClient
     /// <summary>What <see cref="CheckUpdatesAsync" /> should answer.</summary>
     public ForgeUpdateReport? Report { get; set; }
 
+    /// <summary>Addon versions keyed by the addon's Forge id.</summary>
+    public Dictionary<int, List<ForgeAddonVersion>> AddonVersions { get; } = [];
+
+    /// <summary>When set, every version lookup fails like an unreachable Forge.</summary>
+    public bool Unreachable { get; set; }
+
     /// <summary>GUID batches the resolver asked for, in order.</summary>
     public List<string[]> GuidRequests { get; } = [];
 
@@ -39,6 +45,28 @@ public sealed class FakeForgeClient : IForgeClient
                 },
             ],
         };
+
+        return this;
+    }
+
+    /// <summary>Adds an addon version that supports the mod versions in <paramref name="modConstraint" />.</summary>
+    public FakeForgeClient WithAddon(int addonId, string version, string modConstraint = "*")
+    {
+        if (!AddonVersions.TryGetValue(addonId, out var list))
+        {
+            list = [];
+            AddonVersions[addonId] = list;
+        }
+
+        list.Add(
+            new ForgeAddonVersion
+            {
+                Id = addonId * 10,
+                Version = SemanticVersion.Parse(version),
+                ModVersionConstraint = VersionRange.Parse(modConstraint),
+                DownloadUrl = $"https://sp-mod.com/addon/download/{addonId}/x/{version}",
+            }
+        );
 
         return this;
     }
@@ -98,6 +126,11 @@ public sealed class FakeForgeClient : IForgeClient
 
     public Task<IReadOnlyList<ForgeModVersion>> GetModVersionsAsync(int modId, CancellationToken cancellationToken = default)
     {
+        if (Unreachable)
+        {
+            throw new ForgeUnavailableException("the fake Forge is unreachable");
+        }
+
         var mod = Mods.Values.FirstOrDefault(candidate => candidate.Id == modId);
         return Task.FromResult(mod?.Versions ?? []);
     }
@@ -154,7 +187,12 @@ public sealed class FakeForgeClient : IForgeClient
 
     public Task<IReadOnlyList<ForgeAddonVersion>> GetAddonVersionsAsync(int addonId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IReadOnlyList<ForgeAddonVersion>>([]);
+        if (Unreachable)
+        {
+            throw new ForgeUnavailableException("the fake Forge is unreachable");
+        }
+
+        return Task.FromResult<IReadOnlyList<ForgeAddonVersion>>(AddonVersions.TryGetValue(addonId, out var list) ? list : []);
     }
 
     public Task<IReadOnlyList<ForgeSptVersion>> GetSptVersionsAsync(int perPage = 50, CancellationToken cancellationToken = default)
