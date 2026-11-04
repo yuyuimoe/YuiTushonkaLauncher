@@ -109,16 +109,11 @@ public sealed class DeltaSetReader(IPatchEngine engine, ILogger<DeltaSetReader> 
     }
 
     /// <summary>
-    /// Maps a delta's game-relative path onto the instance layout: the game half lives under
-    /// <c>gamefiles/</c>, the SPT runtime under <c>spt/</c>.
+    /// A delta is rooted at the game root, which is also the instance root: the path is already correct and
+    /// must not be re-prefixed.
     /// </summary>
     private static string ResolveTarget(string gameRelative)
     {
-        var runtimeRooted =
-            gameRelative.StartsWith("SPT_Runtime/", StringComparison.Ordinal)
-            || gameRelative.StartsWith("SPT/", StringComparison.Ordinal)
-            || gameRelative.StartsWith("BepInEx/", StringComparison.Ordinal);
-
-        return (runtimeRooted ? "spt/" : "gamefiles/") + gameRelative;
+        return gameRelative.Replace('\\', '/').TrimStart('/');
     }
 }
