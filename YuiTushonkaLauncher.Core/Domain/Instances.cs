@@ -27,6 +27,15 @@ public sealed class InstalledMod
     /// <summary>Blocks automatic updates when true.</summary>
     public bool IsPinned { get; set; }
 
+    /// <summary>GUID of the mod this row is an addon of, or <c>null</c> for a mod.</summary>
+    public string? ParentModGuid { get; set; }
+
+    /// <summary>True when this row is an addon attached to <see cref="ParentModGuid" />.</summary>
+    public bool IsAddon
+    {
+        get { return ParentModGuid is not null; }
+    }
+
     public ModRecognition Recognition { get; set; }
 
     /// <summary>Where the mod came from: a Forge download, a local archive, or an adopted install.</summary>
