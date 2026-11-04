@@ -31,3 +31,32 @@ New page in the manager window, **separate from mods**:
 * Addons are listed only under their parent, the requirement colour reflects reality, and an addon cannot be installed
   without its parent.
 * Release build warning-free, CSharpier clean, tests green.
+
+## What was built
+
+* **Browsing moved out of the rail.** The rail is now Mods, Addons, Server, Logs, Settings — everything that belongs to
+  the open instance. The catalogue is a window (`ForgeWindow`), opened by "Browse & install mods" on the mods page and
+  by "Install addons" on the addons page.
+* **Addons page**: the instance's `InstalledMod` rows that carry a `ParentModGuid`, grouped by parent and showing the
+  parent's name and version. Its own empty state, because "no addons" is the normal state of a fresh instance.
+* **Addon mode in the browser**: choose a parent from the results ("Add-ons for this mod"), which lists that parent's
+  addons with their requirement in green or red, and an install button that is off unless the parent is installed and
+  the addon's `mod_version_constraint` admits the parent's version.
+* Installing an addon goes through `IAddonService`, which owns the parent check and records the files under the parent.
+* Tests: seven, covering grouping, the empty state, both window entry points, a missing parent, an installed parent and
+  the refusal that must not call the service.
+
+## Verified against the live API
+
+* `GET /addons` lists them (`total 140`) and **`filter[mod_id]` works** — an earlier local filter was wrong twice over:
+  the server supports it, and filtering a 25-item page locally silently hid most addons.
+* `include=versions` makes each addon carry its versions (`mod_version_constraint` included), so listing addons costs
+  one request, not one per addon. Measured: parent mod 1619 has one addon, `Mip's Preset 0.1.0`, which needs mod `4.2.2`.
+* The addons endpoint's valid filters are `id, name, slug, teaser, mod_id, contains_ads, is_detached,
+  created_between, updated_between, published_between`.
+
+## Still open
+
+* An addon's own versions are not filtered by SPT: an addon constrains its *mod's* version, not the SPT release, so the
+  parent's installed version is the only thing checked.
+* Uninstalling an addon from the page is not wired to a button yet; the page lists, it does not remove.

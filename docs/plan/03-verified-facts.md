@@ -495,3 +495,9 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   (`0.16.9.40743` for 4.1.6, `0.16.9.40087` for 4.0.13). No external SPT-to-Tarkov table is needed: the install says it.
 * `SPT.Server.deps.json` → `libraries` keys (`SPT.Server/4.1.6-RELEASE+…`) carry the SPT version.
 * The game build itself is the PE `FileVersion` of `EscapeFromTarkov.exe`.
+## Addons (measured 2026-11-04)
+
+* `GET /addons` returns 140 items in total; valid filters are `id, name, slug, teaser, mod_id, contains_ads,
+  is_detached, created_between, updated_between, published_between`. `filter[mod_id]` does narrow to one parent.
+* `include=versions` puts `versions[]` on each addon, each with `mod_version_constraint` (a mod version, not an SPT
+  version), `link`, `content_length` and `downloads`.

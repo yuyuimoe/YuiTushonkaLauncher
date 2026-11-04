@@ -155,3 +155,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   updated, name), mod thumbnails with a disk cache, and a sidebar with the mod's details, its description, source-code
   and VirusTotal links, and tabs for dependencies and dependents with back/forward history. Only versions the active
   instance's SPT release accepts can be installed, and a mod with none says which release it was looking for.
+### Changed
+
+- **The rail is about the instance again.** Mods, Addons, Server, Logs and Settings stay in the manager window;
+  browsing the catalogue is a window of its own, opened by "Browse & install mods".
+
+### Added
+
+- **Addons page and addon mode:** installed addons are grouped under the mod they extend, and "Install addons" opens
+  the browser to pick a parent first. The requirement is green when the parent is installed and red when it is not, and
+  an addon whose `mod_version_constraint` does not fit the installed parent cannot be installed.
