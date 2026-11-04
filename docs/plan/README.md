@@ -23,8 +23,11 @@ for what has to exist when the branch merges.
 | 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☑ done |
 | 11 | [phase-11-launch-logs](phase-11-launch-logs.md) | ☑ done |
 | 12 | [phase-12-ui](phase-12-ui.md) | ☑ done |
-| 13 | [phase-13-qa](phase-13-qa.md) | ☐ next |
-| 14 | [phase-14-packaging](phase-14-packaging.md) | ☐ |
+| 13 | [phase-13-qa](phase-13-qa.md) | ☑ done |
+| 14 | [phase-14-packaging](phase-14-packaging.md) | ☑ done |
+| 15 | [phase-15-instances-home](phase-15-instances-home.md) | → in progress |
+| 16 | [phase-16-forge-browser](phase-16-forge-browser.md) | ☐ |
+| 17 | [phase-17-mods-addons](phase-17-mods-addons.md) | ☐ |
 
 Supporting documents:
 
