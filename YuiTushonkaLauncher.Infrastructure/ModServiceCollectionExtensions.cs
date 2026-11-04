@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using YuiTushonkaLauncher.Core.Mods;
+using YuiTushonkaLauncher.Core.Packs;
 using YuiTushonkaLauncher.Infrastructure.Mods;
+using YuiTushonkaLauncher.Infrastructure.Packs;
 
 namespace YuiTushonkaLauncher.Infrastructure;
 
@@ -18,6 +20,8 @@ public static class ModServiceCollectionExtensions
         services.AddSingleton<IDependencyResolver, DependencyResolver>();
         services.AddSingleton<IAddonService, AddonService>();
         services.AddSingleton<IModUpdateService, ModUpdateService>();
+        services.AddSingleton<PackReader>();
+        services.AddSingleton<IPackService, PackService>();
 
         return services;
     }
