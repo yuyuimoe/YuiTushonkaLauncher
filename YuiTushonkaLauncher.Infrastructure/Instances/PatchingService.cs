@@ -30,6 +30,7 @@ public sealed class PatchingService(
     PatchPlanner planner,
     BackupScanner backupScanner,
     ILinkAwareFileWriter fileWriter,
+    Core.Launch.IInstanceBusyGuard busy,
     ILogger<PatchingService> logger
 ) : IPatchService
 {
@@ -57,6 +58,8 @@ public sealed class PatchingService(
         CancellationToken cancellationToken = default
     )
     {
+        await busy.EnsureIdleAsync(instanceId, "Patching", cancellationToken);
+
         var instance = await FindAsync(instanceId, cancellationToken);
         var read = ReadDeltas(instance);
 
@@ -91,6 +94,8 @@ public sealed class PatchingService(
         CancellationToken cancellationToken = default
     )
     {
+        await busy.EnsureIdleAsync(instanceId, "Restoring", cancellationToken);
+
         var instance = await FindAsync(instanceId, cancellationToken);
         var pairs = backupScanner.Discover(instance.Path);
         var results = new List<PatchFileResult>(pairs.Count);

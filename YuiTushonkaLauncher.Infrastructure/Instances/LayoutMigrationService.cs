@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Files;
 using YuiTushonkaLauncher.Core.Instances;
-using YuiTushonkaLauncher.Core.Server;
 using YuiTushonkaLauncher.Infrastructure.Persistence;
 
 namespace YuiTushonkaLauncher.Infrastructure.Instances;
@@ -20,7 +19,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Instances;
 public sealed class LayoutMigrationService(
     IUnitOfWork unitOfWork,
     IFileLinkService fileLinks,
-    ISptServerSupervisor supervisor,
+    Core.Launch.IInstanceBusyGuard busy,
     ILogger<LayoutMigrationService> logger
 ) : ILayoutMigrationService
 {
@@ -54,7 +53,14 @@ public sealed class LayoutMigrationService(
     public async Task<LayoutMigrationPlan> PlanAsync(Guid instanceId, CancellationToken cancellationToken = default)
     {
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
-        return Plan(instance, await LoadStoredPathsAsync(instanceId, cancellationToken));
+        var plan = Plan(instance, await LoadStoredPathsAsync(instanceId, cancellationToken));
+
+        if (plan.CanMigrate && (await busy.FindActivityAsync(instanceId, cancellationToken)).FirstOrDefault() is { } activity)
+        {
+            return plan with { Issues = [.. plan.Issues, $"'{activity}' is running; stop it before migrating the layout."] };
+        }
+
+        return plan;
     }
 
     /// <inheritdoc />
@@ -63,6 +69,7 @@ public sealed class LayoutMigrationService(
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
         var storedPaths = await LoadStoredPathsAsync(instanceId, cancellationToken);
         var plan = Plan(instance, storedPaths);
+        await busy.EnsureIdleAsync(instanceId, "Migrating the layout", cancellationToken);
 
         if (plan.IsMigrated)
         {
@@ -153,11 +160,6 @@ public sealed class LayoutMigrationService(
                 InstancePath = instance.Path,
                 Shape = InstallShape.Merged,
             };
-        }
-
-        if (supervisor.GetStatus(instance.Id).State is ServerState.Starting or ServerState.Running or ServerState.Stopping)
-        {
-            issues.Add($"The server of '{instance.Name}' is running; stop it before migrating the layout.");
         }
 
         var entries = new List<LayoutMigrationEntry>();

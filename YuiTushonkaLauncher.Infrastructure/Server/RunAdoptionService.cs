@@ -11,6 +11,7 @@ public sealed class RunAdoptionService(
     IInstanceRunStore store,
     IProcessInspector inspector,
     IProcessInspector launchers,
+    IScopeService scopes,
     ILogger<RunAdoptionService> logger
 ) : IRunAdoptionService
 {
@@ -64,7 +65,7 @@ public sealed class RunAdoptionService(
                 continue;
             }
 
-            if (await inspector.StopAsync(member.Record.ProcessId, gracePeriod ?? DefaultGrace, cancellationToken))
+            if (await StopMemberAsync(member.Record, gracePeriod ?? DefaultGrace, cancellationToken))
             {
                 stopped++;
             }
@@ -83,6 +84,25 @@ public sealed class RunAdoptionService(
         return stopped;
     }
 
+    /// <summary>
+    /// Stops a member the way it was detached: a scope by its unit, a session by its process group, anything else by
+    /// pid. A wrapper that forked and exited would make a pid-only stop leave the game running.
+    /// </summary>
+    private async Task<bool> StopMemberAsync(RunProcess record, TimeSpan grace, CancellationToken cancellationToken)
+    {
+        if (record.Scope is { Length: > 0 } unit && scopes.IsActive(unit))
+        {
+            return await scopes.StopAsync(unit, grace, cancellationToken);
+        }
+
+        if (record.Mechanism is RunMechanism.Setsid or RunMechanism.SystemdScope && inspector.IsGroupAlive(record.ProcessId))
+        {
+            return await inspector.StopGroupAsync(record.ProcessId, grace, cancellationToken);
+        }
+
+        return await inspector.StopAsync(record.ProcessId, grace, cancellationToken);
+    }
+
     private AdoptedRun Adopt(InstanceRun run, bool leftover)
     {
         return new AdoptedRun(run, Check(run.Server), Check(run.Game)) { IsLeftover = leftover };
@@ -93,6 +113,17 @@ public sealed class RunAdoptionService(
         if (record is null)
         {
             return null;
+        }
+
+        // The scope is the durable identity: the recorded pid can be a wrapper that forked the real program and left.
+        if (record.Scope is { Length: > 0 } unit && scopes.IsActive(unit))
+        {
+            return new AdoptedProcess(record, AdoptedProcessState.Running);
+        }
+
+        if (record.Mechanism is RunMechanism.Setsid or RunMechanism.SystemdScope && inspector.IsGroupAlive(record.ProcessId))
+        {
+            return new AdoptedProcess(record, AdoptedProcessState.Running);
         }
 
         var identity = inspector.Find(record.ProcessId);

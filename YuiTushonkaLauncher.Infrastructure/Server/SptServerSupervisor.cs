@@ -248,25 +248,20 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
 
     public void Dispose()
     {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // Nothing is stopped here on purpose ([D22]): the server is detached, so closing the launcher must leave it
+        // running (the user is told by the close dialog, and --stale finds it if the launcher dies). The entry only
+        // releases what it holds in memory.
+        foreach (var entry in _entries.Values)
+        {
+            entry.Cancellation?.Dispose();
+            entry.Gate.Dispose();
+        }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        // Closing the launcher stops the servers it started, gracefully and in parallel.
-        await Task.WhenAll(_entries.Keys.Select(id => StopQuietlyAsync(id)));
-    }
-
-    private async Task StopQuietlyAsync(Guid instanceId)
-    {
-        try
-        {
-            await StopAsync(instanceId, TimeSpan.FromSeconds(5));
-        }
-        catch (Exception exception) when (exception is OperationCanceledException or InvalidOperationException)
-        {
-            _logger.LogWarning(exception, "Stopping the server of instance {Instance} on shutdown failed", instanceId);
-        }
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 
     private async Task<ServerStatus> StartCoreAsync(
@@ -487,7 +482,8 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
             problems.Add(
                 Error(
                     ServerProblemCode.PortBusy,
-                    $"Port {port} is already in use by another program. Stop it, or give this instance another port (next free: {await SuggestAsync(port, cancellationToken)})."
+                    $"Port {port} is already in use by another program. Stop it, give this instance another port (next free: {await SuggestAsync(port, cancellationToken)}), "
+                        + "or run --stale to check whether a server of a previous session is still running."
                 )
             );
             return;
@@ -572,7 +568,8 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
                         child.StartedAt,
                         plan.Location.ExecutablePath ?? string.Empty,
                         _spawner.Mechanism,
-                        plan.Location.Endpoint.Port
+                        plan.Location.Endpoint.Port,
+                        child.Scope
                     )
                 )
             );

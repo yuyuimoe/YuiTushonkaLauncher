@@ -49,4 +49,10 @@ public interface IServerProfileService
 
     /// <summary>The profile this instance used last, if it still exists on the server.</summary>
     Task<SptProfileSummary?> GetLastUsedAsync(Guid instanceId, CancellationToken cancellationToken = default);
+
+    /// <summary>The profile to use without asking, for the server this instance points at; <c>null</c> means ask.</summary>
+    Task<string?> GetRememberedUsernameAsync(Guid instanceId, CancellationToken cancellationToken = default);
+
+    /// <summary>Stores "always use this profile on this server", or clears it when <paramref name="username" /> is null.</summary>
+    Task RememberAsync(Guid instanceId, string? username, string? profileId, CancellationToken cancellationToken = default);
 }

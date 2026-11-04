@@ -22,7 +22,18 @@ public enum RunMechanism
 /// <param name="ExecutablePath">The program that was started.</param>
 /// <param name="Mechanism">How it was detached, for a UI that has to explain what will outlive what.</param>
 /// <param name="Port">The port the server listens on, when it is a server.</param>
-public sealed record RunProcess(int ProcessId, DateTimeOffset StartedAt, string ExecutablePath, RunMechanism Mechanism, int? Port = null)
+/// <param name="Scope">
+/// The systemd unit the process runs in, when it was detached with a scope. It is what stays identifiable after the
+/// program forks: the pid of a launcher, a Proton wrapper or a shell is not the pid of the game.
+/// </param>
+public sealed record RunProcess(
+    int ProcessId,
+    DateTimeOffset StartedAt,
+    string ExecutablePath,
+    RunMechanism Mechanism,
+    int? Port = null,
+    string? Scope = null
+)
 {
     /// <summary>True when this process is not expected to die with the launcher.</summary>
     public bool IsDetached

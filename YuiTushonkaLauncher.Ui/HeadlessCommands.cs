@@ -78,6 +78,7 @@ internal static partial class HeadlessCommands
         var migrateLayoutIndex = IndexOf(args, MigrateLayout);
         var runtimeRequested = RuntimeCommandRequested(args);
         var serverRequested = ServerCommandRequested(args);
+        var launchRequested = LaunchCommandRequested(args);
 
         if (
             !migrateOnly
@@ -93,6 +94,7 @@ internal static partial class HeadlessCommands
             && importIndex < 0
             && !runtimeRequested
             && !serverRequested
+            && !launchRequested
         )
         {
             return false;
@@ -162,6 +164,11 @@ internal static partial class HeadlessCommands
             if (serverRequested)
             {
                 RunServerCommands(services, args);
+            }
+
+            if (launchRequested)
+            {
+                RunLaunchCommands(services, args);
             }
 
             Log.Information("Headless command finished; exiting");

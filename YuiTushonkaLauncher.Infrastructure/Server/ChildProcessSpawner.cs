@@ -104,10 +104,19 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
         var fileName = command.FileName;
         var arguments = command.Arguments.ToList();
 
+        // A named unit is what makes the process findable after it forks: the pid of a wrapper is not the pid of the game.
+        var unit = Strategy.Mechanism == RunMechanism.SystemdScope ? $"ytt-{Guid.NewGuid():n}" : null;
+
         if (Strategy.Program is { } wrapper)
         {
             arguments.Insert(0, fileName);
             arguments.InsertRange(0, Strategy.Arguments);
+
+            if (unit is not null)
+            {
+                arguments.InsertRange(0, [$"--unit={unit}"]);
+            }
+
             fileName = wrapper;
         }
 
@@ -146,7 +155,7 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
             AssignToJob(process);
         }
 
-        return new ManagedChild(process, request.OnOutput) { Mechanism = Strategy.Mechanism };
+        return new ManagedChild(process, request.OnOutput) { Mechanism = Strategy.Mechanism, Scope = unit };
     }
 
     [SupportedOSPlatform("windows")]
@@ -175,6 +184,9 @@ internal sealed class ManagedChild : IChildProcess
 {
     /// <summary>How this child was detached; the store records it so the UI can explain what outlives what.</summary>
     public RunMechanism Mechanism { get; init; }
+
+    /// <summary>The systemd unit, when the scope mechanism was used.</summary>
+    public string? Scope { get; init; }
 
     private readonly Process _process;
 

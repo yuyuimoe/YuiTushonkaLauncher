@@ -58,6 +58,59 @@ public sealed class ProcessInspector : IProcessInspector
     }
 
     /// <inheritdoc />
+    public bool IsGroupAlive(int processGroupId)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            // A Windows job is identified by its handle, which the launcher no longer owns after a detach.
+            return IsAlive(processGroupId);
+        }
+
+        return Interop.SignalGroup(processGroupId, 0);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> StopGroupAsync(int processGroupId, TimeSpan grace, CancellationToken cancellationToken = default)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return await StopAsync(processGroupId, grace, cancellationToken);
+        }
+
+        if (!IsGroupAlive(processGroupId))
+        {
+            return true;
+        }
+
+        Interop.SignalGroup(processGroupId, 15);
+        var deadline = Stopwatch.StartNew();
+
+        while (deadline.Elapsed < grace)
+        {
+            if (!IsGroupAlive(processGroupId))
+            {
+                return true;
+            }
+
+            await Task.Delay(100, cancellationToken);
+        }
+
+        Interop.SignalGroup(processGroupId, 9);
+
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            if (!IsGroupAlive(processGroupId))
+            {
+                return true;
+            }
+
+            await Task.Delay(100, cancellationToken);
+        }
+
+        return !IsGroupAlive(processGroupId);
+    }
+
+    /// <inheritdoc />
     public async Task<bool> StopAsync(int processId, TimeSpan grace, CancellationToken cancellationToken = default)
     {
         if (!IsAlive(processId))

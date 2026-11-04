@@ -17,6 +17,7 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<IPortProbe, PortProbe>();
         services.AddSingleton<IDotNetRuntimeProbe, DotNetRuntimeProbe>();
         services.AddSingleton<IProcessInspector, ProcessInspector>();
+        services.AddSingleton<IScopeService, SystemdScopeService>();
         services.AddSingleton<ISptServerClientFactory, SptServerClientFactory>();
         services.AddSingleton<IInstanceRunStore, InstanceRunStore>();
         services.AddSingleton<IRunAdoptionService, RunAdoptionService>();

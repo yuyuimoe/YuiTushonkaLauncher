@@ -14,6 +14,12 @@ internal static class Interop
         }
     }
 
+    /// <summary>Sends a signal to a whole process group (a negative pid), which is how a detached tree is addressed.</summary>
+    public static bool SignalGroup(int processGroupId, int signal)
+    {
+        return !OperatingSystem.IsWindows() && kill(-processGroupId, signal) == 0;
+    }
+
     [DllImport("libc", SetLastError = true)]
     private static extern int kill(int pid, int sig);
 }
