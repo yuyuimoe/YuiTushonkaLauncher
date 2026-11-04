@@ -21,7 +21,6 @@ public sealed class ShellNavigationTests
 {
     private static readonly Dictionary<LauncherSection, Type> Expected = new()
     {
-        [LauncherSection.Instances] = typeof(InstancesPageViewModel),
         [LauncherSection.Forge] = typeof(ForgePageViewModel),
         [LauncherSection.Mods] = typeof(ModsPageViewModel),
         [LauncherSection.Server] = typeof(ServerPageViewModel),
@@ -112,7 +111,7 @@ public sealed class ShellNavigationTests
         launch.CanPressLaunch.Should().BeFalse();
 
         await world.SeedInstanceAsync("playable");
-        world.Shell.Navigate(LauncherSection.Instances);
+        world.Shell.Navigate(LauncherSection.Mods);
         await world.Shell.LoadAsync(default);
 
         launch.HasInstance.Should().BeTrue();

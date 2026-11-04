@@ -4,7 +4,7 @@
   xmlns:views="using:YuiTushonkaLauncher.ViewModels"
   x:Class="YuiTushonkaLauncher.Views.InstanceDialog"
   x:DataType="views:CreateInstanceDialogViewModel"
-  Width="620"
+  Width="680"
   SizeToContent="Height"
   CanResize="False"
   WindowStartupLocation="CenterOwner"
@@ -14,7 +14,7 @@
   <StackPanel Margin="20" Spacing="12">
     <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
 
-    <Grid ColumnDefinitions="140,*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8">
+    <Grid ColumnDefinitions="140,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8">
       <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding NameHint}" Classes="caption" VerticalAlignment="Center" />
       <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name}" />
 
@@ -22,14 +22,73 @@
       <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SourcePath}" />
       <Button Grid.Row="1" Grid.Column="2" Content="{Binding BrowseLabel}" Command="{Binding BrowseSourceCommand}" />
 
-      <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding DestinationLabel}" VerticalAlignment="Center" />
-      <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DestinationRoot}" />
-      <Button Grid.Row="2" Grid.Column="2" Content="{Binding BrowseLabel}" Command="{Binding BrowseDestinationCommand}" />
+      <!-- Creating writes into a new folder; adopting keeps the install where it is. -->
+      <TextBlock
+        Grid.Row="2"
+        Grid.Column="0"
+        Text="{Binding DestinationLabel}"
+        VerticalAlignment="Center"
+        IsVisible="{Binding ShowsDestination}"
+      />
+      <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DestinationRoot}" IsVisible="{Binding ShowsDestination}" />
+      <Button
+        Grid.Row="2"
+        Grid.Column="2"
+        Content="{Binding BrowseLabel}"
+        Command="{Binding BrowseDestinationCommand}"
+        IsVisible="{Binding ShowsDestination}"
+      />
+
+      <TextBlock
+        Grid.Row="3"
+        Grid.Column="0"
+        Text="{Binding ReferenceLabel}"
+        VerticalAlignment="Center"
+        IsVisible="{Binding ShowsAdoptOptions}"
+      />
+      <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ReferencePath}" IsVisible="{Binding ShowsAdoptOptions}" />
+      <Button
+        Grid.Row="3"
+        Grid.Column="2"
+        Content="{Binding BrowseLabel}"
+        Command="{Binding BrowseReferenceCommand}"
+        IsVisible="{Binding ShowsAdoptOptions}"
+      />
+
+      <TextBlock
+        Grid.Row="4"
+        Grid.Column="0"
+        Text="{Binding BaseRootLabel}"
+        VerticalAlignment="Center"
+        IsVisible="{Binding ShowsAdoptOptions}"
+      />
+      <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BaseRoot}" IsVisible="{Binding ShowsAdoptOptions}" />
+      <Button
+        Grid.Row="4"
+        Grid.Column="2"
+        Content="{Binding BrowseLabel}"
+        Command="{Binding BrowseBaseRootCommand}"
+        IsVisible="{Binding ShowsAdoptOptions}"
+      />
     </Grid>
 
+    <!-- What was detected: the SPT release, the build it requires, the build that is there. -->
+    <Border Padding="10" CornerRadius="6" Background="{DynamicResource YttAccentSoftBrush}" IsVisible="{Binding IsDetectionReady}">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding DetectionText}" TextWrapping="Wrap" />
+        <TextBlock
+          Text="{Binding $parent[Window].((views:CreateInstanceDialogViewModel)DataContext).Error}"
+          Classes="error"
+          IsVisible="{Binding HasVersionMismatch}"
+          TextWrapping="Wrap"
+        />
+      </StackPanel>
+    </Border>
+
     <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Content="{Binding DetectLabel}" Command="{Binding DetectCommand}" />
       <Button Content="{Binding PlanLabel}" Command="{Binding PlanCommand}" />
-      <TextBlock Text="{Binding Summary}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Summary}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420" />
     </StackPanel>
 
     <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

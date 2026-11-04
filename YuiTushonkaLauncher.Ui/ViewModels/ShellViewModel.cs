@@ -58,7 +58,6 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
 
         NavItems =
         [
-            new NavItemViewModel(localizer, LauncherSection.Instances, "▤", "nav.instances"),
             new NavItemViewModel(localizer, LauncherSection.Forge, "⌕", "nav.forge"),
             new NavItemViewModel(localizer, LauncherSection.Mods, "▦", "nav.mods"),
             new NavItemViewModel(localizer, LauncherSection.Server, "◉", "nav.server"),
@@ -70,11 +69,12 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
 
         instances.Changed += (_, _) =>
         {
+            OnPropertyChanged(nameof(ManagerTitle));
             LaunchPanel.Refresh();
             StatusBar.Refresh();
         };
 
-        Navigate(LauncherSection.Instances);
+        Navigate(LauncherSection.Mods);
     }
 
     public IInstanceContext Instances { get; }
@@ -108,6 +108,16 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         get { return Text("app.title"); }
     }
 
+    /// <summary>Title of the manager window: the instance it manages, so two open windows can be told apart.</summary>
+    public string ManagerTitle
+    {
+        get
+        {
+            var active = Instances.Active;
+            return active is null ? Text("app.title") : $"{Text("app.title")} — {active.Name}";
+        }
+    }
+
     /// <summary>Shows a section and lets it load, which is how a page refreshes when it becomes visible.</summary>
     public void Navigate(LauncherSection section)
     {
@@ -129,7 +139,7 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
     /// <summary>True when this instance's server or game is still running, which is what the close question asks.</summary>
     public bool HasRunningProcesses()
     {
-        return LaunchPanel.Session.State is LaunchButtonState.Running or LaunchButtonState.Stopping;
+        return LaunchPanel.HasRunningProcesses();
     }
 
     /// <summary>The rail's command: the same switch as <see cref="Navigate" />, reachable from XAML.</summary>

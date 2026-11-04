@@ -62,14 +62,14 @@ public sealed class LocalizationTests
     {
         await using var world = await UiWorld.CreateAsync("pt-BR");
 
-        world.Shell.NavItems.Select(item => item.Label).Should().Contain("Instâncias");
+        world.Shell.NavItems.Select(item => item.Label).Should().Contain("Configurações");
         world.Shell.InstancesPage.Title.Should().Be("Instâncias");
         world.Shell.StatusBar.InstanceText.Should().Be("Nenhuma instância selecionada");
         world.Shell.LaunchPanel.LaunchLabel.Should().Be("Iniciar");
 
         world.Localizer.SetLanguage("en");
 
-        world.Shell.NavItems.Select(item => item.Label).Should().Contain("Instances");
+        world.Shell.NavItems.Select(item => item.Label).Should().Contain("Settings");
         world.Shell.InstancesPage.Title.Should().Be("Instances");
         world.Localizer.MissingKeys.Should().BeEmpty("a repaint must not look up a key that does not exist");
     }

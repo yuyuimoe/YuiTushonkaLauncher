@@ -489,3 +489,9 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   what keeps a keystroke from rebuilding the page.
 - `dotnet test` with a filter that selects only headless tests produces no summary in this harness (the host
   ends without printing), so UI mutation runs use the full suite, one mutant at a time.
+## SPT install self-description (measured on 4.1.6 and 4.0.13)
+
+* `SPT_Runtime/SPT_Data/configs/core.json` → `compatibleTarkovVersion` is the exact game build the release demands
+  (`0.16.9.40743` for 4.1.6, `0.16.9.40087` for 4.0.13). No external SPT-to-Tarkov table is needed: the install says it.
+* `SPT.Server.deps.json` → `libraries` keys (`SPT.Server/4.1.6-RELEASE+…`) carry the SPT version.
+* The game build itself is the PE `FileVersion` of `EscapeFromTarkov.exe`.

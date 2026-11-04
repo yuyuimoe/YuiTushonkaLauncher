@@ -58,6 +58,12 @@ public partial class LaunchPanelViewModel : ViewModelBase
     /// <summary>The state machine the button renders.</summary>
     public LaunchSession Session { get; }
 
+    /// <summary>True while the pair is running or on its way somewhere, which is what the close question asks.</summary>
+    public bool HasRunningProcesses()
+    {
+        return Session.State is LaunchButtonState.Running or LaunchButtonState.Stopping;
+    }
+
     [ObservableProperty]
     public partial string ProfileUsername { get; set; } = string.Empty;
 
@@ -278,4 +284,7 @@ public partial class LaunchPanelViewModel : ViewModelBase
 public interface IWindowController
 {
     void Apply(GameStartWindowAction action);
+
+    /// <summary>Shows the instance manager window on a section, creating it the first time.</summary>
+    void OpenManager(Navigation.LauncherSection section);
 }

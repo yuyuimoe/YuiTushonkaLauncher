@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Instances;
@@ -42,6 +43,9 @@ public sealed class LaunchService(
     /// <inheritdoc />
     public async Task<LaunchPreflight> PlanAsync(LaunchRequest request, CancellationToken cancellationToken = default)
     {
+        var preflight = Stopwatch.StartNew();
+        logger.LogDebug("Pre-flight for {InstanceId}: starting", request.InstanceId);
+
         var instance = (await instances.ListAsync(cancellationToken)).FirstOrDefault(row => row.Id == request.InstanceId);
 
         if (instance is null)
@@ -76,7 +80,21 @@ public sealed class LaunchService(
             );
         }
 
+        logger.LogDebug(
+            "Pre-flight for {Instance}: layout {Shape}, {Missing} missing files, {Elapsed} ms",
+            instance.Name,
+            shape,
+            missing.Count,
+            preflight.ElapsedMilliseconds
+        );
+
         var username = await ResolveUsernameAsync(instance, request, cancellationToken);
+        logger.LogDebug(
+            "Pre-flight for {Instance}: profile {Username} after {Elapsed} ms",
+            instance.Name,
+            username ?? "none",
+            preflight.ElapsedMilliseconds
+        );
 
         if (username is null)
         {
@@ -90,7 +108,16 @@ public sealed class LaunchService(
 
         var patchAlreadyApplied = instance.Patch.IsPatched;
         var program = request.GameProgramOverride ?? Path.Combine(instance.Path, InstancePaths.GameExecutable);
+        // The runtime probe is the step that can be slow on a real machine: it looks for Proton and for the game's
+        // platform layer, and a proton prefix on a slow disk is not instant. It says so, so a hang has a last line.
+        logger.LogDebug("Pre-flight for {Instance}: resolving the runtime profile", instance.Name);
         var runtimeProfile = await runtimeProfiles.ResolveForInstanceAsync(instance.Id, cancellationToken);
+        logger.LogDebug(
+            "Pre-flight for {Instance}: runtime profile {Profile} after {Elapsed} ms",
+            instance.Name,
+            runtimeProfile?.Id.ToString() ?? "default",
+            preflight.ElapsedMilliseconds
+        );
         var launch = runtimeLauncher.Plan(
             instance,
             runtimeProfile,
@@ -110,6 +137,7 @@ public sealed class LaunchService(
         }
 
         var status = supervisor.GetStatus(instance.Id);
+        logger.LogDebug("Pre-flight for {Instance}: done in {Elapsed} ms", instance.Name, preflight.ElapsedMilliseconds);
 
         return Plan(
             request,
@@ -331,6 +359,7 @@ public sealed class LaunchService(
         arguments.AddRange(request.ExtraGameArguments);
 
         var program = request.GameProgramOverride ?? Path.Combine(instance.Path, InstancePaths.GameExecutable);
+        logger.LogDebug("Starting the game for {Instance}: resolving the runtime profile", instance.Name);
         var runtimeProfile = await runtimeProfiles.ResolveForInstanceAsync(instance.Id, cancellationToken);
         var launch = runtimeLauncher.Plan(
             instance,

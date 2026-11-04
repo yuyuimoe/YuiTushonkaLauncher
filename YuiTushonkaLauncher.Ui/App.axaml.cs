@@ -20,7 +20,11 @@ namespace YuiTushonkaLauncher;
 public partial class App : Application
 {
     private ServiceProvider? _services;
+    private HomeViewModel? _home;
+
     private ShellViewModel? _shell;
+
+    private InstanceManagerWindow? _manager;
 
     public override void Initialize()
     {
@@ -59,11 +63,16 @@ public partial class App : Application
         _services.GetRequiredService<IThemeController>().Apply(settings.Current.Theme);
 
         Log.Information("Startup: building the shell");
-        _shell = _services.GetRequiredService<ShellViewModel>();
+        _home = _services.GetRequiredService<HomeViewModel>();
         Log.Information("Startup: creating the window");
-        var window = new MainWindow { DataContext = _shell };
+        var window = new MainWindow { DataContext = _home };
         _services.GetRequiredService<DialogService>().Attach(window);
-        _services.GetRequiredService<WindowController>().Attach(window);
+
+        // The manager window is built the first time it is asked for, so a launcher that only lists instances never
+        // pays for the mods, server and log pages.
+        var windows = _services.GetRequiredService<WindowController>();
+        windows.Attach(window);
+        windows.AttachManager(OpenManager);
 
         // A detached pair survives the launcher, so closing with one running asks first (D22).
         window.Closing += OnClosing;
@@ -71,14 +80,33 @@ public partial class App : Application
         Log.Information("Startup: window ready");
         desktop.Exit += OnDesktopExit;
 
-        _ = LoadAsync(_shell);
+        _ = LoadAsync(_home);
     }
 
-    private static async Task LoadAsync(ShellViewModel shell)
+    /// <summary>Creates the manager window on first use and navigates it to the section that asked for it.</summary>
+    private Window? OpenManager(Navigation.LauncherSection section)
+    {
+        if (_services is null)
+        {
+            return null;
+        }
+
+        if (_manager is null)
+        {
+            Log.Information("Startup: building the instance manager");
+            _shell = _services.GetRequiredService<ShellViewModel>();
+            _manager = new InstanceManagerWindow { DataContext = _shell };
+        }
+
+        _shell?.Navigate(section);
+        return _manager;
+    }
+
+    private static async Task LoadAsync(HomeViewModel home)
     {
         try
         {
-            await shell.LoadAsync(CancellationToken.None);
+            await home.LoadAsync(CancellationToken.None);
         }
         catch (Exception exception)
         {
@@ -89,25 +117,31 @@ public partial class App : Application
 
     private void OnClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (_shell is null || _services is null)
+        if (_services is null)
         {
             return;
         }
 
         Log.Information("Startup: reading settings");
         var settings = _services.GetRequiredService<Core.Abstractions.ISettingsService>();
-        if (!settings.Current.AskBeforeStoppingProcesses || _shell.HasRunningProcesses())
+        if (!settings.Current.AskBeforeStoppingProcesses || HasRunningProcesses())
         {
             // Asking is the UI's job on the running state; without a running pair there is nothing to ask.
-            if (_shell.HasRunningProcesses())
+            if (HasRunningProcesses())
             {
                 e.Cancel = true;
-                _ = ConfirmCloseAsync(_shell);
+                _ = ConfirmCloseAsync();
             }
         }
     }
 
-    private async Task ConfirmCloseAsync(ShellViewModel shell)
+    /// <summary>True while the game, the server or a launch is in flight, whichever window painted it.</summary>
+    private bool HasRunningProcesses()
+    {
+        return _shell?.HasRunningProcesses() == true || _home?.LaunchPanel.HasRunningProcesses() == true;
+    }
+
+    private async Task ConfirmCloseAsync()
     {
         if (_services is null || ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
         {

@@ -26,6 +26,23 @@ public sealed class InstanceCardViewModel : ViewModelBase
         get { return Instance.Name; }
     }
 
+    /// <summary>The letter on the card's tile: there is no thumbnail to show, and an initial reads better than nothing.</summary>
+    public string Initial
+    {
+        get { return Instance.Name.Length > 0 ? Instance.Name[..1].ToUpperInvariant() : "?"; }
+    }
+
+    /// <summary>One line under the name: the versions, for a card that has no room for four labels.</summary>
+    public string VersionLine
+    {
+        get { return $"SPT {Instance.SptVersion} · EFT {Instance.TarkovVersion}"; }
+    }
+
+    public string ModsLine
+    {
+        get { return Localizer.Format("instances.mods", Instance.InstalledMods.Count(mod => !mod.IsAddon)); }
+    }
+
     public bool IsActive { get; }
 
     public string SptVersion

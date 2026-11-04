@@ -13,6 +13,31 @@ public sealed class WindowController : IWindowController
 {
     private Func<Window?>? _window;
 
+    private Func<Navigation.LauncherSection, Window?>? _manager;
+
+    /// <summary>Binds the manager factory: it returns the window, creating it on first use.</summary>
+    public void AttachManager(Func<Navigation.LauncherSection, Window?> manager)
+    {
+        _manager = manager;
+    }
+
+    /// <summary>Shows the manager window on a section, which is how a page-specific window is opened from the home.</summary>
+    public void OpenManager(Navigation.LauncherSection section)
+    {
+        var window = _manager?.Invoke(section);
+        if (window is null)
+        {
+            return;
+        }
+
+        if (!window.IsVisible)
+        {
+            window.Show();
+        }
+
+        window.Activate();
+    }
+
     /// <summary>Binds the controller to the shell window once it exists.</summary>
     public void Attach(Window window)
     {

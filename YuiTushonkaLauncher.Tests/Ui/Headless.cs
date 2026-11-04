@@ -116,3 +116,21 @@ public sealed class FakeDialogService : IDialogService
         return Task.CompletedTask;
     }
 }
+
+/// <summary>Records which window sections the launcher asked to open, without opening anything.</summary>
+public sealed class FakeWindowController : YuiTushonkaLauncher.ViewModels.IWindowController
+{
+    public List<string> Actions { get; } = [];
+
+    public List<YuiTushonkaLauncher.Navigation.LauncherSection> Managers { get; } = [];
+
+    public void Apply(YuiTushonkaLauncher.Core.Configuration.GameStartWindowAction action)
+    {
+        Actions.Add(action.ToString());
+    }
+
+    public void OpenManager(YuiTushonkaLauncher.Navigation.LauncherSection section)
+    {
+        Managers.Add(section);
+    }
+}

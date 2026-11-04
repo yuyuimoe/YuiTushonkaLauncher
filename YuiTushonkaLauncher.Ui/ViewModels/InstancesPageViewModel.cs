@@ -21,6 +21,8 @@ namespace YuiTushonkaLauncher.ViewModels;
 public partial class InstancesPageViewModel : PageViewModel
 {
     private readonly IInstanceService _instances;
+    private readonly IAdoptService _adopt;
+    private readonly IInstallDetector _detector;
     private readonly IInstanceContext _context;
     private readonly IDialogService _dialogs;
     private readonly INavigationService _navigation;
@@ -28,6 +30,8 @@ public partial class InstancesPageViewModel : PageViewModel
     public InstancesPageViewModel(
         ILocalizer localizer,
         IInstanceService instances,
+        IAdoptService adopt,
+        IInstallDetector detector,
         IInstanceContext context,
         IDialogService dialogs,
         INavigationService navigation
@@ -35,6 +39,8 @@ public partial class InstancesPageViewModel : PageViewModel
         : base(localizer)
     {
         _instances = instances;
+        _adopt = adopt;
+        _detector = detector;
         _context = context;
         _dialogs = dialogs;
         _navigation = navigation;
@@ -181,10 +187,18 @@ public partial class InstancesPageViewModel : PageViewModel
     private async Task CreateOrAdoptAsync(bool adopting, CancellationToken cancellationToken)
     {
         ClearMessages();
-        var dialog = new CreateInstanceDialogViewModel(Localizer, _instances, _dialogs, _context) { IsAdopting = adopting };
-        if (string.IsNullOrWhiteSpace(dialog.DestinationRoot))
+        var dialog = new CreateInstanceDialogViewModel(Localizer, _instances, _adopt, _detector, _dialogs, _context)
         {
-            dialog.DestinationRoot = _instances is null ? string.Empty : DefaultRoot();
+            IsAdopting = adopting,
+        };
+
+        if (adopting)
+        {
+            dialog.BaseRoot = DefaultRoot();
+        }
+        else if (string.IsNullOrWhiteSpace(dialog.DestinationRoot))
+        {
+            dialog.DestinationRoot = DefaultRoot();
         }
 
         var instance = await _dialogs.CreateInstanceAsync(dialog, cancellationToken);

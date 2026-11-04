@@ -44,6 +44,15 @@ public sealed class FakeBaseInstall : IDisposable
         Temp.Dispose();
     }
 
+    /// <summary>Writes raw bytes relative to the base root, for fixtures that must be binary.</summary>
+    public string WriteFileBytes(string relativePath, byte[] content)
+    {
+        var path = Path.Combine(Root, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, content);
+        return path;
+    }
+
     /// <summary>Writes or overwrites a file relative to the base root.</summary>
     public string WriteFile(string relativePath, string content = "content")
     {
@@ -77,7 +86,7 @@ public sealed class FakeBaseInstall : IDisposable
         var root = temp.Combine("base");
         var install = new FakeBaseInstall(temp, root, layout);
 
-        install.WriteFile("gamefiles/EscapeFromTarkov.exe", "exe");
+        install.WriteFileBytes("gamefiles/EscapeFromTarkov.exe", FakePe.WithVersion("0.16.9.40743"));
         install.WriteFile("gamefiles/UnityPlayer.dll", "unity");
         install.WriteFile("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll", "patched-assembly");
         install.WriteFile("gamefiles/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll.spt-bak", "original-assembly");
@@ -91,7 +100,10 @@ public sealed class FakeBaseInstall : IDisposable
         install.WriteFile("spt/BepInEx/plugins/UserMod/UserMod.dll", "user-mod");
         install.WriteFile($"{runtimeDirectory}/SPT.Server.dll", "server");
         install.WriteFile($"{runtimeDirectory}/SPT_Data/database/items.json", "{}");
-        install.WriteFile($"{runtimeDirectory}/SPT_Data/configs/core.json", "{}");
+        install.WriteFile(
+            $"{runtimeDirectory}/SPT_Data/configs/core.json",
+            """{ "projectName": "SPT", "compatibleTarkovVersion": "0.16.9.40743" }"""
+        );
         install.WriteFile($"{runtimeDirectory}/user/profiles/base.json", "{}");
         install.WriteFile(
             $"{runtimeDirectory}/SPT.Server.deps.json",

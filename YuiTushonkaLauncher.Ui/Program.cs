@@ -50,7 +50,7 @@ internal static class Program
         Paths = new AppPaths();
         LanguageOverride = ReadLanguage(args);
         Paths.EnsureCreated();
-        ConfigureLogging(Paths);
+        ConfigureLogging(Paths, ReadVerbose(args));
 
         _guard = new SingleInstanceGuard(Paths, NullLogger<SingleInstanceGuard>.Instance);
         if (_guard.TryAcquire())
@@ -111,17 +111,26 @@ internal static class Program
         return null;
     }
 
-    private static void ConfigureLogging(IAppPaths paths)
+    /// <summary>Reads <c>--verbose</c>, which copies the debug lines to the console as well as the file.</summary>
+    private static bool ReadVerbose(string[] args)
+    {
+        return args.Any(argument => argument is "--verbose" or "-v");
+    }
+
+    /// <summary>
+    /// The file always keeps Debug: a report about a launcher that sat on a step needs the line before the step, not
+    /// only the lines that were loud enough for a console. The console stays quiet unless asked.
+    /// </summary>
+    private static void ConfigureLogging(IAppPaths paths, bool verbose)
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Debug()
             .Enrich.FromLogContext()
-            .WriteTo.Console()
+            .WriteTo.Console(restrictedToMinimumLevel: verbose ? LogEventLevel.Debug : LogEventLevel.Information)
             .WriteTo.File(
                 System.IO.Path.Join(paths.LogsDirectory, "launcher-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 20,
-                restrictedToMinimumLevel: LogEventLevel.Debug,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}"
             )
             .CreateLogger();
