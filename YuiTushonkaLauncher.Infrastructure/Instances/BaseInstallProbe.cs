@@ -14,8 +14,17 @@ public sealed record BaseInstallInfo
 
     public required InstanceLayout Layout { get; init; }
 
-    /// <summary>Runtime directory relative to the root (<c>spt/SPT</c> or <c>spt/SPT_Runtime</c>).</summary>
+    /// <summary>Split (the installer's output) or merged (something SPT can run).</summary>
+    public required InstallShape Shape { get; init; }
+
+    /// <summary>Runtime directory relative to the root (<c>spt/SPT_Runtime</c> when split, <c>SPT_Runtime</c> when merged).</summary>
     public required string RuntimeDirectory { get; init; }
+
+    /// <summary>True when the folder can be run as-is, which only a merged install can.</summary>
+    public bool IsRunnable
+    {
+        get { return Shape == InstallShape.Merged; }
+    }
 
     /// <summary>SPT version read from <c>SPT.Server.deps.json</c>, when parseable.</summary>
     public SemanticVersion? SptVersion { get; init; }
@@ -52,52 +61,56 @@ public sealed partial class BaseInstallProbe(ILogger<BaseInstallProbe> logger)
             throw new InstanceValidationException([$"The base install path does not exist: {root}"]);
         }
 
-        var layout = DetectLayout(root);
+        var shape = InstallShapeOf(root, issues);
+        var layout = DetectLayout(root, shape);
         if (layout is null)
         {
             throw new InstanceValidationException([
-                $"'{root}' does not look like an SPT install: expected 'spt/SPT_Runtime' (SPT 4.1+) or 'spt/SPT' (SPT 4.0).",
+                $"'{root}' does not look like an SPT install: expected '{SptPath(shape, "SPT_Runtime")}' (SPT 4.1+) or '{SptPath(shape, "SPT")}' (SPT 4.0).",
             ]);
         }
 
-        var gameDirectory = Path.Combine(root, "gamefiles");
-        if (!Directory.Exists(gameDirectory))
+        if (shape == InstallShape.Merged)
         {
-            issues.Add($"'{gameDirectory}' is missing. Run the official SPT installer against a Tarkov installation.");
+            warnings.Add(
+                "This folder is already merged, so it is used as a source of files as it is: its mods, profiles and logs are not copied into the new instance."
+            );
         }
-        else
+
+        foreach (var entry in RequiredGameEntries)
         {
-            foreach (var entry in RequiredGameEntries)
+            var candidate = Path.Combine(root, GamePath(shape, entry));
+            if (!File.Exists(candidate) && !Directory.Exists(candidate))
             {
-                var path = Path.Combine(gameDirectory, entry);
-                if (!File.Exists(path) && !Directory.Exists(path))
-                {
-                    issues.Add($"'{entry}' is missing from 'gamefiles'.");
-                }
+                issues.Add(
+                    shape == InstallShape.Split
+                        ? $"'{entry}' is missing from 'gamefiles'."
+                        : $"'{entry}' is missing from the root of this merged install."
+                );
             }
         }
 
-        var runtimeDirectory = LinkPolicy.RuntimeDirectory(layout.Value);
-        var runtimePath = Path.Combine(root, runtimeDirectory.Replace('/', Path.DirectorySeparatorChar));
+        var runtimeDirectory = SptPath(shape, InstancePaths.RuntimeDirectory(layout.Value));
+        var runtimePath = Path.Combine(root, runtimeDirectory);
         if (!Directory.Exists(runtimePath))
         {
             issues.Add($"The SPT runtime directory '{runtimeDirectory}' is missing.");
         }
 
-        var bepinExCore = Path.Combine(root, "spt", "BepInEx", "core");
+        var bepinExCore = Path.Combine(root, SptPath(shape, "BepInEx/core"));
         if (!Directory.Exists(bepinExCore) || !Directory.EnumerateFiles(bepinExCore, "*.dll").Any())
         {
-            issues.Add("'spt/BepInEx/core' is missing or empty: the injector files were not installed.");
+            issues.Add($"'{SptPath(shape, "BepInEx/core")}' is missing or empty: the injector files were not installed.");
         }
 
-        if (!File.Exists(Path.Combine(root, "spt", "winhttp.dll")))
+        if (!File.Exists(Path.Combine(root, SptPath(shape, "winhttp.dll"))))
         {
-            warnings.Add("'spt/winhttp.dll' is missing: Unity Doorstop may not start on Windows.");
+            warnings.Add($"'{SptPath(shape, "winhttp.dll")}' is missing: Unity Doorstop may not start on Windows.");
         }
 
-        if (!File.Exists(Path.Combine(root, "spt", "doorstop_config.ini")))
+        if (!File.Exists(Path.Combine(root, SptPath(shape, "doorstop_config.ini"))))
         {
-            warnings.Add("'spt/doorstop_config.ini' is missing: BepInEx will not be injected.");
+            warnings.Add($"'{SptPath(shape, "doorstop_config.ini")}' is missing: BepInEx will not be injected.");
         }
 
         if (issues.Count > 0)
@@ -109,15 +122,17 @@ public sealed partial class BaseInstallProbe(ILogger<BaseInstallProbe> logger)
         {
             RootPath = root,
             Layout = layout.Value,
+            Shape = shape,
             RuntimeDirectory = runtimeDirectory,
             SptVersion = ReadSptVersion(runtimePath, warnings),
-            TarkovVersion = ReadTarkovVersion(Path.Combine(gameDirectory, "EscapeFromTarkov.exe")),
+            TarkovVersion = ReadTarkovVersion(Path.Combine(root, GamePath(shape, "EscapeFromTarkov.exe"))),
             Warnings = warnings,
         };
 
         logger.LogInformation(
-            "Base install {Root}: layout {Layout}, SPT {SptVersion}, Tarkov {TarkovVersion}",
+            "Base install {Root}: shape {Shape}, layout {Layout}, SPT {SptVersion}, Tarkov {TarkovVersion}",
             info.RootPath,
+            info.Shape,
             info.Layout,
             info.SptVersion?.ToString() ?? "unknown",
             info.TarkovVersion ?? "unknown"
@@ -126,15 +141,49 @@ public sealed partial class BaseInstallProbe(ILogger<BaseInstallProbe> logger)
         return info;
     }
 
-    /// <summary>Detects the layout without validating anything else.</summary>
-    public static InstanceLayout? DetectLayout(string root)
+    /// <summary>Detects the shape of a folder, or reports why it is neither.</summary>
+    private static InstallShape InstallShapeOf(string root, List<string> issues)
     {
-        if (Directory.Exists(Path.Combine(root, "spt", "SPT_Runtime")))
+        var shape = InstancePaths.Detect(root);
+
+        if (shape is not null)
+        {
+            return shape.Value;
+        }
+
+        issues.Add(
+            $"'{root}' is neither a split SPT install ('gamefiles/EscapeFromTarkov.exe' + 'spt/') nor a merged one ('EscapeFromTarkov.exe' at the root)."
+        );
+
+        // Keep inspecting so the caller sees every problem at once; the layout check below reports the rest.
+        return InstallShape.Split;
+    }
+
+    /// <summary>Where the game half lives: under <c>gamefiles/</c> when split, at the root when merged.</summary>
+    private static string GamePath(InstallShape shape, string relativePath)
+    {
+        return shape == InstallShape.Merged
+            ? relativePath.Replace('/', Path.DirectorySeparatorChar)
+            : Path.Combine("gamefiles", relativePath);
+    }
+
+    /// <summary>Where the SPT half lives: under <c>spt/</c> when split, at the root when merged.</summary>
+    private static string SptPath(InstallShape shape, string relativePath)
+    {
+        return shape == InstallShape.Merged ? relativePath.Replace('/', Path.DirectorySeparatorChar) : Path.Combine("spt", relativePath);
+    }
+
+    /// <summary>Detects the layout without validating anything else.</summary>
+    public static InstanceLayout? DetectLayout(string root, InstallShape shape)
+    {
+        var runtime = Path.Combine(root, SptPath(shape, "SPT_Runtime"));
+        if (Directory.Exists(runtime))
         {
             return InstanceLayout.Spt41Plus;
         }
 
-        if (Directory.Exists(Path.Combine(root, "spt", "SPT")))
+        var older = Path.Combine(root, SptPath(shape, "SPT"));
+        if (Directory.Exists(older))
         {
             return InstanceLayout.Spt40;
         }

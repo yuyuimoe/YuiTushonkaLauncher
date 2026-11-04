@@ -404,7 +404,7 @@ public sealed class MigrationService(
                 var relative = Path.GetRelativePath(instance.Path, file).Replace('\\', '/');
 
                 // SPT ships its own plugins in plugins/spt; they are not user mods and not orphans.
-                if (relative.StartsWith("spt/BepInEx/plugins/spt/", StringComparison.OrdinalIgnoreCase))
+                if (relative.StartsWith("BepInEx/plugins/spt/", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -416,10 +416,8 @@ public sealed class MigrationService(
 
     private static IEnumerable<(string Root, ModKind Kind)> ModRoots(Instance instance)
     {
-        var runtime = LinkPolicy.RuntimeDirectory(instance.Layout);
-
-        yield return ("spt/BepInEx/plugins", ModKind.Client);
-        yield return ($"{runtime}/user/mods", ModKind.Server);
+        yield return ("BepInEx/plugins", ModKind.Client);
+        yield return ($"{InstancePaths.UserDirectory(instance.Layout)}/mods", ModKind.Server);
     }
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)

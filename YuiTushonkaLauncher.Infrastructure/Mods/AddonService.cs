@@ -255,7 +255,7 @@ public sealed class AddonService(
             ? Path.GetDirectoryName(assembly)?.Replace('\\', '/')
             : null;
 
-        if (!string.IsNullOrEmpty(assemblyFolder) && assemblyFolder.StartsWith("spt/", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(assemblyFolder) && !Path.IsPathRooted(assemblyFolder) && assemblyFolder.Contains('/'))
         {
             return assemblyFolder;
         }

@@ -34,6 +34,13 @@ internal static partial class HeadlessCommands
     /// <summary>Scans an instance's mod folders and reports what a migration would register.</summary>
     public const string MigrateScan = "--migrate-scan";
 
+    /// <summary>
+    /// Moves an instance built with the old split layout onto SPT's merged root
+    /// (<c>--migrate-layout [NAME] [--apply]</c>). Without a name it lists what is pending; without
+    /// <c>--apply</c> it only plans.
+    /// </summary>
+    public const string MigrateLayout = "--migrate-layout";
+
     /// <summary>Plans, then applies, the SPT deltas of an instance (<c>--patch NAME</c>).</summary>
     public const string Patch = "--patch";
 
@@ -68,12 +75,14 @@ internal static partial class HeadlessCommands
         var patchPlanIndex = IndexOf(args, PatchPlan);
         var exportIndex = IndexOf(args, Export);
         var importIndex = IndexOf(args, Import);
+        var migrateLayoutIndex = IndexOf(args, MigrateLayout);
         var runtimeRequested = RuntimeCommandRequested(args);
         var serverRequested = ServerCommandRequested(args);
 
         if (
             !migrateOnly
             && inspectBaseIndex < 0
+            && migrateLayoutIndex < 0
             && createInstanceIndex < 0
             && installModIndex < 0
             && migrateScanIndex < 0
@@ -138,6 +147,11 @@ internal static partial class HeadlessCommands
             if (importIndex >= 0)
             {
                 ImportPackage(services, args, ValueAfter(args, importIndex));
+            }
+
+            if (migrateLayoutIndex >= 0)
+            {
+                MigrateLayouts(services, args);
             }
 
             if (runtimeRequested)
