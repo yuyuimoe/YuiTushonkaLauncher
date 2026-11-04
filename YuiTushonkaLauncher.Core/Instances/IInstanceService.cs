@@ -106,6 +106,12 @@ public interface IInstanceService
     /// <summary>Instances known to the database, newest first.</summary>
     Task<IReadOnlyList<Instance>> ListAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// One instance with its installed mods and their files, or <c>null</c> when it is gone. The list method only loads
+    /// the mods themselves (enough for a card's count); a screen that shows files asks for this one.
+    /// </summary>
+    Task<Instance?> GetAsync(Guid instanceId, CancellationToken cancellationToken = default);
+
     /// <summary>Validates a creation request and describes what would happen.</summary>
     /// <exception cref="InstanceValidationException">The request cannot be fulfilled.</exception>
     Task<InstancePlan> PlanAsync(InstanceCreationRequest request, CancellationToken cancellationToken = default);

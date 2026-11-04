@@ -33,6 +33,7 @@ public enum LaunchButtonState
 public sealed class LaunchSession
 {
     private readonly object _lock = new();
+    private LaunchStep? _furthest;
 
     /// <summary>Raised on every change, with the state that resulted.</summary>
     public event EventHandler<LaunchButtonState>? Changed;
@@ -98,6 +99,18 @@ public sealed class LaunchSession
     {
         lock (_lock)
         {
+            // Reports are delivered through IProgress<T>, which posts: a step can arrive after a later one. A failure or a
+            // cancellation is always shown; a plain step behind the furthest one so far is stale and is dropped.
+            if (
+                progress.Outcome is LaunchStepOutcome.Running or LaunchStepOutcome.Succeeded
+                && _furthest is { } furthest
+                && progress.Step < furthest
+            )
+            {
+                return;
+            }
+
+            _furthest = _furthest is { } current && current > progress.Step ? current : progress.Step;
             Message = progress.Message;
             Progress = progress.Progress;
 
