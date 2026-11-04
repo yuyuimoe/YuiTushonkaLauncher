@@ -16,8 +16,23 @@ public sealed class ChildProcessTests
         return new ChildProcessSpawner(
             platform ?? new FakePlatform(linux: true),
             new FakeFinder(programs),
+            new NoSystemdRunner(),
             NullLogger<ChildProcessSpawner>.Instance
         );
+    }
+
+    /// <summary>Answers "is a systemd user manager running?" with no, so the spawner falls back to setsid.</summary>
+    private sealed class NoSystemdRunner : YuiTushonkaLauncher.Core.Runtime.IProcessRunner
+    {
+        public Task<ProcessRunResult> RunAsync(
+            LaunchCommand command,
+            IProgress<ProcessLine>? output = null,
+            TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult(new ProcessRunResult(1));
+        }
     }
 
     private static ChildProcessStart Shell(
@@ -48,41 +63,75 @@ public sealed class ChildProcessTests
     // ---- what "tied to the launcher" means on this machine ----
 
     [Fact]
-    public void TiesChildrenToLauncher_IsTrueWhenSetprivIsThere_FalseWhenItIsNot_AndTrueOnWindows()
+    public void Mechanism_IsTheStrongestTheMachineOffers()
     {
-        using var withSetpriv = Spawner(new FakePlatform(linux: true), ("setpriv", "/usr/bin/setpriv"));
-        using var without = Spawner(new FakePlatform(linux: true));
+        using var scope = new ChildProcessSpawner(
+            new FakePlatform(linux: true),
+            new FakeFinder(("systemd-run", "/usr/bin/systemd-run"), ("setsid", "/usr/bin/setsid")),
+            new SystemdRunner(available: true),
+            NullLogger<ChildProcessSpawner>.Instance
+        );
+        using var session = Spawner(new FakePlatform(linux: true), ("setsid", "/usr/bin/setsid"));
+        using var bare = Spawner(new FakePlatform(linux: true));
         using var windows = Spawner(new FakePlatform(linux: false));
 
-        withSetpriv.TiesChildrenToLauncher.Should().BeTrue();
-        without.TiesChildrenToLauncher.Should().BeFalse("without setpriv a crashed launcher leaves its server running");
-        windows.TiesChildrenToLauncher.Should().BeTrue("the job object does it");
+        using var noUserManager = new ChildProcessSpawner(
+            new FakePlatform(linux: true),
+            new FakeFinder(("systemd-run", "/usr/bin/systemd-run"), ("setsid", "/usr/bin/setsid")),
+            new SystemdRunner(available: false),
+            NullLogger<ChildProcessSpawner>.Instance
+        );
+
+        scope.Mechanism.Should().Be(RunMechanism.SystemdScope, "a scope has its own cgroup");
+        noUserManager
+            .Mechanism.Should()
+            .Be(RunMechanism.Setsid, "systemd-run is installed but no user manager answers, so a session is all that is left");
+        session.Mechanism.Should().Be(RunMechanism.Setsid);
+        bare.Mechanism.Should().Be(RunMechanism.None, "nothing can detach here, and the plan says so");
+        windows.Mechanism.Should().Be(RunMechanism.WindowsJob);
+    }
+
+    /// <summary>Says whether a systemd user manager answers.</summary>
+    private sealed class SystemdRunner(bool available) : YuiTushonkaLauncher.Core.Runtime.IProcessRunner
+    {
+        public Task<ProcessRunResult> RunAsync(
+            LaunchCommand command,
+            IProgress<ProcessLine>? output = null,
+            TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult(new ProcessRunResult(available ? 0 : 1));
+        }
     }
 
     [LinuxFact]
-    public async Task Start_AsksTheKernelToSignalTheChild_WhenTheLauncherDies()
+    public async Task Start_PutsTheChildInItsOwnSession_SoTheLauncherCannotTakeItDown()
     {
-        var setpriv = new ExecutableLookup().Find("setpriv");
+        var setsid = new ExecutableLookup().Find("setsid");
 
-        if (setpriv is null)
+        if (setsid is null)
         {
             return;
         }
 
-        using var spawner = Spawner(new FakePlatform(linux: true), ("setpriv", setpriv));
-        var lines = new List<string>();
+        using var spawner = Spawner(new FakePlatform(linux: true), ("setsid", setsid));
+        var child = spawner.Start(Shell("exec sleep 60"));
 
-        var child = spawner.Start(
-            new ChildProcessStart
-            {
-                Command = new LaunchCommand { FileName = setpriv, Arguments = ["--dump"] },
-                OnOutput = line => lines.Add(line.Text),
-            }
-        );
-        await ExitAsync(child);
+        try
+        {
+            await Task.Delay(200);
 
-        // setpriv --dump runs inside the wrapper, so it reports what the wrapper set up for its child.
-        lines.Should().Contain(line => line.Contains("Parent death signal: TERM", StringComparison.Ordinal));
+            var session = SessionOf(child.ProcessId);
+            session.Should().NotBeNull();
+            session.Should().NotBe(SessionOf(Environment.ProcessId), "a new session is what makes the child outlive the launcher");
+            spawner.Mechanism.Should().Be(RunMechanism.Setsid);
+        }
+        finally
+        {
+            child.Kill();
+            await ExitAsync(child);
+        }
     }
 
     // ---- real processes ----
@@ -295,6 +344,20 @@ public sealed class ChildProcessTests
             .ThrowAsync<InvalidOperationException>();
 
         (await thread.RunAsync(() => 7)).Should().Be(7);
+    }
+
+    /// <summary>The session id of a process, from <c>/proc/&lt;pid&gt;/stat</c> (field 6).</summary>
+    private static int? SessionOf(int processId)
+    {
+        try
+        {
+            var stat = File.ReadAllText($"/proc/{processId}/stat");
+            return int.Parse(stat[(stat.LastIndexOf(')') + 2)..].Split(' ')[3], System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (Exception exception) when (exception is IOException or FormatException)
+        {
+            return null;
+        }
     }
 
     private static int SafeParent(Process process)

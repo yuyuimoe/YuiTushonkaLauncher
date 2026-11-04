@@ -82,4 +82,56 @@ public sealed class EfSettingsServiceTests
         observed.Should().Be(settings);
         service.Current.Should().Be(settings);
     }
+
+    [Fact]
+    public async Task Settings_RoundTripTheWindowBehaviourAndTheStoppingQuestion()
+    {
+        await using var database = new TestDatabase();
+        await database.InitializeAsync();
+        var settings = LauncherSettings.Default with { GameStartWindow = GameStartWindowAction.Close, AskBeforeStoppingProcesses = false };
+
+        using (var writer = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance))
+        {
+            await writer.SaveAsync(settings);
+        }
+
+        using var reader = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance);
+
+        (await reader.LoadAsync()).Should().Be(settings);
+    }
+
+    [Fact]
+    public async Task Settings_DefaultToKeepingTheWindowAndAskingBeforeStopping()
+    {
+        await using var database = new TestDatabase();
+        await database.InitializeAsync();
+        using var service = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance);
+
+        var loaded = await service.LoadAsync();
+
+        loaded.GameStartWindow.Should().Be(GameStartWindowAction.KeepOpen);
+        loaded.AskBeforeStoppingProcesses.Should().BeTrue("the processes outlive the launcher, so the question is the only reminder");
+    }
+
+    [Fact]
+    public async Task Settings_FallBackToKeepingTheWindow_WhenTheStoredValueIsNotAnAction()
+    {
+        await using var database = new TestDatabase();
+        await database.InitializeAsync();
+        using (var writer = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance))
+        {
+            await writer.SaveAsync(LauncherSettings.Default);
+        }
+
+        await using (var context = database.CreateContext())
+        {
+            var row = await context.Settings.SingleAsync();
+            row.GameStartWindow = "HideTheWindowSomehow";
+            await context.SaveChangesAsync();
+        }
+
+        using var reader = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance);
+
+        (await reader.LoadAsync()).GameStartWindow.Should().Be(GameStartWindowAction.KeepOpen);
+    }
 }

@@ -408,15 +408,5 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
         {
             return [];
         }
-
-        public Task<IReadOnlyList<StaleServer>> FindStaleAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult<IReadOnlyList<StaleServer>>([]);
-        }
-
-        public Task<int> ReapStaleAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(0);
-        }
     }
 }

@@ -321,7 +321,7 @@ public sealed class FakeSpawner : IChildProcessSpawner
 {
     private int _nextProcessId = 4000;
 
-    public bool TiesChildrenToLauncher { get; set; } = true;
+    public RunMechanism Mechanism { get; set; } = RunMechanism.Setsid;
 
     public List<ChildProcessStart> Starts { get; } = [];
 

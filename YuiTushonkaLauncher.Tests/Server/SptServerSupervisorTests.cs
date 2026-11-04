@@ -49,12 +49,16 @@ public sealed class SptServerSupervisorTests : IDisposable
 
         await _h.Supervisor.StartAsync(instance);
 
-        var record = _h.PidStore.ReadAll().Should().ContainSingle().Subject;
-        record.InstanceId.Should().Be(instance.Id);
-        record.ProcessId.Should().Be(_h.Spawner.Last.ProcessId);
-        record.LauncherProcessId.Should().Be(Environment.ProcessId);
-        record.ExecutablePath.Should().EndWith("SPT.Server.Linux");
-        record.Port.Should().Be(6969);
+        var run = _h.Runs.ReadAll().Should().ContainSingle().Subject;
+        var server = run.Server!;
+        server.Should().NotBeNull();
+
+        run.InstanceId.Should().Be(instance.Id);
+        run.LauncherProcessId.Should().Be(Environment.ProcessId);
+        server.ProcessId.Should().Be(_h.Spawner.Last.ProcessId);
+        server.ExecutablePath.Should().EndWith("SPT.Server.Linux");
+        server.Port.Should().Be(6969);
+        server.Mechanism.Should().Be(RunMechanism.Setsid, "the machine reports how it detached, so the UI can explain it");
     }
 
     [Fact]
@@ -135,7 +139,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         await _h.Supervisor.PlanAsync(instance);
 
         _h.Spawner.Starts.Should().BeEmpty();
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
         _h.Supervisor.GetStatus(instance.Id).State.Should().Be(ServerState.Stopped);
     }
 
@@ -216,12 +220,12 @@ public sealed class SptServerSupervisorTests : IDisposable
     public async Task Plan_WarnsWhenTheServerCannotBeTiedToTheLauncher()
     {
         var instance = _h.AddInstance("one");
-        _h.Spawner.TiesChildrenToLauncher = false;
+        _h.Spawner.Mechanism = RunMechanism.None;
 
         var plan = await _h.Supervisor.PlanAsync(instance);
 
         plan.CanStart.Should().BeTrue();
-        plan.Problems.Should().ContainSingle(problem => problem.Code == ServerProblemCode.DeathSignalUnavailable);
+        plan.Problems.Should().ContainSingle(problem => problem.Code == ServerProblemCode.DetachUnavailable);
     }
 
     // ---- start failures ----
@@ -255,7 +259,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         status.State.Should().Be(ServerState.Failed);
         status.ExitCode.Should().Be(0, "a failure with exit code zero is the whole point of this test");
         status.ProcessId.Should().BeNull();
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -289,7 +293,7 @@ public sealed class SptServerSupervisorTests : IDisposable
 
         (await act.Should().ThrowAsync<ServerStartException>()).Which.Message.Should().Contain("did not answer ping within 10 seconds");
         _h.Spawner.Last.WasKilled.Should().BeTrue("a server that never became ready must not be left running");
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
         _h.Supervisor.GetStatus(instance.Id).State.Should().Be(ServerState.Failed);
     }
 
@@ -352,7 +356,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         status.State.Should().Be(ServerState.Stopped);
         status.ExitCode.Should().Be(0);
         status.ProcessId.Should().BeNull();
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -368,7 +372,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         _h.Spawner.Last.WasKilled.Should().BeTrue();
         status.State.Should().Be(ServerState.Stopped);
         status.ExitCode.Should().Be(137);
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -416,7 +420,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         await FluentActions.Awaiting(() => starting).Should().ThrowAsync<OperationCanceledException>();
         _h.Spawner.Last.WasKilled.Should().BeTrue();
         _h.Supervisor.GetStatus(instance.Id).State.Should().Be(ServerState.Stopped);
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -447,7 +451,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         await _h.Supervisor.DisposeAsync();
 
         _h.Spawner.Children.Should().OnlyContain(child => child.StopWasRequested);
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -531,6 +535,23 @@ public sealed class SptServerSupervisorTests : IDisposable
         status.State.Should().Be(ServerState.Stopped);
     }
 
+    [Fact]
+    public async Task StoppingTheServer_KeepsTheGameHalfOfTheRecord()
+    {
+        // The pair is one record: the game outlives a server restart, and forgetting the whole record would lose it.
+        var instance = _h.AddInstance("one");
+        await _h.Supervisor.StartAsync(instance);
+        var server = _h.Runs.ReadAll().Single();
+
+        _h.Runs.Save(server.WithGame(new RunProcess(9001, _h.Time.GetUtcNow(), "/srv/EscapeFromTarkov.exe", RunMechanism.SystemdScope)));
+
+        await _h.Supervisor.StopAsync(instance.Id);
+
+        var record = _h.Runs.ReadAll().Should().ContainSingle().Subject;
+        record.Server.Should().BeNull();
+        record.Game!.ProcessId.Should().Be(9001);
+    }
+
     // ---- running ----
 
     [Fact]
@@ -546,7 +567,7 @@ public sealed class SptServerSupervisorTests : IDisposable
         var status = _h.Supervisor.GetStatus(instance.Id);
         status.ExitCode.Should().Be(134);
         status.FailureReason.Should().Contain("exited on its own with code 134").And.Contain("System.NullReferenceException");
-        _h.PidStore.ReadAll().Should().BeEmpty();
+        _h.Runs.ReadAll().Should().BeEmpty();
     }
 
     [Fact]
@@ -698,114 +719,5 @@ public sealed class SptServerSupervisorTests : IDisposable
             .And.NotContain("line 2800");
         _h.Supervisor.RecentOutput(instance.Id, 5000).Should().HaveCount(2000, "the buffer is bounded");
         _h.Supervisor.RecentOutput(Guid.NewGuid()).Should().BeEmpty();
-    }
-
-    // ---- leftovers of a crashed launcher ----
-
-    private ServerPidRecord Leftover(
-        Guid? instance = null,
-        int pid = 777,
-        int launcher = 888,
-        string path = "/srv/SPT.Server.Linux",
-        DateTimeOffset? started = null
-    )
-    {
-        var record = new ServerPidRecord(instance ?? Guid.NewGuid(), pid, started ?? _h.Time.GetUtcNow(), path, 6969, launcher);
-        _h.PidStore.Write(record);
-        return record;
-    }
-
-    private void Alive(int pid, string? path = "/srv/SPT.Server.Linux", DateTimeOffset? started = null)
-    {
-        _h.Inspector.Alive[pid] = new ProcessIdentity(pid, started ?? _h.Time.GetUtcNow(), path);
-    }
-
-    [Fact]
-    public async Task FindStale_ListsAServerWhoseLauncherIsGone()
-    {
-        var record = Leftover();
-        Alive(record.ProcessId);
-
-        var stale = await _h.Supervisor.FindStaleAsync();
-
-        stale
-            .Should()
-            .ContainSingle()
-            .Which.Should()
-            .Be(new StaleServer(record.InstanceId, 777, "/srv/SPT.Server.Linux", 6969, record.StartedAt));
-        _h.PidStore.ReadAll().Should().HaveCount(1, "the record stays until the server is actually stopped");
-    }
-
-    [Fact]
-    public async Task FindStale_ForgetsARecordWhoseProcessIsGone()
-    {
-        Leftover();
-
-        (await _h.Supervisor.FindStaleAsync()).Should().BeEmpty();
-        _h.PidStore.ReadAll().Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task FindStale_NeverTouchesAProcessThatMerelyReusedThePid()
-    {
-        var record = Leftover();
-        Alive(record.ProcessId, started: record.StartedAt.AddHours(2));
-
-        (await _h.Supervisor.FindStaleAsync()).Should().BeEmpty("it started two hours after the server did, so it is somebody else");
-        _h.PidStore.ReadAll().Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task FindStale_NeverTouchesAProcessThatIsAnotherProgram()
-    {
-        var record = Leftover();
-        Alive(record.ProcessId, path: "/usr/bin/firefox");
-
-        (await _h.Supervisor.FindStaleAsync()).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task FindStale_LeavesAServerAlone_WhoseLauncherIsStillAlive()
-    {
-        var record = Leftover(launcher: 888);
-        Alive(record.ProcessId);
-        Alive(888, path: "/usr/bin/dotnet");
-
-        (await _h.Supervisor.FindStaleAsync()).Should().BeEmpty();
-        _h.PidStore.ReadAll().Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task FindStale_IgnoresTheServersOfThisVeryLauncher()
-    {
-        var instance = _h.AddInstance("one");
-        await _h.Supervisor.StartAsync(instance);
-        Alive(_h.Spawner.Last.ProcessId, path: _h.PidStore.ReadAll()[0].ExecutablePath, started: _h.Spawner.Last.StartedAt);
-
-        (await _h.Supervisor.FindStaleAsync()).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task ReapStale_StopsTheLeftoverServer_AndForgetsIt()
-    {
-        var record = Leftover();
-        Alive(record.ProcessId);
-
-        var stopped = await _h.Supervisor.ReapStaleAsync();
-
-        stopped.Should().Be(1);
-        _h.Inspector.StopRequests.Should().Equal(777);
-        _h.PidStore.ReadAll().Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task ReapStale_KeepsTheRecord_WhenTheServerWillNotStop()
-    {
-        var record = Leftover();
-        Alive(record.ProcessId);
-        _h.Inspector.CanStop = false;
-
-        (await _h.Supervisor.ReapStaleAsync()).Should().Be(0);
-        _h.PidStore.ReadAll().Should().HaveCount(1, "forgetting a server that still runs would lose the only way to find it");
     }
 }
