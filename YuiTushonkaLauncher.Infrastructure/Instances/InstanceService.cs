@@ -28,7 +28,26 @@ public sealed partial class InstanceService(
     {
         return await unitOfWork.ExecuteAsync(
             async (context, token) =>
-                (IReadOnlyList<Instance>)await context.Instances.AsNoTracking().OrderByDescending(row => row.CreatedAt).ToListAsync(token),
+                (IReadOnlyList<Instance>)
+                    await context
+                        .Instances.AsNoTracking()
+                        .Include(row => row.InstalledMods)
+                        .OrderByDescending(row => row.CreatedAt)
+                        .ToListAsync(token),
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async Task<Instance?> GetAsync(Guid instanceId, CancellationToken cancellationToken = default)
+    {
+        return await unitOfWork.ExecuteAsync(
+            async (context, token) =>
+                await context
+                    .Instances.AsNoTracking()
+                    .Include(row => row.InstalledMods)
+                        .ThenInclude(mod => mod.Files)
+                    .SingleOrDefaultAsync(row => row.Id == instanceId, token),
             cancellationToken
         );
     }
