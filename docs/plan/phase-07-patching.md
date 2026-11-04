@@ -2,6 +2,15 @@
 
 **Branch:** `feature/phase-07-patching` · **Depends on:** Phase 4.
 
+**Status:** ☑ done (UI tab moved to Phase 12). Delivered: `DeltaSetReader` (nested `SPT-core/…` trees,
+4.0 and 4.1+ layouts, unreadable deltas skipped with a warning), `IPatchEngine` +
+`SharpHDiffPatchEngine` (serialised, per-call event subscription, progress, cancellation),
+`PatchPlanner` (one explicit decision per file), `BackupScanner` (skips reparse points),
+`AtomicWrite`/`FileHash`, `PatchingService` (`Plan`/`Patch`/`Restore`, persists `PatchInfo`) and
+`--patch-plan`/`--patch`/`--restore`. 375 tests; Core 95.7 %, Infrastructure 92.7 %, Patching 97.2 %.
+Verified on the real 4.1.6 install: patch in 0.3 s, idempotent, deterministic, restorable, a truncated
+target refused with the base untouched, a corrupted target with a backup repaired.
+
 ## Goal
 
 Apply the SPT binary delta to an instance, detect an already-patched client, and roll back safely —
@@ -18,20 +27,20 @@ kept as `<file>.spt-bak`, patch applied `backup → target`, restore walks for `
 
 ## Tasks
 
-- [ ] `YuiTushonkaLauncher.Patching`:
+- [x] `YuiTushonkaLauncher.Patching`:
       - `DeltaSet` (discover `*.delta`, resolve target paths relative to game root, `.delta` stripped);
       - `IPatchEngine` + `SharpHDiffPatchEngine` (`Initialize` + `Patch`, `Verbosity.Quiet`,
         progress callbacks for the UI);
       - `PatchPlanner` (state machine: `NoBackup` → `Backup` → `Patch` → `Verify`, idempotent re-runs);
       - `Restore` (walk `*.spt-bak`, skip reparse points on Linux, delete + copy back).
-- [ ] `PatchService` (Infrastructure) orchestrating: `PatchStateDetector` → backup → apply →
+- [x] `PatchingService` (Infrastructure) orchestrating: `PatchStateDetector` → backup → apply →
       verify (`PatchInfo.OriginalSha256`/`PatchedSha256`) → persist.
-- [ ] Pre-patch guard: compute the target's current hash; accept only a known pre-patch variant
+- [x] Pre-patch guard: compute the target's current hash; accept only a known pre-patch variant
       (recorded in the delta descriptor the app ships or derives) — refuse with a clear message when
       the game build is unsupported, instead of producing a corrupted DLL.
-- [ ] Post-patch verify: size + SHA-256 recorded; a mismatch rolls back automatically from `.spt-bak`
+- [x] Post-patch verify: size + SHA-256 recorded; a mismatch rolls back automatically from `.spt-bak`
       and reports which file failed.
-- [ ] `IsPatched` detection for existing installs (adoption path): `.spt-bak` present **and** target
+- [x] `IsPatched` detection for existing installs (adoption path): `.spt-bak` present **and** target
       hash equals the expected patched hash → `Patched`; `.spt-bak` absent and target hash matches a
       known vanilla variant → `NotPatched`; otherwise `Unknown` with a warning.
 - [ ] UI: patch tab showing state per file, "Patch now", "Restore original", progress with byte-level
@@ -48,6 +57,23 @@ kept as `<file>.spt-bak`, patch applied `backup → target`, restore walks for `
 - Restore returns every patched file to its original hash.
 - No write ever lands on a hard-linked file without detaching first
   ([D6](../plan/04-decisions.md#d6-copy-on-write-before-every-write)).
+
+## Deviations
+
+- **The guard compares sizes from the delta header, not hashes.** The plan asked for "a known pre-patch
+  variant recorded in a descriptor"; the header already states the input and output size, so there is
+  nothing to ship. The price: a same-size modified file passes the guard (see open question 11).
+- **The result is verified by size, not hash.** There is no reference hash for the output (the delta
+  carries none), so the recorded SHA-256 is evidence, not proof. A mismatch against the declared size
+  discards the temporary file before anything is replaced; the original is never touched, so there is
+  nothing to "roll back".
+- **Byte identity with the official launcher's output is not asserted.** The only official patched DLL
+  available was produced by an older delta set (8 KiB smaller). The test asserts what can hold:
+  declared size, a loadable `Assembly-CSharp` with a different type table, determinism, and an exact
+  round trip on a real HDiffPatch fixture.
+- **"Backup first" is "patch from the pre-patch file".** When the target is neither build but the backup
+  is the pre-patch build, the instance is repaired from the backup instead of being refused.
+- UI tab deferred to phase 12, as in phases 4–6.
 
 ## Notes
 

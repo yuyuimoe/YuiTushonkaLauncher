@@ -39,3 +39,11 @@ Everything still unresolved, with who/what resolves it.
    Confirm which formats actually appear in the catalogue before building a native dependency.
 10. **Linux hardening** — the official launcher's `LinuxHelper` runs `winecfg`/`winetricks` inside the
     prefix. Decide how much of that belongs in a launcher (convenience) versus a distro tool.
+11. **Patched-with-an-older-delta detection.** The guard sees sizes only, so a file patched by a previous
+    SPT version (same input, different output) looks like "neither build" and is re-patched from its
+    backup — correct, but a *same-size* modification is indistinguishable. A hash of the expected output
+    would close it; the delta carries none. Options: record the SHA-256 of our own output in `PatchInfo`
+    (already done) and compare on the next run, or ship per-release hashes with the app.
+12. **Byte-identity with the official launcher.** Needs a fresh install patched by the *current* official
+    launcher; only an 8 KiB-older output exists locally. Cheap to settle whenever someone runs the
+    official launcher once on a new 4.1.6 install.

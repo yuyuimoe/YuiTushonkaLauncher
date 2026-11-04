@@ -166,6 +166,27 @@ the layout instead of hard-coding one (`InstanceLayout`).
 Implication: an instance's patch state is observable from disk (`.spt-bak` presence + hashes of
 `Assembly-CSharp.dll`), which is exactly what `PatchInfo` needs.
 
+### Measured on the real 4.1.6 install (2026-11-04)
+
+- The delta is `HDIFF13&zstd`, 4,459,070 bytes. Its header declares **input 15,994,432 → output
+  16,233,472 bytes**; the vanilla `Assembly-CSharp.dll.spt-bak` is exactly 15,994,432. So the header
+  alone identifies the pre-patch build, with no table of known hashes.
+- Applying it takes **~0.3 s**. Applying the same delta twice gives the **same SHA-256** (deterministic).
+- The patch **changes the type table** (15,137 → 15,088 types in 4.1.6). It does not "add SPT
+  namespaces" and the vanilla assembly is not `GClass`-obfuscated — both were wrong guesses that the
+  first version of the engine test asserted and the real data refuted.
+- **The "patched" DLL the official installer left in `base_tarkov41` is 16,225,280 bytes — 8,192 bytes
+  smaller than what today's delta produces.** It was patched (6 Aug) with an *earlier* delta set; the
+  runtime was updated later (24 Oct). Metadata is identical to our output (14,366 distinct type shapes,
+  90,657 methods, 0 differences), the bytes are not. Consequence: **sizes alone cannot tell "patched
+  with this SPT version" from "patched with an older one"**, and byte equality against that file can
+  never hold. The planner treats such a file as "neither build" and re-patches from the backup.
+- A patched file with no `.spt-bak` can be recognised (size equals the delta's output) but not
+  restored: the original has to be supplied again.
+- Hard links: the base's `.spt-bak` has 3 links, the DLL 1. Patching writes to a temporary file and
+  renames it over the target, so the base install's bytes and link counts are untouched (verified by
+  hash before and after).
+
 ## Mods in SPT 4.x are C#
 
 Client side (BepInEx 5, Mono):

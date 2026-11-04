@@ -19,6 +19,8 @@
 - Inspect an SPT install: `dotnet run --project YuiTushonkaLauncher.Ui -- --inspect-base <path>`
 - Create an instance headlessly:
   `dotnet run --project YuiTushonkaLauncher.Ui -- --create-instance <name> --from <base> --into <dir>`
+- Patch an instance: `--patch-plan <name>` (read-only), `--patch <name>`, `--restore <name>` (same `dotnet run … --` form)
+- Real-delta tests: `YTT_SPT_BASE=<spt-installer-output> dotnet test --filter Live=Spt`
 - Scan an instance for migration: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-scan <name>`
 - Install a local mod archive:
   `dotnet run --project YuiTushonkaLauncher.Ui -- --install-mod <archive.zip> --instance <name>`
