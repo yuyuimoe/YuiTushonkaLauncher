@@ -71,9 +71,6 @@ public sealed record ServerStartOptions
     public int MaxRestarts { get; init; } = 3;
 }
 
-/// <summary>A server a previous launcher left running (it crashed and could not clean up).</summary>
-public sealed record StaleServer(Guid InstanceId, int ProcessId, string ExecutablePath, int Port, DateTimeOffset StartedAt);
-
 /// <summary>Raised when a server cannot be started or stopped; the message is meant to be shown as is.</summary>
 public sealed class ServerStartException(string message, IReadOnlyList<ServerProblem>? problems = null) : Exception(message)
 {
@@ -99,10 +96,4 @@ public interface ISptServerSupervisor
 
     /// <summary>Raised on every state change.</summary>
     event EventHandler<ServerStatus>? StatusChanged;
-
-    /// <summary>Servers left over from a launcher that died without cleaning up.</summary>
-    Task<IReadOnlyList<StaleServer>> FindStaleAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>Stops every stale server; returns how many were stopped.</summary>
-    Task<int> ReapStaleAsync(CancellationToken cancellationToken = default);
 }

@@ -37,10 +37,10 @@ public interface IChildProcess
 public interface IChildProcessSpawner
 {
     /// <summary>
-    /// False when this machine cannot tie children to the launcher (no <c>setpriv</c> on Linux): children
-    /// still stop with a clean exit, but a launcher crash can leave them running.
+    /// How this machine detaches children. <see cref="RunMechanism.None" /> means they share the launcher's fate,
+    /// which only happens where neither a scope nor a session can be created.
     /// </summary>
-    bool TiesChildrenToLauncher { get; }
+    RunMechanism Mechanism { get; }
 
     IChildProcess Start(ChildProcessStart request);
 }

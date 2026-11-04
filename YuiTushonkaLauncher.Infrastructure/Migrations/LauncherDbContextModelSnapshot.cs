@@ -590,6 +590,9 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("AskBeforeStoppingProcesses")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ExtraProtonRoots")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -599,6 +602,10 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
 
                     b.Property<bool>("FirstRunCompleted")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("GameStartWindow")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("InstancesRoot")
                         .HasMaxLength(1024)

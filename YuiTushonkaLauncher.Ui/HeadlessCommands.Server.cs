@@ -41,8 +41,11 @@ internal static partial class HeadlessCommands
     /// </summary>
     public const string ServerSync = "--server-sync";
 
-    /// <summary>Lists servers a crashed launcher left running (<c>--server-stale [--reap]</c>).</summary>
-    public const string ServerStale = "--server-stale";
+    /// <summary>
+    /// Lists what a crashed launcher left running — the server and the game of each instance
+    /// (<c>--stale [--reap]</c>). <c>--server-stale</c> is kept as an alias.
+    /// </summary>
+    public const string Stale = "--stale";
 
     private static readonly string[] ServerFlags =
     [
@@ -55,16 +58,24 @@ internal static partial class HeadlessCommands
         ServerProfileSelect,
         ServerPort,
         ServerSync,
-        ServerStale,
+        Stale,
     ];
 
     private static bool ServerCommandRequested(string[] args)
     {
-        return ServerFlags.Any(flag => IndexOf(args, flag) >= 0);
+        return ServerFlags.Any(flag => IndexOf(args, flag) >= 0) || IndexOf(args, ServerStaleAlias) >= 0;
     }
+
+    /// <summary>The name this command had in phase 10; kept so a script does not break.</summary>
+    private const string ServerStaleAlias = "--server-stale";
 
     private static void RunServerCommands(IServiceProvider services, string[] args)
     {
+        if (IndexOf(args, Stale) < 0 && IndexOf(args, ServerStaleAlias) >= 0)
+        {
+            args = [.. args, Stale];
+        }
+
         foreach (var flag in ServerFlags)
         {
             var index = IndexOf(args, flag);
@@ -114,8 +125,8 @@ internal static partial class HeadlessCommands
                 case ServerSync:
                     SyncWithServer(services, args, first);
                     break;
-                case ServerStale:
-                    ListStaleServers(services, args.Contains("--reap", StringComparer.Ordinal));
+                case Stale:
+                    ListLeftovers(services, args.Contains("--reap", StringComparer.Ordinal));
                     break;
             }
         }
@@ -453,28 +464,54 @@ internal static partial class HeadlessCommands
         }
     }
 
-    private static void ListStaleServers(IServiceProvider services, bool reap)
+    private static void ListLeftovers(IServiceProvider services, bool reap)
     {
-        var supervisor = services.GetRequiredService<ISptServerSupervisor>();
-        var stale = supervisor.FindStaleAsync().GetAwaiter().GetResult();
+        var adoption = services.GetRequiredService<Core.Runtime.IRunAdoptionService>();
+        var leftovers = adoption.FindLeftoversAsync().GetAwaiter().GetResult();
 
-        Log.Information("Servers left over by a launcher that died: {Count}", stale.Count);
+        Log.Information("Processes left over by a launcher that died: {Count} instance(s)", leftovers.Count);
 
-        foreach (var server in stale)
+        foreach (var run in leftovers)
         {
-            Log.Information(
-                "  pid {Pid} port {Port} since {Since:u} {Path}",
-                server.ProcessId,
-                server.Port,
-                server.StartedAt,
-                server.ExecutablePath
-            );
+            Log.Information("  {Instance}:", run.Run.InstanceName);
+
+            foreach (var (kind, member) in new[] { ("server", run.Server), ("game", run.Game) })
+            {
+                if (member is null)
+                {
+                    continue;
+                }
+
+                Log.Information(
+                    "    {Kind} pid {Pid} since {Since:u} {State} [{Mechanism}] {Path}",
+                    kind,
+                    member.Record.ProcessId,
+                    member.Record.StartedAt,
+                    member.State,
+                    member.Record.Mechanism,
+                    member.Record.ExecutablePath
+                );
+            }
         }
 
-        if (reap && stale.Count > 0)
+        if (!reap || leftovers.Count == 0)
         {
-            Log.Information("Stopped {Count} leftover server(s)", supervisor.ReapStaleAsync().GetAwaiter().GetResult());
+            if (leftovers.Count > 0)
+            {
+                Log.Information("Nothing changed. Add --reap to stop them.");
+            }
+
+            return;
         }
+
+        var stopped = 0;
+
+        foreach (var run in leftovers)
+        {
+            stopped += adoption.StopAsync(run).GetAwaiter().GetResult();
+        }
+
+        Log.Information("Stopped {Count} process(es)", stopped);
     }
 
     private static void PrintProblems(IEnumerable<ServerProblem> problems)

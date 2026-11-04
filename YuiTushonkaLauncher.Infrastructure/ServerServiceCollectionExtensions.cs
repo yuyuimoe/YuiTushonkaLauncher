@@ -18,12 +18,14 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<IDotNetRuntimeProbe, DotNetRuntimeProbe>();
         services.AddSingleton<IProcessInspector, ProcessInspector>();
         services.AddSingleton<ISptServerClientFactory, SptServerClientFactory>();
-        services.AddSingleton<ServerPidStore>();
+        services.AddSingleton<IInstanceRunStore, InstanceRunStore>();
+        services.AddSingleton<IRunAdoptionService, RunAdoptionService>();
 
         // The spawner owns a thread that never ends (it is what the children's lifetime is tied to), so it must be disposed with the container.
         services.AddSingleton<IChildProcessSpawner>(provider => new ChildProcessSpawner(
             provider.GetRequiredService<IPlatformInfo>(),
             provider.GetRequiredService<IExecutableFinder>(),
+            provider.GetRequiredService<IProcessRunner>(),
             provider.GetRequiredService<ILogger<ChildProcessSpawner>>()
         ));
 
