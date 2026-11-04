@@ -20,6 +20,9 @@
 - Create an instance headlessly:
   `dotnet run --project YuiTushonkaLauncher.Ui -- --create-instance <name> --from <base> --into <dir>`
 - Patch an instance: `--patch-plan <name>` (read-only), `--patch <name>`, `--restore <name>` (same `dotnet run … --` form)
+- Share a setup: `--export <name> <file.sptpack>`; review one with `--import <file> --instance <name>` (writes
+  nothing), apply with `--apply` (options: `--replace`, `--overwrite-configs`, `--accept-changed-content`)
+- Install from the Forge: `--install-mod https://sp-mod.com/mod/download/<id>/<slug>/<version> --forge-id <id> --instance <name>`
 - Real-delta tests: `YTT_SPT_BASE=<spt-installer-output> dotnet test --filter Live=Spt`
 - Scan an instance for migration: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-scan <name>`
 - Install a local mod archive:

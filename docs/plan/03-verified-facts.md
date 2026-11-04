@@ -187,6 +187,30 @@ Implication: an instance's patch state is observable from disk (`.spt-bak` prese
   renames it over the target, so the base install's bytes and link counts are untouched (verified by
   hash before and after).
 
+## Export / import on real data (2026-11-04)
+
+Round trip with the two real mods installed **from the Forge** (`com.mpstark.dynamicmaps` 1.2.1, forge id
+1431; `fika.ghostfenixx.svm` 2.2.3, forge id 236), one edited config in each, into a fresh instance:
+
+- The installed versions (read from the DLLs) exist verbatim in the Forge's version list (`1.2.1`,
+  `2.2.3`), so an exact-version lookup works; the manifest names `forgeId` + version and nothing else.
+- Result: **identical share code on both sides** (`64086ba9…`), `diff -r` of `user/mods`, `BepInEx/plugins`
+  and `EscapeFromTarkov_Data/Managed` shows **no difference**, both edited configs arrived, every mod and
+  config was verified, and the imported instance is integrity-clean.
+- The package for that setup is 3 files and about 1.8 KB, with no binary in it.
+- **The real Forge publishes versions with build metadata** (`0.3.1+1` for Dynamic Maps, `1.8.0+h4` for
+  SVM). `SemanticVersion` rejected them, and because the whole version list is mapped at once, one such
+  version made the listing fail ("unparsable mod version"). Fixed in phase 8: build metadata is parsed and
+  kept for display, and ignored by comparison and equality, as semver specifies.
+- **`.txt` edits are real** (SVM's `Misc/MOTD.txt`), but the installer's `IsConfig` flag does not include
+  `.txt`, so the first export silently skipped it. "Shareable" is now decided by extension, ownership by the
+  tracked file list.
+- Forge downloads end in the version (`/mod/download/1431/dynamic-maps/1.2.1`); using that last segment as
+  a fallback *name* recorded `1.2.1` as a mod's name. The fallback is the GUID.
+- Six hostile packages against the real CLI (zip-slip, a `.dll`, a symlink entry, a format-7 manifest, an
+  edited manifest, an undeclared entry) were each refused with its specific error and exit code 1; the
+  file the zip-slip entry aimed at was never created.
+
 ## Mods in SPT 4.x are C#
 
 Client side (BepInEx 5, Mono):
