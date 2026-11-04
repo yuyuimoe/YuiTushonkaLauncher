@@ -79,6 +79,7 @@ internal static partial class HeadlessCommands
         var runtimeRequested = RuntimeCommandRequested(args);
         var serverRequested = ServerCommandRequested(args);
         var launchRequested = LaunchCommandRequested(args);
+        var logsRequested = LogCommandRequested(args);
 
         if (
             !migrateOnly
@@ -95,6 +96,7 @@ internal static partial class HeadlessCommands
             && !runtimeRequested
             && !serverRequested
             && !launchRequested
+            && !logsRequested
         )
         {
             return false;
@@ -169,6 +171,11 @@ internal static partial class HeadlessCommands
             if (launchRequested)
             {
                 RunLaunchCommands(services, args);
+            }
+
+            if (logsRequested)
+            {
+                RunLogCommands(services, args);
             }
 
             Log.Information("Headless command finished; exiting");

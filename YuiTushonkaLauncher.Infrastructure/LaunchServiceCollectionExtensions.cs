@@ -10,7 +10,6 @@ public static class LaunchServiceCollectionExtensions
     /// <summary>Adds the pipeline. Needs the instance, patch, runtime and server services.</summary>
     public static IServiceCollection AddLauncherLaunch(this IServiceCollection services)
     {
-        services.AddSingleton<IInstanceBusyGuard, InstanceBusyGuard>();
         services.AddSingleton<ILaunchService, LaunchService>();
 
         return services;

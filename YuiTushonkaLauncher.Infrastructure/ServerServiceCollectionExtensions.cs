@@ -35,6 +35,9 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<IServerPortService, ServerPortService>();
         services.AddSingleton<IServerSyncService, ServerSyncService>();
 
+        // Watches the supervised server and the recorded pair: the layers that rewrite instance files consume it.
+        services.AddSingleton<Core.Launch.IInstanceBusyGuard, Launch.InstanceBusyGuard>();
+
         // Refusing a migration while the server runs needs to know the server state, so it lives here rather than with
         // the instance services.
         services.AddSingleton<Core.Instances.ILayoutMigrationService, Instances.LayoutMigrationService>();

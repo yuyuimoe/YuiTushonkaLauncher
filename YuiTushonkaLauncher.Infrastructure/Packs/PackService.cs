@@ -39,6 +39,7 @@ public sealed class PackService(
     ILinkAwareFileWriter writer,
     PackReader reader,
     ILogger<PackService> logger,
+    Core.Launch.IInstanceBusyGuard busy,
     TimeProvider? timeProvider = null
 ) : IPackService
 {
@@ -52,6 +53,10 @@ public sealed class PackService(
         CancellationToken cancellationToken = default
     )
     {
+        // Exporting reads config files a running game may be rewriting: the copy would be a torn read, and the package
+        // would claim a hash the file does not have.
+        await busy.EnsureIdleAsync(instanceId, "Exporting", cancellationToken);
+
         options ??= new ExportOptions();
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
 
@@ -176,6 +181,9 @@ public sealed class PackService(
         CancellationToken cancellationToken = default
     )
     {
+        // Importing writes configs and installs mods: a live game would keep the old files open and mix the two states.
+        await busy.EnsureIdleAsync(instanceId, "Importing", cancellationToken);
+
         options ??= new ImportOptions();
         var contents = reader.Read(packagePath);
         var instance = await LoadInstanceAsync(instanceId, cancellationToken);
