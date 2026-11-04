@@ -45,7 +45,7 @@ public sealed class PatchingTestContext : IAsyncDisposable
 
     public TempDirectory Temp { get; }
 
-    /// <summary>The scripted engine; only available on contexts created with <see cref="CreateAsync" />.</summary>
+    /// <summary>The scripted engine; only available on contexts created with <see cref="CreateAsync()" />.</summary>
     public FakePatchEngine Engine
     {
         get { return _engine as FakePatchEngine ?? throw new InvalidOperationException("This context uses the real engine."); }
