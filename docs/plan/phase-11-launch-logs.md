@@ -44,23 +44,31 @@ Consequences, all of them tasks below:
 
 ## Tasks
 
-### 11.0 Layout (first, because everything else depends on it)
+### 11.0 Layout (first, because everything else depends on it) — ☑ done
 
-- [ ] `LinkPolicy`/`InstancePathMapper`: identity mapping inside an instance; the split→merged translation
+Delivered: `InstallShape` (split vs merged), `InstancePaths` (instance-relative paths, base unwrapping,
+shape detection, legacy-path normalisation), `LinkPolicy.Decide(baseRelative, isDirectory, shape)`,
+`InstancePlanEntry.Destination`, creation that lays both halves at the root, `LayoutMigrationService`
+(rename-based, idempotent, unshares the patched binary, rewrites stored paths, refuses while the server
+runs), `--migrate-layout [NAME] [--apply]`, `InstancePathMapper` as the identity, and package imports that
+still match a pre-change `.sptpack`. Verified on a real install: 10 236 files migrated in 1.2 s with the
+hard links intact, 1027 tests.
+
+- [x] `LinkPolicy`/`InstancePathMapper`: identity mapping inside an instance; the split→merged translation
       lives in the creation plan only. `EscapeFromTarkov_Data`, `BepInEx`, `SPT_Runtime` (4.1+) / `SPT` (4.0),
       `winhttp.dll`, `doorstop_config.ini`, `Logs/` and the per-instance `user/` all at the root.
-- [ ] Layout detection (`InstanceLayout` today only splits 4.0/4.1; add **split vs merged** as its own axis)
+- [x] Layout detection (`InstanceLayout` today only splits 4.0/4.1; add **split vs merged** as its own axis)
       and a marker so a folder is never mistaken for an instance.
-- [ ] `InstanceService.CreateAsync`: plan split base → merged instance (link everything, copy what the
+- [x] `InstanceService.CreateAsync`: plan split base → merged instance (link everything, copy what the
       policy says, never link `Assembly-CSharp.dll` — [D5](04-decisions.md#d5-assembly-csharpdll-is-never-linked)),
       and create `user/`, `Logs/` as per-instance.
-- [ ] **Migration v1 → v2** (`--migrate-layout`): detect an instance whose root has no `EscapeFromTarkov.exe`,
+- [x] **Migration v1 → v2** (`--migrate-layout`): detect an instance whose root has no `EscapeFromTarkov.exe`,
       plan every file (link / copy / unshare), execute, then remove `gamefiles/` and `spt/` only when everything
       is in place; idempotent; refuses while any process of that instance runs.
-- [ ] Revise every consumer of a path: integrity, mod install (`InstancePathMapper`), patching (the target is
+- [x] Revise every consumer of a path: integrity, mod install (`InstancePathMapper`), patching (the target is
       now `<root>/EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll`, the delta set still comes from
       `<root>/SPT_Runtime/SPT_Data/Launcher/Patches`), export/import, `--inspect-base` wording.
-- [ ] Update the phase 4/5/7/8 tests that encoded the split paths, and keep the merged-vs-split difference
+- [x] Update the phase 4/5/7/8 tests that encoded the split paths, and keep the merged-vs-split difference
       visible in their names.
 
 ### 11.1 Detached processes (decided, [D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted))
@@ -117,10 +125,10 @@ Consequences, all of them tasks below:
 
 ## Acceptance criteria
 
-- [ ] A fresh instance created from the split base runs: game path resolution finds the `.exe`, `winhttp.dll`
+- [x] A fresh instance created from the split base runs: game path resolution finds the `.exe`, `winhttp.dll`
       and `BepInEx` at the root, and the server's working directory is `<root>/SPT_Runtime`.
-- [ ] A split install is refused as an instance, and accepted (labelled) as a base.
-- [ ] Migrating a v1 instance produces a merged one with byte-identical files, and running it twice changes nothing.
+- [x] A split install is refused as an instance, and accepted (labelled) as a base.
+- [x] Migrating a v1 instance produces a merged one with byte-identical files, and running it twice changes nothing.
 - [ ] Launching a fresh, unpatched instance patches it, starts the server, launches the game, and all sources
       appear live with correct tagging.
 - [ ] Killing the launcher (SIGKILL) leaves **both** processes running; reopening adopts both, and Stop ends both.
