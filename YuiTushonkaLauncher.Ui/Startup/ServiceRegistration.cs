@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using YuiTushonkaLauncher.Core.Abstractions;
-using YuiTushonkaLauncher.Infrastructure.Configuration;
+using YuiTushonkaLauncher.Infrastructure;
 using YuiTushonkaLauncher.Infrastructure.Processes;
 using YuiTushonkaLauncher.ViewModels;
 
@@ -20,7 +20,7 @@ internal static class ServiceRegistration
         services.AddLogging(builder => builder.AddSerilog(Log.Logger, dispose: false));
 
         services.AddSingleton(paths);
-        services.AddSingleton<ISettingsService, JsonSettingsService>();
+        services.AddLauncherPersistence();
         services.AddSingleton<ISingleInstanceGuard, SingleInstanceGuard>();
 
         services.AddSingleton<MainViewModel>();

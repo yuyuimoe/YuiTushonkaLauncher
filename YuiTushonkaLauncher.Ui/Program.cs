@@ -43,6 +43,11 @@ internal static class Program
 
         try
         {
+            if (StartupMode == StartupMode.Normal && HeadlessCommands.TryRun(args, Paths, out var headlessExitCode))
+            {
+                return headlessExitCode;
+            }
+
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             return StartupMode == StartupMode.Normal ? 0 : ExitCodes.AlreadyRunning;
         }
