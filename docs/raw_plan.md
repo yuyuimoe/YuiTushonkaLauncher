@@ -1,7 +1,15 @@
 # Development Plan — SPT Manager (Instance and Mod Manager for SPT)
 
-> Translated from the original Portuguese draft (2026-xx). Review findings and open questions live in
-> [`raw_plan_review.md`](./raw_plan_review.md).
+> **Historical document.** This is the original plan, translated from Portuguese and kept unchanged as
+> the record of what was proposed. The authoritative, per-phase plan lives in [`plan/`](./plan/), the
+> decisions that override this text are in [`plan/04-decisions.md`](./plan/04-decisions.md), and the
+> critique that produced them is in [`raw_plan_review.md`](./raw_plan_review.md).
+>
+> Known outdated statements here, superseded by the plan folder: `SPT.ByteBanger` (removed in 4.x —
+> patching now uses `SharpHDiffPatch.Core` with `*.delta`), `zlib.net`, the assumption that mods may
+> lack a DLL (4.x mods are C#), `GET /mods/{id}/versions` (real path is `/mod/{id}/versions`), the
+> Forge API host (`sp-mod.com`, not `forge.sp-tarkov.com`), and "downloads the base game files"
+> (Tarkov files are supplied by the user).
 
 ## 1. Project Overview
 

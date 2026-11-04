@@ -8,6 +8,43 @@ unconfirmed assumption · **[GAP]** missing requirement · **[NIT]** cosmetic or
 
 ---
 
+## Resolution log (2026-11-04)
+
+The maintainer resolved these. Details and the resulting design live in
+[`plan/04-decisions.md`](./plan/04-decisions.md); facts are in
+[`plan/03-verified-facts.md`](./plan/03-verified-facts.md).
+
+| Item | Outcome |
+|---|---|
+| A1 hard links vs patch | **Accepted.** `Assembly-CSharp.dll` is always copied → D5. |
+| A2 copy-on-write | **Accepted.** Enforced by `ILinkAwareFileWriter` → D6. |
+| A3 "downloads the base files" | **Confirmed wrong.** Tarkov files are user-supplied SPT-installer output → D4. |
+| A4 patch assumptions | **Confirmed wrong about the engine** (`SPT.ByteBanger` gone; `SharpHDiffPatch` + `*.delta` + `.spt-bak` still used). The `SPT_Data/Launcher/Patches` path is still correct. → D8. |
+| A5 GUID extraction | **I was wrong; the plan was right.** Since 4.0 mods are C# and the server ships `IModMetadata` with `ModGuid` (verified by decompiling `SPTarkov.Server.Core.dll`). Remaining nuance: client mods use `[BepInPlugin]`, so two readers are needed → D9. |
+| B1 Forge auth | **Not needed — no API key exists** → D3. |
+| B2 persistence | **EF Core + SQLite** → D2. |
+| B3 SPT↔Tarkov matrix | **Accepted**, now written out as a table → D12. |
+| B4 pre-flight checks | **Not needed** as originally framed: the maintainer already has a working base-install layout and instance script; only the same-volume/space checks are kept (Phase 4). |
+| B5 download cache | Accepted (content-addressed cache + resume, Phase 3/5). |
+| B6 P/Invoke for hard links | Accepted (Phase 4). |
+| B7 BepInEx/doorstop | **Accepted as developer tooling** → D16. |
+| B8 `.sptpack` threat model | **Deferred to a dedicated grilling session**; safe defaults until then (Phase 8, open question 1). |
+| B9 headless UI tests + i18n | **Adopted from day one** → D11. |
+| B10 process shutdown + log rotation | **Adopted**, with gzip archive + retention → D17. |
+| B11 phase ordering | Phase 7 stays after 4/5 but is the go/no-go gate of the build (see phase files). |
+| C repo alignment | `git init` + GitFlow + `wt` done; naming stays `YuiTushonkaLauncher.*` → D1. |
+| D1 coverage | Raised to **90 %** (Phase 13). |
+| D2 rate limit | Measured: **300/min** (`x-ratelimit-limit`) — no longer a guess. |
+| D3 `zlib.net` | **Dropped**; not in the current launcher. |
+| D4 `SharpHDiffPatch.Core` | Still correct; pinned, API re-verified in Phase 7. |
+| D5 .NET 10 rationale | **The plan was right:** SPT itself requires .NET 10, so every player already has the runtime → D15. |
+| D6 addon/mod duplication | Separate tables after checking the API (`mod_version_constraint` vs `spt_version_constraint`) and `TushonkaMirror` → D10. |
+| D7 server profiles | **Not optional:** SPT requires the local server to run during play → D13. |
+| D8 non-functional targets | Folded into Phase 13 performance checks. |
+| D9 packaging | AOT dropped → D14; trimming optional. |
+
+---
+
 ## A. Blockers
 
 ### A1. [BLOCKER] Hard links vs. binary patching are mutually exclusive as designed
@@ -45,6 +82,12 @@ files. SPT files themselves *can* be downloaded (`SPT-<version>.7z` from the SPT
 
 ### A4. [BLOCKER] The patch/patch-file assumptions are unverified and load-bearing
 
+> **Status: partly confirmed, partly wrong (2026-11-04).** `SPT.ByteBanger` is gone; the current
+> launcher uses `SPTushonka.Core/Patching/FilePatcher.cs` → `SharpHDiffPatch.Core` over `*.delta`
+> files under `SPT_Data/Launcher/Patches`, with `<file>.spt-bak` backups and a `Restore()` pass. The
+> load-bearing part of this finding stands: the concrete paths/classes are pinned to one launcher
+> version and must be re-verified per SPT release → D8. The paragraph below is kept as written.
+
 Section 1, Phase 7 and the closing notes state as fact:
 
 - patches live in `SPT_Data/Launcher/Patches/`,
@@ -63,6 +106,14 @@ go/no-go checkpoint at the end of Phase 0.
 
 ### A5. [BLOCKER] The `ModMetadata` GUID claim is probably wrong
 
+> **Status: this finding was wrong — the plan was right.** Verified on 2026-11-04 against the local
+> 4.1 runtime: `SPTarkov.Server.Core.dll` contains
+> `SPTarkov.Server.Core.Models.Spt.Mod.IModMetadata` with `ModGuid`, `Name`, `Author`, `Version`,
+> `SptVersion`, `ModDependencies`, `Incompatibilities`, `HasPrepatcher`, `License`. Since 4.0, server
+> mods are C# DLLs. What survives from this finding: client mods are BepInEx plugins, so the identity
+> reader must handle **both** sources (`[BepInPlugin]` and `IModMetadata`) → D9. The paragraph below is
+> kept as written.
+
 The plan says the GUID is "the custom attribute on the `ModMetadata` class". In practice:
 
 - **Client mods** are BepInEx plugins: the canonical id is the GUID in
@@ -80,6 +131,9 @@ identity value object. Otherwise Phase 5 and the Phase 6 migration will fail on 
 ## B. Gaps
 
 ### B1. [GAP] Forge API authentication is missing
+
+> **Status: not a gap (2026-11-04).** The live API needs **no** authentication; requests only carry a
+> descriptive `User-Agent`, and limits are advertised through `x-ratelimit-*` headers. → D3.
 
 Section 2/Phase 1 only mention a descriptive `User-Agent`. The Forge API also requires an **API key**
 (bearer token) for most endpoints, with per-user rate limiting. Needed: a token/credential store
