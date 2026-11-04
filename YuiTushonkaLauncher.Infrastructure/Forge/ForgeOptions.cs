@@ -9,6 +9,9 @@ public sealed class ForgeOptions
     /// <summary>API root, including the version segment.</summary>
     public string BaseUrl { get; set; } = "https://sp-mod.com/api/v0/";
 
+    /// <summary>Site root, where a mod's page lives: the API does not carry licence, source or scan links.</summary>
+    public string SiteUrl { get; set; } = "https://sp-mod.com";
+
     /// <summary>Sent on every request so the API operator can identify the client.</summary>
     public string UserAgent { get; set; } = "YuiTushonkaLauncher (+https://sp-mod.com)";
 

@@ -149,3 +149,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 
 - Debug logging never wrote to the file: the logger applied a global `Information` minimum, so the file sink's `Debug`
   setting had nothing to let through. The file now always keeps Debug; `--verbose` also copies it to the console.
+### Added
+
+- **Forge browser:** seven orderings (featured, endorsements over 7 days, 30 days or all time, newest, recently
+  updated, name), mod thumbnails with a disk cache, and a sidebar with the mod's details, its description, source-code
+  and VirusTotal links, and tabs for dependencies and dependents with back/forward history. Only versions the active
+  instance's SPT release accepts can be installed, and a mod with none says which release it was looking for.

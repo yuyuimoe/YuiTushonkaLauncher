@@ -46,7 +46,9 @@
     "no": "No",
     "all": "All",
     "lines": "Lines",
-    "emptyValue": "—"
+    "emptyValue": "—",
+    "back": "Back",
+    "forward": "Forward"
   },
   "instances": {
     "title": "Instances",
@@ -142,7 +144,25 @@
     "installRefused": "This version needs another SPT version.",
     "downloads": "{0} downloads",
     "empty": "Nothing matched the filters.",
-    "offline": "The Forge could not be reached. Check the connection and try again."
+    "offline": "The Forge could not be reached. Check the connection and try again.",
+    "sort": "Order by",
+    "sortFeatured": "Featured",
+    "sortEndorsedWeek": "Most endorsed · last 7 days",
+    "sortEndorsedMonth": "Most endorsed — 30 days",
+    "sortEndorsed": "Most endorsed · all time",
+    "sortNewest": "Newest mods",
+    "sortUpdated": "Recently updated",
+    "sortName": "Name",
+    "tabDetails": "Details",
+    "tabDependencies": "Dependencies",
+    "tabDependents": "Dependents",
+    "openInSite": "Open on the site",
+    "shortDescription": "Short description",
+    "longDescription": "Description",
+    "sourceCode": "Source code",
+    "virusTotal": "VirusTotal",
+    "noDependents": "No installed mod depends on this one.",
+    "noCompatibleVersion": "This mod has no version for SPT {0}."
   },
   "server": {
     "title": "Server",

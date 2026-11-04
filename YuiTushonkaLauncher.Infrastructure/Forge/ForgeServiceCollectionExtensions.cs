@@ -39,6 +39,19 @@ public static class ForgeServiceCollectionExtensions
 
         services.AddSingleton<ForgeSptVersionCatalog>();
 
+        // The page reader asks the site, not the API, for the three things the API never sends.
+        services.AddSingleton<IForgePageReader>(provider =>
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TushonkaLauncher/1.0");
+            return new ForgePageReader(
+                client,
+                provider.GetRequiredService<ILogger<ForgePageReader>>(),
+                provider.GetRequiredService<IOptions<ForgeOptions>>().Value.SiteUrl
+            );
+        });
+        services.AddSingleton<IThumbnailCache, ThumbnailCache>();
+
         return services;
     }
 

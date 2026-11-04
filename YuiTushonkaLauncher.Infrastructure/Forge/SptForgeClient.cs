@@ -66,6 +66,7 @@ public sealed class SptForgeClient : IForgeClient
             .AddFilter("fika_compatibility", query.FikaCompatibility)
             .Add("include", query.IncludeVersions ? "versions" : null)
             .Add("sort", query.Sort)
+            .AddFilter("published_between", Window(query.PublishedFrom, query.PublishedTo))
             .Add("page", query.Page)
             .Add("per_page", query.PerPage <= 0 ? _options.DefaultPageSize : query.PerPage);
 
@@ -79,6 +80,17 @@ public sealed class SptForgeClient : IForgeClient
             Total = envelope.Meta?.Total ?? 0,
             LastPage = envelope.Meta?.LastPage ?? 1,
         };
+    }
+
+    /// <summary>
+    /// The between filter, in the only shape the API reads: <c>YYYY-MM-DD,YYYY-MM-DD</c>. Anything else is silently
+    /// ignored, so a malformed window is not sent at all.
+    /// </summary>
+    private static string? Window(DateTimeOffset? from, DateTimeOffset? to)
+    {
+        return from is { } start && to is { } end
+            ? string.Format(CultureInfo.InvariantCulture, "{0:yyyy-MM-dd},{1:yyyy-MM-dd}", start, end)
+            : null;
     }
 
     /// <inheritdoc />
@@ -244,6 +256,7 @@ public sealed class SptForgeClient : IForgeClient
         var url = new ForgeQueryString()
             .Add("query", query.Search)
             .Add("sort", query.Sort)
+            .AddFilter("published_between", Window(query.PublishedFrom, query.PublishedTo))
             .Add("page", query.Page)
             .Add("per_page", query.PerPage <= 0 ? _options.DefaultPageSize : query.PerPage);
 
