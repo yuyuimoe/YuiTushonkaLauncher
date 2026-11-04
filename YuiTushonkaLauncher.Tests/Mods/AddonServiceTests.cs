@@ -236,4 +236,51 @@ public sealed class AddonServiceTests
 
         await act.Should().ThrowAsync<InstanceValidationException>();
     }
+
+    [Fact]
+    public async Task InstallAsync_FromAForgeDownload_RecordsTheForgeIdAndTheSource()
+    {
+        await using var context = await ModTestContext.CreateAsync();
+        await context.InstallClientModAsync();
+        using var addon = new ZipFixture().Add("Languages/pt-BR.json", "{}");
+        context.DownloadSource = addon.Path;
+
+        await context.Addons.InstallAsync(
+            new AddonInstallRequest
+            {
+                InstanceId = context.Instance.Id,
+                ParentModGuid = "com.fixture.clientmod",
+                ForgeId = 99,
+                DownloadUrl = new Uri("https://sp-mod.com/addon/download/99/x/1.0.0"),
+            }
+        );
+
+        await using var verification = context.Database.CreateContext();
+        var row = await verification.InstalledMods.Include(mod => mod.Mod).SingleAsync(mod => mod.ParentModGuid != null);
+        row.Mod.Should().NotBeNull();
+        row.Mod!.ForgeId.Should().Be(99, "an export needs the Forge id to name the addon");
+        row.Source.Should().Be(InstalledModSource.Forge);
+    }
+
+    [Fact]
+    public async Task InstallAsync_FromALocalArchive_HasNoCatalogueRow()
+    {
+        await using var context = await ModTestContext.CreateAsync();
+        await context.InstallClientModAsync();
+        using var addon = new ZipFixture().Add("Languages/pt-BR.json", "{}");
+
+        await context.Addons.InstallAsync(
+            new AddonInstallRequest
+            {
+                InstanceId = context.Instance.Id,
+                ParentModGuid = "com.fixture.clientmod",
+                ArchivePath = addon.Path,
+            }
+        );
+
+        await using var verification = context.Database.CreateContext();
+        var row = await verification.InstalledMods.SingleAsync(mod => mod.ParentModGuid != null);
+        row.ModId.Should().BeNull();
+        row.Source.Should().Be(InstalledModSource.LocalArchive);
+    }
 }

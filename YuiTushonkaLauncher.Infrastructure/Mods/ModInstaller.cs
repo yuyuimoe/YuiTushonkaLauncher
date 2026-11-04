@@ -407,7 +407,8 @@ public sealed partial class ModInstaller(
                 context.InstalledMods.Add(row);
 
                 row.ModId = await ResolveModIdAsync(context, guid, request, token);
-                row.Name = identity.Name ?? request.DownloadUrl?.Segments.LastOrDefault() ?? guid;
+                // The last URL segment of a Forge download is the version ("1.2.1"), which is not a name; the GUID is.
+                row.Name = identity.Name ?? guid;
                 row.Kind = kind;
                 row.Version = version;
                 row.IsPinned = request.Pin;

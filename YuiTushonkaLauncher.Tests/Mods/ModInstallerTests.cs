@@ -396,4 +396,26 @@ public sealed class ModInstallerTests : IAsyncLifetime
             throw new InvalidOperationException("The installer must not download during these tests.");
         }
     }
+
+    [Fact]
+    public async Task InstallAsync_FromADownloadWithoutAnIdentityName_IsNamedByItsGuidNotTheUrlSegment()
+    {
+        // Found on a real Forge download: the URL ends in the version, and "1.2.1" was recorded as the name.
+        await using var context = await ModTestContext.CreateAsync();
+        using var archive = new ZipFixture().Add("BepInEx/config/nameless.cfg", "[General]");
+        context.DownloadSource = archive.Path;
+
+        var result = await context.Installer.InstallAsync(
+            new ModInstallRequest
+            {
+                InstanceId = context.Instance.Id,
+                DownloadUrl = new Uri("https://sp-mod.com/mod/download/7/some-mod/1.4.2"),
+                ForgeId = 7,
+            }
+        );
+
+        await using var verification = context.Database.CreateContext();
+        var row = await verification.InstalledMods.SingleAsync(mod => mod.Guid == result.Guid);
+        row.Name.Should().Be(result.Guid);
+    }
 }
