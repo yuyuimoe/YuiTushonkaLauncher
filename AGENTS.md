@@ -7,12 +7,20 @@
 
 ## Commands
 
-- Build all: `dotnet build YuiTushonkaLauncher.slnx` (after Phase 1; today: `dotnet build`)
+- Restore toolchain: `dotnet tool restore` (CSharpier, `dotnet-ef`, both pinned)
+- Build all: `dotnet build YuiTushonkaLauncher.slnx`
 - Test all: `dotnet test YuiTushonkaLauncher.slnx`
+- Format: `dotnet csharpier format .` — CI fails on `dotnet csharpier check .`
 - Run: `dotnet run --project YuiTushonkaLauncher.Ui`
-- Migrations (once Phase 2 lands):
+- Migrations (from Phase 2):
   - `dotnet ef migrations add <Name> -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
   - `dotnet ef database update -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
+
+## Code style
+
+Mirrors the official SPT launcher: **CSharpier** formats (never hand-align, never fight it), and
+`.editorconfig` holds the semantic rules — 140 columns, braces always, block-bodied members,
+file-scoped namespaces, `var`, `_camelCase` private fields, PascalCase constants.
 
 ## Workflow
 
@@ -32,7 +40,7 @@
 - `docs/raw_plan.md` — original (translated) plan, history only.
 - `docs/raw_plan_review.md` — the critique that produced the decisions.
 
-## Projects (target layout)
+## Projects
 
 - `YuiTushonkaLauncher.Core` — domain, interfaces, pure rules. No I/O.
 - `YuiTushonkaLauncher.Patching` — `SharpHDiffPatch.Core` wrapper, delta discovery, backup/restore.

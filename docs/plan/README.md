@@ -11,8 +11,8 @@ for what has to exist when the branch merges.
 | Phase | File | Status |
 |---|---|---|
 | 0 | [phase-00-research](phase-00-research.md) | ☑ done (see [03-verified-facts](03-verified-facts.md)) |
-| 1 | [phase-01-foundation](phase-01-foundation.md) | ☐ next |
-| 2 | [phase-02-persistence](phase-02-persistence.md) | ☐ |
+| 1 | [phase-01-foundation](phase-01-foundation.md) | ☑ done |
+| 2 | [phase-02-persistence](phase-02-persistence.md) | ☐ next |
 | 3 | [phase-03-forge-api](phase-03-forge-api.md) | ☐ |
 | 4 | [phase-04-instances](phase-04-instances.md) | ☐ |
 | 5 | [phase-05-mod-install](phase-05-mod-install.md) | ☐ |
