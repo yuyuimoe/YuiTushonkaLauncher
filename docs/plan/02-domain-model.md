@@ -85,6 +85,9 @@ different versions, so this is separate from the catalogue `Mod`.
 `InstalledMod`: `InstanceId`, `ModId?` (null when unrecognised), `Guid`, `Name`, `Kind`, `Version`,
 `IsPinned`, `Recognition`, `Source` (`Forge` / `LocalArchive` / `Adopted`), `InstalledAt`.
 
+An addon is the same row with `ParentModGuid` set (there is no separate installed-addon table: files,
+hashes, integrity and uninstall are identical, and `ParentModGuid` is what tells them apart).
+
 `InstalledFile`: `RelativePath` (instance-relative, never absolute, never containing `..`), `Sha256`
 (as installed), `Length`, `IsConfig`, `OriginalSha256` (what the mod shipped, so a hand-edited config
 is detectable and exportable).
