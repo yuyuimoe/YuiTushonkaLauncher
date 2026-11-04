@@ -93,5 +93,7 @@ Everything still unresolved, with who/what resolves it.
     `127.0.0.1`.
 19. **`SPT.Server` on Windows was not run.** The server path is platform-neutral (native program, job object),
     but only Linux was exercised; see [91-before-1.0](91-before-1.0.md), item 6.
-20. **The game is a child of the launcher.** Deliberately postponed: it conflicts with "no orphans"
-    ([92-after-1.0](92-after-1.0.md)).
+20. **The game as a child of the launcher — decided (2026-11-04).** Both the game *and* the server are
+    detached, adopted from their pid records on the next start, and never killed by the launcher exiting
+    ([92-after-1.0](92-after-1.0.md#item-2-decided-2026-11-04--both-processes-are-detached)). The mechanism
+    and the UI consequences are phase 11's design.
