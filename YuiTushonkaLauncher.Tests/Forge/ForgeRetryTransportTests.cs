@@ -66,7 +66,7 @@ public sealed class ForgeRetryTransportTests
             .InScenario("date-throttle")
             .WillSetStateTo("allowed")
             .RespondWith(
-                Response.Create().WithStatusCode(429).WithHeader("Retry-After", DateTimeOffset.UtcNow.AddSeconds(1).ToString("R"))
+                Response.Create().WithStatusCode(429).WithHeader("Retry-After", DateTimeOffset.UtcNow.AddSeconds(2).ToString("R"))
             );
         harness
             .Server.Given(Request.Create().WithPath("/api/v0/mods").UsingGet())
@@ -79,7 +79,8 @@ public sealed class ForgeRetryTransportTests
         stopwatch.Stop();
 
         harness.Server.LogEntries.Should().HaveCount(2);
-        stopwatch.Elapsed.Should().BeGreaterThan(TimeSpan.FromMilliseconds(500));
+        // An HTTP-date has one-second resolution, so a two-second date truncates to at least ~1 s.
+        stopwatch.Elapsed.Should().BeGreaterThan(TimeSpan.FromMilliseconds(900), "the date-based Retry-After must be honoured");
     }
 
     [Theory]
