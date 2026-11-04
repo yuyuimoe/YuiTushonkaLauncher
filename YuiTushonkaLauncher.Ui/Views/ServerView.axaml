@@ -1,0 +1,103 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="760"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.ServerView"
+  x:DataType="vm:ServerPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="1.4*,1*" ColumnSpacing="16">
+    <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+        <TextBlock Classes="sectionTitle" Text="{Binding Title}" Margin="0" />
+        <TextBlock Text="{Binding StateText}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding PortText}" Classes="caption" VerticalAlignment="Center" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary" Command="{Binding StartCommand}" Content="{Binding StartLabel}" IsEnabled="{Binding !IsRunning}" />
+        <Button Command="{Binding StopCommand}" Content="{Binding StopLabel}" IsEnabled="{Binding IsRunning}" />
+        <Button Command="{Binding SyncCommand}" Content="{Binding SyncLabel}" IsEnabled="{Binding IsRunning}" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+      <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" />
+      <TextBlock Text="{Binding SyncText}" Classes="caption" IsVisible="{Binding IsRunning}" />
+    </StackPanel>
+
+    <!-- Output. -->
+    <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,*">
+      <TextBlock Grid.Row="0" Text="{Binding OutputLabel}" FontWeight="SemiBold" />
+      <ListBox Grid.Row="1" Classes="dense" ItemsSource="{Binding Output}" FontFamily="monospace" FontSize="11" />
+    </Grid>
+
+    <!-- Profiles. -->
+    <Grid Grid.Row="2" Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto">
+      <TextBlock Grid.Row="0" Text="{Binding ProfilesLabel}" FontWeight="SemiBold" />
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,6" ColumnSpacing="6">
+        <TextBox Grid.Column="0" Text="{Binding NewUsername}" PlaceholderText="{Binding UsernameLabel}" />
+        <ComboBox
+          Grid.Column="1"
+          ItemsSource="{x:Static vm:ServerPageViewModel.Editions}"
+          SelectedItem="{Binding SelectedEdition}"
+          MinWidth="120"
+        />
+      </Grid>
+
+      <StackPanel Grid.Row="2" Spacing="4" Margin="0,8">
+        <TextBlock Text="{Binding ProfilesEmptyText}" Classes="caption" IsVisible="{Binding !HasProfiles}" />
+        <ListBox
+          Classes="dense"
+          ItemsSource="{Binding Profiles}"
+          SelectedItem="{Binding SelectedProfile}"
+          IsVisible="{Binding HasProfiles}"
+        >
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ProfileRowViewModel">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding Nickname}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Level, StringFormat='{}{0}'}" Classes="caption" />
+                <TextBlock Text="{Binding Edition}" Classes="caption" />
+                <TextBlock Text="{Binding StateText}" Classes="caption" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+
+      <WrapPanel Grid.Row="3">
+        <Button
+          Command="{Binding CreateProfileCommand}"
+          Content="{Binding NewProfileLabel}"
+          IsEnabled="{Binding CanCreateProfile}"
+          Margin="0,0,6,6"
+        />
+        <Button
+          Command="{Binding SelectProfileCommand}"
+          CommandParameter="{Binding SelectedProfile}"
+          Content="{Binding SelectLabel}"
+          IsEnabled="{Binding CanActOnProfile}"
+          Margin="0,0,6,6"
+        />
+        <Button
+          Command="{Binding WipeCommand}"
+          CommandParameter="{Binding SelectedProfile}"
+          Content="{Binding WipeLabel}"
+          IsEnabled="{Binding CanActOnProfile}"
+          Margin="0,0,6,6"
+        />
+        <Button
+          Command="{Binding DeleteProfileCommand}"
+          CommandParameter="{Binding SelectedProfile}"
+          Content="{Binding DeleteLabel}"
+          IsEnabled="{Binding CanActOnProfile}"
+        />
+      </WrapPanel>
+    </Grid>
+  </Grid>
+</UserControl>

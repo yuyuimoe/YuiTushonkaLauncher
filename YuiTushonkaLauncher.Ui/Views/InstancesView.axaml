@@ -1,0 +1,85 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="700"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.InstancesView"
+  x:DataType="vm:InstancesPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <TextBlock Grid.Column="0" Classes="sectionTitle" Text="{Binding Title}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary" Command="{Binding CreateCommand}" Content="{Binding CreateLabel}" />
+        <Button Command="{Binding AdoptCommand}" Content="{Binding AdoptLabel}" />
+        <Button Command="{Binding LoadCommand}" Content="{Binding RefreshLabel}" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+      <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" />
+    </StackPanel>
+
+    <!-- Empty state: deliberately not a blank panel. -->
+    <StackPanel Grid.Row="2" Spacing="6" Margin="0,24" IsVisible="{Binding !HasInstances}">
+      <TextBlock Text="{Binding EmptyText}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="caption" />
+    </StackPanel>
+
+    <ListBox
+      Grid.Row="2"
+      Classes="dense"
+      ItemsSource="{Binding Instances}"
+      SelectedItem="{Binding Selected}"
+      IsVisible="{Binding HasInstances}"
+    >
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:InstanceCardViewModel">
+          <Border Classes="card">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                  <Border Padding="6,0" CornerRadius="4" Background="{DynamicResource YttAccentSoftBrush}" IsVisible="{Binding IsActive}">
+                    <TextBlock Text="{Binding ActiveLabel}" FontSize="11" />
+                  </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <TextBlock Text="{Binding SptVersion}" Classes="caption" />
+                  <TextBlock Text="{Binding TarkovVersion}" Classes="caption" />
+                  <TextBlock Text="{Binding ModCount}" Classes="caption" />
+                  <TextBlock Text="{Binding PatchStateText}" Classes="caption" />
+                  <TextBlock Text="{Binding LastLaunchText}" Classes="caption" />
+                </StackPanel>
+                <TextBlock Text="{Binding PathText}" Classes="caption" FontSize="11" />
+              </StackPanel>
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button
+                  Command="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).OpenCommand}"
+                  CommandParameter="{Binding}"
+                  Content="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).OpenLabel}"
+                />
+                <Button
+                  Command="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).SetActiveCommand}"
+                  CommandParameter="{Binding}"
+                  Content="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).SetActiveLabel}"
+                />
+                <Button
+                  Command="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).DeleteCommand}"
+                  CommandParameter="{Binding}"
+                  Content="{Binding $parent[UserControl].((vm:InstancesPageViewModel)DataContext).DeleteLabel}"
+                />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>

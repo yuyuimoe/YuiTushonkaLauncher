@@ -1,0 +1,44 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="700"
+  d:DesignHeight="400"
+  x:Class="YuiTushonkaLauncher.Views.PatchView"
+  x:DataType="vm:PatchPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <TextBlock Grid.Column="0" Classes="sectionTitle" Text="{Binding Title}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary" Command="{Binding ApplyCommand}" Content="{Binding ApplyLabel}" IsEnabled="{Binding CanApply}" />
+        <Button Command="{Binding RestoreCommand}" Content="{Binding RestoreLabel}" IsEnabled="{Binding CanRestore}" />
+        <Button Command="{Binding PlanCommand}" Content="{Binding RefreshLabel}" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="{Binding StateText}" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding BackupText}" Classes="caption" />
+      <TextBlock Text="{Binding ProgressText}" Classes="caption" IsVisible="{Binding IsBusy}" />
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+      <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" />
+    </StackPanel>
+
+    <ListBox Grid.Row="2" Classes="dense" ItemsSource="{Binding PatchFiles}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:PatchFileRowViewModel">
+          <Grid ColumnDefinitions="240,140,120,*" Margin="0,2">
+            <TextBlock Grid.Column="0" Text="{Binding Name}" />
+            <TextBlock Grid.Column="1" Text="{Binding ActionText}" />
+            <TextBlock Grid.Column="2" Text="{Binding SizeText}" Classes="caption" />
+            <TextBlock Grid.Column="3" Text="{Binding Reason}" Classes="caption" TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>

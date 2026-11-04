@@ -16,6 +16,9 @@ internal static class Program
     /// <summary>Paths resolved before the DI container exists, so logging can use them too.</summary>
     internal static IAppPaths Paths { get; private set; } = new AppPaths();
 
+    /// <summary>The language asked for on the command line, when there was one; the settings value otherwise.</summary>
+    internal static string? LanguageOverride { get; private set; }
+
     /// <summary>Whether this process owns the instance lock.</summary>
     internal static StartupMode StartupMode { get; private set; } = StartupMode.Normal;
 
@@ -26,6 +29,7 @@ internal static class Program
     public static int Main(string[] args)
     {
         Paths = new AppPaths();
+        LanguageOverride = ReadLanguage(args);
         Paths.EnsureCreated();
         ConfigureLogging(Paths);
 
@@ -72,6 +76,20 @@ internal static class Program
         .WithDeveloperTools()
 #endif
         .WithInterFont().LogToTrace();
+    }
+
+    /// <summary>Reads <c>--lang &lt;culture&gt;</c>. An unknown language is ignored here and resolved by the localizer.</summary>
+    private static string? ReadLanguage(string[] args)
+    {
+        for (var index = 0; index < args.Length - 1; index++)
+        {
+            if (string.Equals(args[index], "--lang", StringComparison.OrdinalIgnoreCase))
+            {
+                return args[index + 1];
+            }
+        }
+
+        return null;
     }
 
     private static void ConfigureLogging(IAppPaths paths)

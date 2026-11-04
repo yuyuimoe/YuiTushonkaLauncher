@@ -1,0 +1,56 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="760"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.LogsView"
+  x:DataType="vm:LogsPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="260,*" ColumnSpacing="12">
+    <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <TextBlock Grid.Column="0" Classes="sectionTitle" Text="{Binding Title}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Command="{Binding RefreshCommand}" Content="{Binding RefreshLabel}" />
+        <Button Command="{Binding ExportCommand}" Content="{Binding ExportLabel}" IsEnabled="{Binding CanExport}" />
+        <Button Command="{Binding DiagnosticsCommand}" Content="{Binding DiagnosticsLabel}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+      <TextBlock Grid.Column="0" Text="{Binding SourceLabel}" FontWeight="SemiBold" />
+      <CheckBox Grid.Column="1" Content="{Binding FollowLabel}" IsChecked="{Binding FollowNewest}" />
+    </Grid>
+
+    <ListBox Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:LogFileRowViewModel">
+          <StackPanel Spacing="1" Margin="0,2">
+            <TextBlock Text="{Binding KindText}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Label}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{Binding SizeText}" Classes="caption" FontSize="11" />
+              <TextBlock Text="{Binding WhenText}" Classes="caption" FontSize="11" />
+            </StackPanel>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Grid Grid.Row="2" Grid.Column="1" RowDefinitions="Auto,*">
+      <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,6" IsVisible="{Binding HasNotice}">
+        <TextBlock Text="{Binding Notice}" Classes="error" />
+        <Button Command="{Binding OpenFolderCommand}" Content="{Binding OpenFolderLabel}" HorizontalAlignment="Left" />
+      </StackPanel>
+
+      <ListBox Grid.Row="1" Classes="dense" ItemsSource="{Binding Lines}" FontFamily="monospace" FontSize="11" />
+    </Grid>
+
+    <StackPanel Grid.Row="3" Grid.ColumnSpan="2">
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

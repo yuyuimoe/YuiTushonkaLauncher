@@ -1,17 +1,41 @@
 <Application
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:views="using:YuiTushonkaLauncher.Views"
   x:Class="YuiTushonkaLauncher.App"
-  xmlns:local="using:YuiTushonkaLauncher"
   RequestedThemeVariant="Default"
 >
-  <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
+  <!--
+    Explicit templates instead of a reflection view locator: each view model names its view here, so trimming has
+    nothing to guess at (D14) and a missing view is a build error rather than a runtime "Not Found" panel.
+  -->
   <Application.DataTemplates>
-    <local:ViewLocator />
+    <DataTemplate DataType="vm:InstancesPageViewModel">
+      <views:InstancesView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ModsPageViewModel">
+      <views:ModsView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ForgePageViewModel">
+      <views:ForgeView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ServerPageViewModel">
+      <views:ServerView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:LogsPageViewModel">
+      <views:LogsView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:SettingsPageViewModel">
+      <views:SettingsView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:PatchPageViewModel">
+      <views:PatchView />
+    </DataTemplate>
   </Application.DataTemplates>
 
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://YuiTushonkaLauncher/Styles/Theme.axaml" />
   </Application.Styles>
 </Application>
