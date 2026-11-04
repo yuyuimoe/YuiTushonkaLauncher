@@ -10,6 +10,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -32,6 +33,8 @@
     <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Infrastructure\YuiTushonkaLauncher.Infrastructure.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
+    <!-- The headless UI tests drive the real shell, pages and views, so the app assembly is referenced. -->
+    <ProjectReference Include="..\YuiTushonkaLauncher.Ui\YuiTushonkaLauncher.Ui.csproj" />
     <!-- Fixture assemblies used by the mod identity tests; copied to the test output. -->
     <ProjectReference Include="..\TestFixtures\ClientMod\ClientMod.csproj" />
     <ProjectReference Include="..\TestFixtures\ServerMod\ServerMod.csproj" />

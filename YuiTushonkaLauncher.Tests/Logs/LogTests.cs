@@ -285,6 +285,11 @@ public sealed class LogTests : IAsyncLifetime
             return Task.FromResult<IReadOnlyList<Instance>>([instance]);
         }
 
+        public Task<Instance?> GetAsync(Guid instanceId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<Instance?>(instance.Id == instanceId ? instance : null);
+        }
+
         public Task<Core.Instances.InstancePlan> PlanAsync(
             Core.Instances.InstanceCreationRequest request,
             CancellationToken cancellationToken = default
