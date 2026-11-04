@@ -64,6 +64,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   profile and starts the game detached, reporting each step by name. `--launch-plan` does all of it without
   starting anything. Patching, restoring and the layout migration refuse while the instance has a running
   process, naming it, and so do pack export and import.
+- QA: a coverage gate that fails below 90 % on Core and Infrastructure (97.7 % / 93.6 % today), a named test for
+  each of the seven domain invariants, performed-and-recorded manual QA rows, performance smoke tests that print their
+  numbers, a nightly-only live Forge workflow, and a mutation harness that refuses to judge a run whose test count
+  changed. Enforced along the way: an unrecognised mod is never offered an automatic update.
 - Logs: the launcher reads what SPT writes — the game's per-run folder, `BepInEx/LogOutput.log`, the server's
   daily file and its own log — by tailing a window at the end, and refuses files above 64 MiB with a message that
   points at a text editor (one measured session wrote 322 MiB). Export gives exactly the selected lines;
