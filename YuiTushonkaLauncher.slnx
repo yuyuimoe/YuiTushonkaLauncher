@@ -1,4 +1,8 @@
 <Solution>
+    <Folder Name="/TestFixtures/">
+        <Project Path="TestFixtures/ClientMod/ClientMod.csproj" />
+        <Project Path="TestFixtures/ServerMod/ServerMod.csproj" />
+    </Folder>
     <Project Path="YuiTushonkaLauncher.Core/YuiTushonkaLauncher.Core.csproj" />
     <Project Path="YuiTushonkaLauncher.Infrastructure/YuiTushonkaLauncher.Infrastructure.csproj" />
     <Project Path="YuiTushonkaLauncher.Patching/YuiTushonkaLauncher.Patching.csproj" />

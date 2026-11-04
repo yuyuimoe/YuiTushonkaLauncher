@@ -19,6 +19,8 @@
 - Inspect an SPT install: `dotnet run --project YuiTushonkaLauncher.Ui -- --inspect-base <path>`
 - Create an instance headlessly:
   `dotnet run --project YuiTushonkaLauncher.Ui -- --create-instance <name> --from <base> --into <dir>`
+- Install a local mod archive:
+  `dotnet run --project YuiTushonkaLauncher.Ui -- --install-mod <archive.zip> --instance <name>`
 - Coverage: `dotnet test YuiTushonkaLauncher.slnx --settings coverlet.runsettings --collect:"XPlat Code Coverage"`
 
 ## Code style

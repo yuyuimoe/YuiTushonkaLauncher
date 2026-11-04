@@ -23,6 +23,9 @@ internal static class HeadlessCommands
     /// <summary>Creates an instance from a base install (<c>--create-instance NAME --from PATH --into PATH</c>).</summary>
     public const string CreateInstance = "--create-instance";
 
+    /// <summary>Installs a local archive into an instance (<c>--install-mod ARCHIVE --instance NAME</c>).</summary>
+    public const string InstallMod = "--install-mod";
+
     /// <summary>Runs a headless command when one was requested.</summary>
     /// <returns><c>true</c> when a command ran and the process should exit with <paramref name="exitCode" />.</returns>
     public static bool TryRun(string[] args, IAppPaths paths, out int exitCode)
@@ -32,8 +35,9 @@ internal static class HeadlessCommands
         var migrateOnly = args.Contains(MigrateOnly, StringComparer.Ordinal);
         var inspectBaseIndex = IndexOf(args, InspectBase);
         var createInstanceIndex = IndexOf(args, CreateInstance);
+        var installModIndex = IndexOf(args, InstallMod);
 
-        if (!migrateOnly && inspectBaseIndex < 0 && createInstanceIndex < 0)
+        if (!migrateOnly && inspectBaseIndex < 0 && createInstanceIndex < 0 && installModIndex < 0)
         {
             return false;
         }
@@ -52,6 +56,11 @@ internal static class HeadlessCommands
             if (createInstanceIndex >= 0)
             {
                 CreateInstanceFromBase(services, args, ValueAfter(args, createInstanceIndex));
+            }
+
+            if (installModIndex >= 0)
+            {
+                InstallModFromArchive(services, ValueAfter(args, installModIndex));
             }
 
             Log.Information("Headless command finished; exiting");
@@ -121,6 +130,47 @@ internal static class HeadlessCommands
             stopwatch.Elapsed,
             instance.Patch.IsPatched
         );
+    }
+
+    private static void InstallModFromArchive(IServiceProvider services, string archivePath)
+    {
+        var instanceName = ValueOf(System.Environment.GetCommandLineArgs(), "--instance");
+        var instances = services.GetRequiredService<IInstanceService>();
+        var installer = services.GetRequiredService<Core.Mods.IModInstaller>();
+        var integrity = services.GetRequiredService<Core.Mods.IIntegrityService>();
+
+        var instance = instances.ListAsync().GetAwaiter().GetResult().FirstOrDefault(row => row.Name == instanceName);
+        if (instance is null)
+        {
+            throw new Core.Instances.InstanceValidationException([$"No instance named '{instanceName}'."]);
+        }
+
+        var result = installer
+            .InstallAsync(new Core.Mods.ModInstallRequest { InstanceId = instance.Id, ArchivePath = archivePath })
+            .GetAwaiter()
+            .GetResult();
+
+        Log.Information(
+            "Installed {Guid} ({Kind} {Version}) as {Recognition}",
+            result.Guid,
+            result.Kind,
+            result.Version,
+            result.Recognition
+        );
+        Log.Information("  {Count} file(s), {Configs} config file(s)", result.Files.Count, result.ConfigFiles.Count);
+
+        foreach (var file in result.Files.Take(8))
+        {
+            Log.Information("  + {File}", file);
+        }
+
+        foreach (var warning in result.Warnings)
+        {
+            Log.Warning("  warning: {Warning}", warning);
+        }
+
+        var report = integrity.VerifyAsync(instance.Id).GetAwaiter().GetResult();
+        Log.Information("  integrity after install: clean={Clean}", report.IsClean);
     }
 
     private static int IndexOf(string[] args, string name)

@@ -12,6 +12,7 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="WireMock.Net" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
@@ -24,5 +25,8 @@
     <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Infrastructure\YuiTushonkaLauncher.Infrastructure.csproj" />
     <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
+    <!-- Fixture assemblies used by the mod identity tests; copied to the test output. -->
+    <ProjectReference Include="..\TestFixtures\ClientMod\ClientMod.csproj" />
+    <ProjectReference Include="..\TestFixtures\ServerMod\ServerMod.csproj" />
   </ItemGroup>
 </Project>
