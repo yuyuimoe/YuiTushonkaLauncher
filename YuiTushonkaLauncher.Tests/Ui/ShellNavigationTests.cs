@@ -21,7 +21,7 @@ public sealed class ShellNavigationTests
 {
     private static readonly Dictionary<LauncherSection, Type> Expected = new()
     {
-        [LauncherSection.Forge] = typeof(ForgePageViewModel),
+        [LauncherSection.Addons] = typeof(AddonsPageViewModel),
         [LauncherSection.Mods] = typeof(ModsPageViewModel),
         [LauncherSection.Server] = typeof(ServerPageViewModel),
         [LauncherSection.Logs] = typeof(LogsPageViewModel),

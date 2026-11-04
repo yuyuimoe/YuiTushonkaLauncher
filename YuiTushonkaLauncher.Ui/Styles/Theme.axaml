@@ -79,4 +79,11 @@
   <Style Selector="TextBox.search">
     <Setter Property="Margin" Value="0,0,8,0" />
   </Style>
+  <!-- A requirement that is met reads green, one that is not reads red: that is the whole addon rule. -->
+  <Style Selector="TextBlock.ok">
+    <Setter Property="Foreground" Value="#4CAF50" />
+  </Style>
+  <Style Selector="TextBlock.missing">
+    <Setter Property="Foreground" Value="#E05252" />
+  </Style>
 </Styles>

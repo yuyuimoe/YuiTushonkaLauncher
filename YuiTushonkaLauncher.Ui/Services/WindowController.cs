@@ -15,6 +15,8 @@ public sealed class WindowController : IWindowController
 
     private Func<Navigation.LauncherSection, Window?>? _manager;
 
+    private Func<Navigation.ForgeBrowserMode, Window?>? _forge;
+
     /// <summary>Binds the manager factory: it returns the window, creating it on first use.</summary>
     public void AttachManager(Func<Navigation.LauncherSection, Window?> manager)
     {
@@ -25,6 +27,29 @@ public sealed class WindowController : IWindowController
     public void OpenManager(Navigation.LauncherSection section)
     {
         var window = _manager?.Invoke(section);
+        if (window is null)
+        {
+            return;
+        }
+
+        if (!window.IsVisible)
+        {
+            window.Show();
+        }
+
+        window.Activate();
+    }
+
+    /// <summary>Binds the Forge window factory: browsing is a window of its own now, not a rail page.</summary>
+    public void AttachForge(Func<Navigation.ForgeBrowserMode, Window?> forge)
+    {
+        _forge = forge;
+    }
+
+    /// <summary>Shows the Forge window for the given job, creating it on first use.</summary>
+    public void OpenForge(Navigation.ForgeBrowserMode mode)
+    {
+        var window = _forge?.Invoke(mode);
         if (window is null)
         {
             return;

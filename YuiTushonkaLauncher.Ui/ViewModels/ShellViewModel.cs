@@ -26,6 +26,7 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         IInstanceContext instances,
         InstancesPageViewModel instancesPage,
         ForgePageViewModel forgePage,
+        AddonsPageViewModel addonsPage,
         ModsPageViewModel modsPage,
         ServerPageViewModel serverPage,
         LogsPageViewModel logsPage,
@@ -39,6 +40,7 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         Instances = instances;
         InstancesPage = instancesPage;
         ForgePage = forgePage;
+        AddonsPage = addonsPage;
         ModsPage = modsPage;
         ServerPage = serverPage;
         LogsPage = logsPage;
@@ -50,6 +52,7 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         {
             [LauncherSection.Instances] = instancesPage,
             [LauncherSection.Forge] = forgePage,
+            [LauncherSection.Addons] = addonsPage,
             [LauncherSection.Mods] = modsPage,
             [LauncherSection.Server] = serverPage,
             [LauncherSection.Logs] = logsPage,
@@ -58,8 +61,8 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
 
         NavItems =
         [
-            new NavItemViewModel(localizer, LauncherSection.Forge, "⌕", "nav.forge"),
             new NavItemViewModel(localizer, LauncherSection.Mods, "▦", "nav.mods"),
+            new NavItemViewModel(localizer, LauncherSection.Addons, "⊕", "nav.addons"),
             new NavItemViewModel(localizer, LauncherSection.Server, "◉", "nav.server"),
             new NavItemViewModel(localizer, LauncherSection.Logs, "≡", "nav.logs"),
             new NavItemViewModel(localizer, LauncherSection.Settings, "⚙", "nav.settings"),
@@ -82,6 +85,8 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
     public InstancesPageViewModel InstancesPage { get; }
 
     public ForgePageViewModel ForgePage { get; }
+
+    public AddonsPageViewModel AddonsPage { get; }
 
     public ModsPageViewModel ModsPage { get; }
 
@@ -171,6 +176,9 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
                 break;
             case ForgePageViewModel forge:
                 await forge.LoadAsync(CancellationToken.None);
+                break;
+            case AddonsPageViewModel addons:
+                await addons.LoadAsync(CancellationToken.None);
                 break;
             case ServerPageViewModel server:
                 await server.RefreshAsync(CancellationToken.None);

@@ -27,6 +27,7 @@ public partial class ModsPageViewModel : PageViewModel
     private readonly IModInstaller _installer;
     private readonly IDialogService _dialogs;
     private readonly IDownloadActivity _downloads;
+    private readonly IWindowController _windows;
     private List<ModRowViewModel> _all = [];
 
     public ModsPageViewModel(
@@ -35,7 +36,8 @@ public partial class ModsPageViewModel : PageViewModel
         IInstanceService instances,
         IModInstaller installer,
         IDialogService dialogs,
-        IDownloadActivity downloads
+        IDownloadActivity downloads,
+        IWindowController windows
     )
         : base(localizer)
     {
@@ -44,6 +46,7 @@ public partial class ModsPageViewModel : PageViewModel
         _installer = installer;
         _dialogs = dialogs;
         _downloads = downloads;
+        _windows = windows;
         _context.Changed += (_, _) => _ = LoadAsync(CancellationToken.None);
     }
 
@@ -83,6 +86,12 @@ public partial class ModsPageViewModel : PageViewModel
     public string SearchLabel
     {
         get { return Text("mods.search"); }
+    }
+
+    /// <summary>Opens the Forge window, which is where browsing lives now that the rail is about the instance.</summary>
+    public string BrowseLabel
+    {
+        get { return Text("mods.browse"); }
     }
 
     public string InstallFileLabel
@@ -183,6 +192,19 @@ public partial class ModsPageViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(CanActOnSelection));
         OnPropertyChanged(nameof(PinLabel));
+    }
+
+    /// <summary>Opens the Forge browser window on this instance.</summary>
+    [RelayCommand]
+    private void OpenBrowser()
+    {
+        if (_context.ActiveId is null)
+        {
+            Error = Text("errors.noInstance");
+            return;
+        }
+
+        _windows.OpenForge(ForgeBrowserMode.Mods);
     }
 
     [RelayCommand]

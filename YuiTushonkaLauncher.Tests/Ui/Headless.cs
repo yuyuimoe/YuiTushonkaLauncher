@@ -124,6 +124,9 @@ public sealed class FakeWindowController : YuiTushonkaLauncher.ViewModels.IWindo
 
     public List<YuiTushonkaLauncher.Navigation.LauncherSection> Managers { get; } = [];
 
+    /// <summary>The Forge modes the launcher asked for.</summary>
+    public List<YuiTushonkaLauncher.Navigation.ForgeBrowserMode> ForgeModes { get; } = [];
+
     public void Apply(YuiTushonkaLauncher.Core.Configuration.GameStartWindowAction action)
     {
         Actions.Add(action.ToString());
@@ -132,5 +135,10 @@ public sealed class FakeWindowController : YuiTushonkaLauncher.ViewModels.IWindo
     public void OpenManager(YuiTushonkaLauncher.Navigation.LauncherSection section)
     {
         Managers.Add(section);
+    }
+
+    public void OpenForge(YuiTushonkaLauncher.Navigation.ForgeBrowserMode mode)
+    {
+        ForgeModes.Add(mode);
     }
 }

@@ -1,0 +1,22 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:views="using:YuiTushonkaLauncher.Views"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="1060"
+  d:DesignHeight="700"
+  x:Class="YuiTushonkaLauncher.Views.ForgeWindow"
+  x:DataType="vm:ForgePageViewModel"
+  Icon="/Assets/icon.ico"
+  Width="1060"
+  Height="700"
+  MinWidth="860"
+  MinHeight="540"
+  Title="{Binding Title}"
+>
+  <!-- Browsing is a window of its own now: the rail holds what belongs to the instance, not the catalogue. -->
+  <views:ForgeView />
+</Window>
