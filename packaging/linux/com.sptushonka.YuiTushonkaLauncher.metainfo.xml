@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>com.sptushonka.YuiTushonkaLauncher</id>
+    <name>YuiTushonkaLauncher</name>
+    <summary>Manage SPT instances, mods and the local server</summary>
+    <summary xml:lang="pt-BR">Gerencie instâncias, mods e o servidor local do SPT</summary>
+    <description>
+        <p>
+      YuiTushonkaLauncher replaces the official Single Player Tarkov launcher and adds instance and mod
+      management: several independent SPT installs sharing one base through hard links, mods installed from the
+      Forge or from an archive, SPT binary patching with a way back, profiles on a local server, and logs.
+    </p>
+        <p xml:lang="pt-BR">
+      O YuiTushonkaLauncher substitui o launcher oficial do Single Player Tarkov e acrescenta gerenciamento de
+      instâncias e mods: várias instalações independentes do SPT compartilhando uma base por hard links, mods
+      instalados da Forge ou de um arquivo, patch dos binários do SPT com volta, perfis de servidor local e logs.
+    </p>
+    </description>
+    <launchable type="desktop-id">yui-tushonka-launcher.desktop</launchable>
+    <provides>
+        <mediatype>application/x-sptpack</mediatype>
+    </provides>
+    <!-- The repository has no LICENSE file yet: the metadata is CC0 and the project is declared as not yet licensed,
+       which is what it is. Replace both when the licence is chosen (open question 30). -->
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>LicenseRef-proprietary</project_license>
+    <url type="homepage">https://github.com/SP-Tushonka/YuiTushonkaLauncher</url>
+    <developer id="com.sptushonka">
+        <name>SP-Tushonka</name>
+    </developer>
+    <content_rating type="oars-1.1" />
+    <releases>
+        <release version="0.1.0" date="2026-11-04" />
+    </releases>
+</component>
