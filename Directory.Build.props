@@ -35,7 +35,15 @@
     <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
   </PropertyGroup>
 
-  <Target Name="_ResolveGitVersion" BeforeTargets="GenerateAssemblyInfo;GetAssemblyVersion" Condition="'$(Version)' == '$(VersionPrefix)'">
+  <!--
+    A release build passes -p:GitVersion=false -p:VersionPrefix=X.Y.Z -p:Version=X.Y.Z: the version then comes from the tag
+    and carries neither a sha nor a -pre suffix. Everything else keeps the development scheme above.
+  -->
+  <Target
+    Name="_ResolveGitVersion"
+    BeforeTargets="GenerateAssemblyInfo;GetAssemblyVersion"
+    Condition="'$(GitVersion)' != 'false' and '$(Version)' == '$(VersionPrefix)'"
+  >
     <Exec
       Command="git rev-parse --short=7 HEAD"
       ConsoleToMSBuild="true"
@@ -59,7 +67,7 @@
       <_GitSha Condition="'$(_GitSha)' == ''">nogit</_GitSha>
       <_DirtySuffix Condition="'$(_GitStatus)' != ''">.dirty</_DirtySuffix>
       <Version>$(VersionPrefix)-pre-$(_GitSha)$(_DirtySuffix)</Version>
-      <InformationalVersion>$(Version)</InformationalVersion>
+      <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
     </PropertyGroup>
 
     <Message Importance="high" Text="YuiTushonkaLauncher version: $(Version)" />
