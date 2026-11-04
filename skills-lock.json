@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "avalonia": {
+      "source": "markpitt/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/avalonia/SKILL.md",
+      "computedHash": "e373cf5ca70a57953b18815e3c9671508e5888d4daab4025cc48d9f7507d4d6b"
+    },
+    "csharp-async": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/csharp-async/SKILL.md",
+      "computedHash": "e889958419757528e43fb674607d13fffe331a6673cfcef2b0ab8ff9fb569bb8"
+    },
+    "dotnet-best-practices": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/dotnet-best-practices/SKILL.md",
+      "computedHash": "9ef94db7f06c167d544369817e5a4415eeb7886dcff0d47026837a1aada260e3"
+    }
+  }
+}
