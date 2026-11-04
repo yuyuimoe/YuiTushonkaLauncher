@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
+    <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
   </ItemGroup>
 
   <ItemGroup>
