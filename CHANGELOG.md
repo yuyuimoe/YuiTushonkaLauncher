@@ -20,6 +20,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   settings moved into the database; `DatabaseInitializer` runs migrations at startup.
 - Value objects: `SemanticVersion` and `VersionRange` (caret/tilde/comparator/bracket ranges) with the
   real-world constraint shapes covered by tests; `coverlet.runsettings` documents coverage exclusions.
+- Forge API client: typed endpoints over `filter[...]`/`query=`, burst + sustained rate limiting under
+  the advertised 300/min, `cache-control`-aware response cache, retries with `Retry-After` and jitter,
+  archive downloads with redirect following, `Range` resume and streaming SHA-256, plus the SPT
+  release catalogue sync.
 - Headless `--migrate-only` command for CI smoke tests and troubleshooting.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.

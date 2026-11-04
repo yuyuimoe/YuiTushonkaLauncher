@@ -34,15 +34,38 @@ Local evidence:
 | Endpoint | Notes |
 |---|---|
 | `GET /ping` | health |
-| `GET /mods` | filters: `ids`, `hub_ids`, `guids` (case-insensitive), `category_id`, `category_slug`, `search`, `sort` (`name`,`downloads`,`favourites_count`,`featured`,`created_at`,`updated_at`,`published_at`, prefix `-` for DESC), `include=versions,license,category,source_code_links`, `per_page`, `page`. Returns `guid`, `hub_id`, `slug`, `fika_compatibility`, `category_id`, `owner`, `additional_authors`, and only the latest 6 versions when `include=versions`. |
-| `GET /mod/{id}/versions` | **singular `mod`** — `/mods/{id}/versions` is a 404. Fields: `version`, `link` (download), `content_length`, `spt_version_constraint` (semver range, may come with stray spaces), `downloads`, `fika_compatibility`, `description` (HTML). |
-| `GET /mods/updates` | requires **both** `mods=` and `spt_version=`. `mods` format: `identifier:version,...` where identifier is a numeric mod id **or** a GUID: `?mods=31:1.0.7,com.donut.scavcat:1.0.0&spt_version=4.1.6`. Response buckets: `updates`, `blocked_updates`, `up_to_date`, `incompatible_with_spt` (`reason: "no_version_for_spt"`, `latest_compatible_version`). |
+| `GET /mods` | free text is `query=`; filtering is **`filter[...]`** (see below); `sort` (`name`,`downloads`,`favourites_count`,`featured`,`created_at`,`updated_at`,`published_at`, prefix `-` for DESC); `include=versions`; `page`, `per_page`. Returns `guid`, `hub_id`, `slug`, `fika_compatibility`, `category_id`, `owner`, `additional_authors`, and only the latest 6 versions when `include=versions`. |
+| `GET /mod/{id}` | single mod including `description` (HTML). The plural `/mods/{id}` is a 404. |
+| `GET /mod/{id}/versions` | **singular `mod`** — `/mods/{id}/versions` is a 404. Fields: `version`, `link` (download), `content_length`, `spt_version_constraint` (semver range, may come with stray spaces), `downloads`, `fika_compatibility`, `description` (HTML). Sometimes also `spt_versions` (concrete versions the API resolved). |
+| `GET /mods/updates` | requires **both** `mods=` and `spt_version=`. `mods` format: `identifier:version,...` where identifier is a numeric mod id **or** a GUID: `?mods=827:1.3.1&spt_version=4.1.6`. Buckets and shapes (verified live): `updates[]` = `{current_version:{id,mod_id,guid,name,slug,version}, recommended_version:{id,version,link,content_length,fika_compatibility,spt_versions[]}}`; `blocked_updates[]` = same pair shape; `up_to_date[]` = `{id,mod_id,guid,name,version,spt_versions[]}`; `incompatible_with_spt[]` = `{id,mod_id,guid,name,version,reason,latest_compatible_version}` with `reason: "no_version_for_spt"`. |
 | `GET /mods/dependencies` | same two params; returns a map `"<id>:<version>" → dependency list`. |
 | `GET /addons` | fields include `mod_id`, `is_detached`, `detached_at`; paginated (139 pages at review time). |
 | `GET /addon/{id}/versions` | fields: `version`, `link`, `content_length`, **`mod_version_constraint`** (not `spt_version_constraint`), `description`, `downloads`. |
 | `GET /addons/dependencies` | analog of the mods one. |
 | `GET /mod-categories` | `id`, `hub_id`, `title`, `slug`. |
 | `GET /spt/versions` | `version`, `version_major/minor/patch`, `mod_count`, `link` (release URL), `color_class`. SPT 4.x links point at `github.com/SP-Tushonka/build`; 3.x at `github.com/sp-tarkov/build`. |
+
+### Filtering is `filter[...]`, and the obvious names are silently ignored
+
+Only `filter[...]` works. `?guids=`, `?ids=`, `?category_id=`, `?search=` are **ignored** (the API
+returns unfiltered page 1, HTTP 200, no warning) — verified by comparing `meta.total` against the
+expected subset. The authoritative filter list comes from the API's own error message:
+
+```
+filter: id, hub_id, name, slug, guid, teaser, featured, contains_ads, cheat_notice,
+        category_id, category_slug, created_between, updated_between, published_between,
+        spt_version, fika_compatibility, include_legacy
+```
+
+- `filter[guid]=a,b,c` and `filter[id]=1,2,3` accept **comma-separated batches** — this is how the
+  migration feature resolves installed GUIDs in bulk.
+- `filter[spt_version]=4.1.6` restricts to mods with a version compatible with that SPT version
+  (699 results at review time).
+- Brackets must be percent-encoded (`filter%5Bguid%5D`); the live server accepts the encoded form.
+- Unknown filter names answer `400 INVALID_QUERY_PARAMETER` with the list above — a cheap way to
+  discover the surface, and the reason our client never sends made-up parameters.
+- `query=` is full-text over name/teaser/description; a GUID there yields fuzzy results, so exact
+  matching must be done client-side (we verify every returned `guid`).
 
 Notes:
 
