@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Microsoft.Extensions.Logging.Abstractions;
 using Serilog;
@@ -28,6 +29,13 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // --version answers before anything else exists: no logging file, no database, no Avalonia.
+        if (args.Any(argument => argument.Equals("--version", StringComparison.Ordinal) || argument.Equals("-v", StringComparison.Ordinal)))
+        {
+            Console.Out.WriteLine(AppVersion.Current);
+            return 0;
+        }
+
         Paths = new AppPaths();
         LanguageOverride = ReadLanguage(args);
         Paths.EnsureCreated();

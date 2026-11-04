@@ -234,7 +234,11 @@
     "logsDirectory": "Launcher logs",
     "instancesDirectory": "Instances",
     "about": "About",
-    "version": "Version"
+    "version": "Version",
+    "checkUpdates": "Check for updates",
+    "openRelease": "Open the release page",
+    "updateAvailable": "{0} is available",
+    "upToDate": "This build is up to date."
   },
   "errors": {
     "generic": "Something went wrong: {0}",
