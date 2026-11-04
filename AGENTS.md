@@ -12,9 +12,11 @@
 - Test all: `dotnet test YuiTushonkaLauncher.slnx`
 - Format: `dotnet csharpier format .` — CI fails on `dotnet csharpier check .`
 - Run: `dotnet run --project YuiTushonkaLauncher.Ui`
-- Migrations (from Phase 2):
+- Migrations (`Microsoft.EntityFrameworkCore.Design` must be referenced by the startup project too):
   - `dotnet ef migrations add <Name> -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
   - `dotnet ef database update -p YuiTushonkaLauncher.Infrastructure -s YuiTushonkaLauncher.Ui`
+- Smoke test without a display: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-only`
+- Coverage: `dotnet test YuiTushonkaLauncher.slnx --settings coverlet.runsettings --collect:"XPlat Code Coverage"`
 
 ## Code style
 
@@ -42,7 +44,8 @@ file-scoped namespaces, `var`, `_camelCase` private fields, PascalCase constants
 
 ## Projects
 
-- `YuiTushonkaLauncher.Core` — domain, interfaces, pure rules. No I/O.
+- `YuiTushonkaLauncher.Core` — domain (`SemanticVersion`, `VersionRange`, entities), interfaces, pure
+  rules. No I/O.
 - `YuiTushonkaLauncher.Patching` — `SharpHDiffPatch.Core` wrapper, delta discovery, backup/restore.
 - `YuiTushonkaLauncher.Infrastructure` — EF Core/SQLite, Forge API, file linking, DLL metadata readers,
   processes, Proton.

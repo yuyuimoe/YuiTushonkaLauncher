@@ -2,23 +2,29 @@
 
 **Branch:** `feature/phase-02-persistence` · **Depends on:** Phase 1.
 
+**Status:** ☑ done. Delivered: all entities from the domain model (plus `InstalledMod`/`InstalledFile`/
+`SptRelease`), `LauncherDbContext` + `AddLauncherPersistence()`, `InitialCreate` migration, design-time
+factory, `IUnitOfWork` with commit/rollback, settings moved from JSON into the database,
+`DatabaseInitializer` wired into startup and a `--migrate-only` headless command for smoke tests.
+Coverage: Core 96.7 %, Infrastructure 92.2 % (100 tests).
+
 ## Goal
 
 EF Core + SQLite with migrations, the full entity set, and a repository-free-but-testable data layer.
 
 ## Tasks
 
-- [ ] `LauncherDbContext` in `Infrastructure` with `DbSet`s for the entities in
+- [x] `LauncherDbContext` in `Infrastructure` with `DbSet`s for the entities in
       [02-domain-model](../plan/02-domain-model.md); owned types for `SptVersion`, `PatchInfo`,
       `Range`-backed constraints (map to `TEXT`, compare in code).
-- [ ] `AddLauncherDbContext(...)` extension: SQLite file under `IAppPaths.DataDir`, `WAL`,
+- [x] `AddLauncherPersistence()` extension (name changed to reflect that it registers the layer): SQLite file under `IAppPaths.DataDir`, `WAL`,
       `foreign_keys=on`, `busy_timeout`, retry on `SQLITE_BUSY`.
-- [ ] Design-time factory so `dotnet ef` works with the UI as startup project.
-- [ ] Initial migration + a test that applies it to a temp file and validates the schema.
-- [ ] `ISettingsService` implemented over a single-row table, cached in memory.
-- [ ] `IUnitOfWork`/transaction helper for multi-step operations (install = download + extract + link +
+- [x] Design-time factory (`LauncherDbContextFactory` serves both DI and `dotnet ef`) so `dotnet ef` works with the UI as startup project.
+- [x] Initial migration + tests for schema, idempotency and FK enforcement + a test that applies it to a temp file and validates the schema.
+- [x] `ISettingsService` implemented over a single-row table (`EfSettingsService`); `JsonSettingsService` deleted, cached in memory.
+- [x] `IUnitOfWork`/transaction helper (see note on layering) for multi-step operations (install = download + extract + link +
       rows, all-or-nothing).
-- [ ] Seed: default `RuntimeProfile` (Native) and the known SPT/Tarkov pairs from `/spt/versions` are
+- [x] Seed: default `RuntimeProfile` (Native) and the known SPT/Tarkov pairs from `/spt/versions` are
       *not* seeded — they are cached on first sync (Phase 3).
 - [ ] Concurrency: every row carries a `RowVersion`/`UpdatedAt` guard where two windows could edit it.
 
@@ -32,6 +38,15 @@ EF Core + SQLite with migrations, the full entity set, and a repository-free-but
 
 ## Notes
 
+- `IUnitOfWork` lives in **Infrastructure**, not Core: a transaction is meaningless without the
+  `DbContext` that carries it, so its signature takes `LauncherDbContext`. Core still never sees EF.
+- `SemanticVersion`/`VersionRange` (Core) are the value objects from the domain model; both are
+  covered by unit tests including the messy real-world constraint strings.
+- POCO entity files and EF migrations are excluded from coverage in `coverlet.runsettings` (each
+  exclusion justified inline) because EF sets those properties by reflection.
+- `LauncherDbContextFactory` doubles as the design-time factory, so `dotnet ef` and the app always
+  agree on options. `Microsoft.EntityFrameworkCore.Design` is referenced by both Infrastructure and
+  Ui (private assets) — the tools require it in the startup project.
 - Do not expose `DbContext` outside Infrastructure; services take domain-level interfaces.
 - Soft delete only where recovery matters (`Mod`, `Addon`); instances are hard-deleted with their
   folder after confirmation.
