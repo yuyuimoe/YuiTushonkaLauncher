@@ -1,0 +1,26 @@
+name: Live checks
+
+# The live tests talk to the real Forge API and to real SPT servers. They are opt-in and only run on a schedule, so a
+# red build can still mean "the network was down" instead of "the code is broken".
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  forge:
+    name: Live Forge API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build
+        run: dotnet build YuiTushonkaLauncher.slnx -c Release --nologo
+      - name: Live tests
+        run: dotnet test YuiTushonkaLauncher.slnx -c Release --no-build --nologo --filter "Live=Forge"

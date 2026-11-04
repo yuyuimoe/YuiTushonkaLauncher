@@ -44,6 +44,11 @@ jobs:
           dotnet test YuiTushonkaLauncher.slnx -c Release --no-build --nologo
           --settings coverlet.runsettings --collect:"XPlat Code Coverage"
           --results-directory TestResults --logger "trx;LogFileName=results.trx"
+      - name: Coverage gate (Core and Infrastructure at 90 %)
+        if: matrix.os == 'ubuntu-latest'
+        run: >
+          dotnet run --project tools/YuiTushonkaLauncher.Tools.CoverageGate -c Release --no-build --
+          --report TestResults --min 90
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
