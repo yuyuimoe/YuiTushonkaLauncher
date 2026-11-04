@@ -2,43 +2,95 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:views="using:YuiTushonkaLauncher.Views"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DesignWidth="720"
-  d:DesignHeight="480"
+  d:DesignWidth="1000"
+  d:DesignHeight="680"
   x:Class="YuiTushonkaLauncher.Views.MainWindow"
-  x:DataType="vm:MainViewModel"
+  x:DataType="vm:ShellViewModel"
   Icon="/Assets/avalonia-logo.ico"
-  Width="720"
-  Height="480"
-  Title="YuiTushonkaLauncher"
+  Width="1000"
+  Height="680"
+  MinWidth="760"
+  MinHeight="480"
+  Title="{Binding Title}"
 >
-  <Border Padding="24">
-    <StackPanel Spacing="12">
-      <TextBlock Text="{Binding Greeting}" FontSize="22" FontWeight="SemiBold" />
-      <TextBlock Text="{Binding Version}" Opacity="0.7" />
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Launch panel: always visible, because launching is what the launcher is for. -->
+    <Border Grid.Row="0" Padding="16,12" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button
+            Classes="primary"
+            Command="{Binding LaunchPanel.LaunchCommand}"
+            IsEnabled="{Binding LaunchPanel.CanPressLaunch}"
+            Content="{Binding LaunchPanel.LaunchLabel}"
+            AutomationProperties.Name="{Binding LaunchPanel.LaunchLabel}"
+          />
+          <Button
+            Command="{Binding LaunchPanel.StopCommand}"
+            IsEnabled="{Binding LaunchPanel.CanPressStop}"
+            Content="{Binding LaunchPanel.StopLabel}"
+            AutomationProperties.Name="{Binding LaunchPanel.StopLabel}"
+          />
+          <Button
+            Command="{Binding LaunchPanel.CancelLaunchCommand}"
+            IsEnabled="{Binding LaunchPanel.CanPressCancel}"
+            Content="{Binding LaunchPanel.CancelLabel}"
+            AutomationProperties.Name="{Binding LaunchPanel.CancelLabel}"
+          />
+        </StackPanel>
 
-      <Separator Margin="0,8" />
+        <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding LaunchPanel.Message}" Classes="caption" />
+          <TextBlock Text="{Binding LaunchPanel.ProblemsText}" Classes="error" IsVisible="{Binding LaunchPanel.HasProblems}" />
+        </StackPanel>
 
-      <TextBlock Text="Data directory" FontWeight="SemiBold" />
-      <SelectableTextBlock Text="{Binding DataRoot}" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding LaunchPanel.ProfileLabel}" VerticalAlignment="Center" />
+          <TextBox Text="{Binding LaunchPanel.ProfileUsername}" Width="160" PlaceholderText="{Binding LaunchPanel.ProfileLabel}" />
+          <CheckBox Content="{Binding LaunchPanel.RememberLabel}" IsChecked="{Binding LaunchPanel.RememberProfile}" />
+          <CheckBox Content="{Binding LaunchPanel.SkipPatchLabel}" IsChecked="{Binding LaunchPanel.SkipPatch}" />
+        </StackPanel>
+      </Grid>
+    </Border>
 
-      <TextBlock Text="Config directory" FontWeight="SemiBold" />
-      <SelectableTextBlock Text="{Binding ConfigRoot}" />
+    <Grid Grid.Row="1" ColumnDefinitions="200,*">
+      <!-- Left rail. -->
+      <Border Grid.Column="0" Background="{DynamicResource YttRailBrush}">
+        <ItemsControl ItemsSource="{Binding NavItems}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NavItemViewModel">
+              <Button
+                Classes="rail"
+                Classes.selected="{Binding IsSelected}"
+                Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).GoCommand}"
+                CommandParameter="{Binding Section}"
+                AutomationProperties.Name="{Binding AccessibleName}"
+              >
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="{Binding Glyph}" Width="16" />
+                  <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
 
-      <TextBlock Text="Logs" FontWeight="SemiBold" />
-      <SelectableTextBlock Text="{Binding LogsDirectory}" />
+      <!-- The page. -->
+      <ContentControl Grid.Column="1" Margin="16" Content="{Binding CurrentPage}" />
+    </Grid>
 
-      <TextBlock Text="Instances" FontWeight="SemiBold" />
-      <SelectableTextBlock Text="{Binding InstancesDirectory}" />
-
-      <Separator Margin="0,8" />
-
-      <TextBlock Text="Settings" FontWeight="SemiBold" />
-      <TextBlock Text="{Binding Settings.Language, StringFormat='Language: {0}'}" />
-      <TextBlock Text="{Binding Settings.MaxConcurrentDownloads, StringFormat='Concurrent downloads: {0}'}" />
-      <TextBlock Text="{Binding Settings.LogRetentionDays, StringFormat='Log retention (days): {0}'}" />
-    </StackPanel>
-  </Border>
+    <Border Grid.Row="2" Classes="statusBar">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding StatusBar.InstanceText}" />
+        <TextBlock Grid.Column="1" Text="{Binding StatusBar.ServerText}" Margin="12,0" />
+        <TextBlock Grid.Column="2" Text="{Binding StatusBar.PatchText}" Margin="12,0" />
+        <TextBlock Grid.Column="3" Text="{Binding StatusBar.DownloadsText}" Margin="12,0" />
+      </Grid>
+    </Border>
+  </Grid>
 </Window>

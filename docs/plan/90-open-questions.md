@@ -128,3 +128,19 @@ Everything still unresolved, with who/what resolves it.
     detached server nobody can adopt, and the launch then says "port already in use". The message now suggests
     `--stale`; whether the launcher should also scan for a process whose executable is the instance's server
     (an adoption without a record) is open.
+
+25. **The theme is applied to `Application.RequestedThemeVariant`, but the window itself has no per-variant
+    resources beyond the Fluent defaults.** The rail and accent colours are the same in both variants so a
+    high-contrast system theme keeps working; a designed light/dark pair would need two palettes and a check
+    on a real screen. Decide before the visual pass (26).
+26. **The already-running window is localised now.** It used to be English-only because it runs before the
+    container exists; it now builds a `JsonLocalizer` from `--lang` and falls back to English, which is what
+    that window always did.
+27. **Mutation checking the UI layer is partly blocked by the harness.** Two mutants were killed (the
+    out-of-order launch report and the language-tag resolution) and a third (cancel while running) by the
+    session tests. When the *UI assembly* is mutated, however, `dotnet test` discovers 1112 tests instead of
+    1137 and runs none of the affected ones, so a "SURVIVED" verdict there means nothing. Fix the harness
+    (one process per mutant, or `--list-tests` guard) before trusting UI mutation numbers; until then the
+    behaviour is covered by ordinary tests, which do fail when the code is wrong by hand.
+28. **No one has looked at the pixels.** Every screen is driven headlessly; a manual pass on Windows and
+    Linux (light/dark, 1000-row list, a small window) is the phase-13 job.

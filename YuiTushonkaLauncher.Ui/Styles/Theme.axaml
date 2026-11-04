@@ -1,0 +1,82 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!--
+    One accent, dense rows, and colours that stay legible in both variants. The rail and the status bar use the theme's
+    own surface brushes so a high-contrast system theme keeps working.
+  -->
+  <Styles.Resources>
+    <SolidColorBrush x:Key="YttAccentBrush" Color="#E8A33D" />
+    <SolidColorBrush x:Key="YttAccentSoftBrush" Color="#3DE8A33D" />
+    <SolidColorBrush x:Key="YttRailBrush" Color="#14000000" />
+    <SolidColorBrush x:Key="YttDangerBrush" Color="#D9534F" />
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <!-- The rail button: an icon and a label, selected by a soft accent bar. -->
+  <Style Selector="Button.rail">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+
+  <Style Selector="Button.rail:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
+  </Style>
+
+  <Style Selector="Button.rail.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="Padding" Value="14,8" />
+  </Style>
+
+  <Style Selector="TextBlock.sectionTitle">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+
+  <Style Selector="TextBlock.caption">
+    <Setter Property="Opacity" Value="0.7" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{StaticResource YttDangerBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="Border.card">
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+
+  <Style Selector="Border.statusBar">
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+    <Setter Property="Padding" Value="12,6" />
+  </Style>
+
+  <!-- Dense lists: the mod list has to hold a thousand rows. -->
+  <Style Selector="ListBox.dense ListBoxItem">
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="6,2" />
+  </Style>
+
+  <Style Selector="TextBox.search">
+    <Setter Property="Margin" Value="0,0,8,0" />
+  </Style>
+</Styles>

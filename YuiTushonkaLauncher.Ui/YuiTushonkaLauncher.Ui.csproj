@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!-- Locales are read by code (and by tests without an Avalonia asset loader), so they are embedded too. -->
+    <EmbeddedResource Include="Assets\Locales\*.json" />
   </ItemGroup>
 
   <ItemGroup>

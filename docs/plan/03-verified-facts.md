@@ -473,3 +473,19 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
 - A windowed tail of a file larger than the window drops the partial first line, so a cut word never appears as
   a log entry; the line numbers a view shows are positions within the tail, not file line numbers (counting from
   the start would mean reading the whole file).
+
+### The UI layer, measured while building it (2026-11-04)
+
+- A headless Avalonia application cannot be started twice in one process: `AppBuilder.SetupWithoutStarting`
+  is called once behind a lock, and every UI test runs in one xunit collection with parallelisation off.
+  Without that collection the test host died during the run (a hard crash, not a failed assertion).
+- `Progress<T>` posts to the captured context, so a launch step can arrive *after* a later one. The session
+  therefore keeps the furthest step and ignores anything behind it; the result of the pipeline, not a
+  progress report, is what puts the button in `Running`.
+- `IInstanceService.ListAsync` did not load installed mods, so a mods page built on it showed an empty list
+  right after an install: `GetAsync` (mods + files) was added and the list method now includes the mods
+  (enough for a card's count).
+- A 1000-row list built from cached row objects filters in milliseconds; the row objects are reused, which is
+  what keeps a keystroke from rebuilding the page.
+- `dotnet test` with a filter that selects only headless tests produces no summary in this harness (the host
+  ends without printing), so UI mutation runs use the full suite, one mutant at a time.

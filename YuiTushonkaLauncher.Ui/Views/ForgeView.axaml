@@ -1,0 +1,105 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="760"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.ForgeView"
+  x:DataType="vm:ForgePageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="2*,1.2*" ColumnSpacing="16">
+    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Classes="sectionTitle" Text="{Binding Title}" />
+
+    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="2*,Auto,Auto,Auto,Auto" Margin="0,0,0,12">
+      <TextBox Grid.Column="0" Classes="search" Text="{Binding Search}" PlaceholderText="{Binding SearchPlaceholder}" />
+      <ComboBox
+        Grid.Column="1"
+        ItemsSource="{Binding Categories}"
+        SelectedItem="{Binding SelectedCategory}"
+        DisplayMemberBinding="{Binding Name}"
+        PlaceholderText="{Binding CategoryLabel}"
+        Margin="0,0,8,0"
+        MinWidth="140"
+      />
+      <CheckBox Grid.Column="2" Content="{Binding FeaturedLabel}" IsChecked="{Binding FeaturedOnly}" />
+      <CheckBox Grid.Column="3" Content="{Binding FikaLabel}" IsChecked="{Binding FikaOnly}" />
+      <Button Grid.Column="4" Classes="primary" Command="{Binding SearchCommand}" Content="{Binding SearchButtonLabel}" />
+    </Grid>
+
+    <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto,*">
+      <TextBlock Grid.Row="0" Text="{Binding ResultsText}" Classes="caption" Margin="0,0,0,6" />
+
+      <StackPanel Grid.Row="1" Spacing="6" IsVisible="{Binding !HasResults}">
+        <TextBlock Text="{Binding EmptyText}" Classes="caption" />
+      </StackPanel>
+
+      <ListBox
+        Grid.Row="1"
+        Classes="dense"
+        ItemsSource="{Binding Results}"
+        SelectedItem="{Binding Selected}"
+        IsVisible="{Binding HasResults}"
+      >
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ForgeModRowViewModel">
+            <StackPanel Spacing="1" Margin="0,2">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding TeaserText}" Classes="caption" MaxLines="2" TextTrimming="CharacterEllipsis" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding AuthorText}" Classes="caption" />
+                <TextBlock Text="{Binding DownloadsText}" Classes="caption" />
+              </StackPanel>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+
+    <Grid Grid.Row="2" Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+      <TextBlock Grid.Row="0" Text="{Binding DetailsLabel}" FontWeight="SemiBold" />
+      <TextBlock Grid.Row="1" Text="{Binding SelectPrompt}" Classes="caption" IsVisible="{Binding !HasSelection}" />
+      <TextBlock Grid.Row="2" Text="{Binding Selected.Name}" FontSize="15" FontWeight="SemiBold" IsVisible="{Binding HasSelection}" />
+
+      <StackPanel Grid.Row="3" Spacing="4" Margin="0,8,0,0">
+        <TextBlock Text="{Binding VersionsLabel}" FontWeight="SemiBold" />
+        <ListBox Classes="dense" ItemsSource="{Binding Versions}" SelectedItem="{Binding SelectedVersion}" MaxHeight="180">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ForgeVersionRowViewModel">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="{Binding VersionText}" />
+                <TextBlock Text="{Binding ConstraintText}" Classes="caption" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+
+      <Grid Grid.Row="4" RowDefinitions="Auto,*" Margin="0,8,0,0">
+        <TextBlock Grid.Row="0" Text="{Binding DependenciesLabel}" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Text="{Binding NoDependenciesText}" Classes="caption" IsVisible="{Binding !HasDependencies}" />
+        <ItemsControl Grid.Row="1" ItemsSource="{Binding Dependencies}" IsVisible="{Binding HasDependencies}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" Classes="caption" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+
+      <StackPanel Grid.Row="5" Spacing="4">
+        <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" />
+        <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+        <Button
+          Classes="primary"
+          Command="{Binding InstallCommand}"
+          CommandParameter="{Binding SelectedVersion}"
+          Content="{Binding InstallLabel}"
+          IsEnabled="{Binding HasSelection}"
+        />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -9,6 +9,9 @@ public partial class AlreadyRunningWindow : Window
     public AlreadyRunningWindow()
     {
         InitializeComponent();
+        DataContext = new YuiTushonkaLauncher.ViewModels.AlreadyRunningViewModel(
+            new YuiTushonkaLauncher.Localization.JsonLocalizer(Program.LanguageOverride ?? "en")
+        );
     }
 
     private void OnCloseClick(object? sender, RoutedEventArgs e)

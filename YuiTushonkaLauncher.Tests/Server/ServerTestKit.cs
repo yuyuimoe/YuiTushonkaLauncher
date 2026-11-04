@@ -505,6 +505,11 @@ public sealed class FakeInstanceList : IInstanceService
         return Task.FromResult<IReadOnlyList<Instance>>([.. Instances]);
     }
 
+    public Task<Instance?> GetAsync(Guid instanceId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<Instance?>(Instances.FirstOrDefault(instance => instance.Id == instanceId));
+    }
+
     public Task<InstancePlan> PlanAsync(InstanceCreationRequest request, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException();
