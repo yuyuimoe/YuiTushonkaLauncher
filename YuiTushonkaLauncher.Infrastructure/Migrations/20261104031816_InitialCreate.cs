@@ -22,7 +22,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     Slug = table.Column<string>(type: "TEXT", maxLength: 256, nullable: false),
                     IsDetached = table.Column<bool>(type: "INTEGER", nullable: false),
                     ThumbnailUrl = table.Column<string>(type: "TEXT", maxLength: 1024, nullable: true),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    UpdatedAt = table.Column<long>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -58,14 +58,14 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     Layout = table.Column<string>(type: "TEXT", maxLength: 16, nullable: false),
                     RuntimeProfileId = table.Column<Guid>(type: "TEXT", nullable: true),
                     ServerPort = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    LastLaunchedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<long>(type: "INTEGER", nullable: false),
+                    LastLaunchedAt = table.Column<long>(type: "INTEGER", nullable: true),
                     Patch_IsPatched = table.Column<bool>(type: "INTEGER", nullable: false),
                     Patch_PatchSetVersion = table.Column<string>(type: "TEXT", maxLength: 32, nullable: true),
                     Patch_OriginalSha256 = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
                     Patch_PatchedSha256 = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
                     Patch_BackupPath = table.Column<string>(type: "TEXT", maxLength: 1024, nullable: true),
-                    Patch_AppliedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    Patch_AppliedAt = table.Column<long>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -81,7 +81,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     SptVersion = table.Column<string>(type: "TEXT", maxLength: 32, nullable: false),
                     TarkovVersion = table.Column<string>(type: "TEXT", maxLength: 64, nullable: false),
                     ManifestSha256 = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    CreatedAt = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -99,7 +99,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     Author = table.Column<string>(type: "TEXT", maxLength: 256, nullable: false),
                     Kind = table.Column<string>(type: "TEXT", maxLength: 16, nullable: false),
                     ThumbnailUrl = table.Column<string>(type: "TEXT", maxLength: 1024, nullable: true),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    UpdatedAt = table.Column<long>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -153,7 +153,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     ModCount = table.Column<int>(type: "INTEGER", nullable: false),
                     ReleaseUrl = table.Column<string>(type: "TEXT", maxLength: 1024, nullable: true),
                     IsCurrent = table.Column<bool>(type: "INTEGER", nullable: false),
-                    FetchedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    FetchedAt = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -170,7 +170,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     ModVersionConstraint = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
                     DownloadUrl = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: false),
                     ContentLength = table.Column<long>(type: "INTEGER", nullable: true),
-                    PublishedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    PublishedAt = table.Column<long>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -193,7 +193,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     BackendUrl = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
                     AutoSyncMods = table.Column<bool>(type: "INTEGER", nullable: false),
                     LastProfileId = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    UpdatedAt = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -243,7 +243,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     IsPinned = table.Column<bool>(type: "INTEGER", nullable: false),
                     Recognition = table.Column<string>(type: "TEXT", maxLength: 16, nullable: false),
                     Source = table.Column<string>(type: "TEXT", maxLength: 16, nullable: false),
-                    InstalledAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    InstalledAt = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -273,7 +273,7 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     DownloadUrl = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: false),
                     ContentLength = table.Column<long>(type: "INTEGER", nullable: true),
                     Sha256 = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
-                    PublishedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    PublishedAt = table.Column<long>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
