@@ -19,8 +19,8 @@ for what has to exist when the branch merges.
 | 6 | [phase-06-dependencies-migration](phase-06-dependencies-migration.md) | ☑ done |
 | 7 | [phase-07-patching](phase-07-patching.md) | ☑ done |
 | 8 | [phase-08-export-import](phase-08-export-import.md) | ☑ done |
-| 9 | [phase-09-linux-proton](phase-09-linux-proton.md) | ☐ next |
-| 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☐ |
+| 9 | [phase-09-linux-proton](phase-09-linux-proton.md) | ☑ done |
+| 10 | [phase-10-server-profiles](phase-10-server-profiles.md) | ☐ next |
 | 11 | [phase-11-launch-logs](phase-11-launch-logs.md) | ☐ |
 | 12 | [phase-12-ui](phase-12-ui.md) | ☐ |
 | 13 | [phase-13-qa](phase-13-qa.md) | ☐ |

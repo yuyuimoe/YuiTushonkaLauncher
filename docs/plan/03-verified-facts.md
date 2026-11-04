@@ -211,6 +211,47 @@ Round trip with the two real mods installed **from the Forge** (`com.mpstark.dyn
   edited manifest, an undeclared entry) were each refused with its specific error and exit code 1; the
   file the zip-slip entry aimed at was never created.
 
+## Linux runtime, measured on this machine (2026-11-04)
+
+- **What is installed:** `umu-run` 1.4.3, `wine`, `winetricks`; **no** `gamemode`. Twelve Proton builds across
+  three roots (GE-Proton 10-20…11-1, UMU-Proton 9.0-3.2, proton-EM 10.0-32, proton-cachyos-slr, and Valve's
+  Proton 8.0 / 9.0 (Beta) / Hotfix / Experimental under `steamapps/common`).
+- **`~/.steam/steam` is a symlink to `~/.local/share/Steam`** and `~/.steam/steam/compatibilitytools.d`
+  was **empty** while `~/.local/share/Steam/compatibilitytools.d` held the builds, so the official
+  launcher's two roots (`~/.steam/steam/...` and `/usr/share/steam/...`) would have found only
+  `proton-cachyos-slr`. The first locator listed every build twice (23 instead of 12): a link in a *parent*
+  of the path is not seen by `ResolveLinkTarget` on the leaf. Real paths are now resolved component by
+  component.
+- **Official launcher rules** (`SPTushonka.Core/Helpers/LinuxHelper.cs`, `ConfigHelper.cs`): a Proton build
+  is valid when its folder holds `compatibilitytool.vdf` and is not `LegacyRuntime`; the game is started
+  as `umu-run <exe> <args>` with `WINEPREFIX` + `PROTONPATH`, working directory = the game path, default
+  env `WINEDLLOVERRIDES="winhttp=n,b"`; launch settings use the Steam format (tokens starting with `-` or
+  without `=` are arguments, the rest `NAME=value`); GameMode wraps the command in `gamemoderun` and is
+  only offered when `gamemoded -version` runs. Game arguments:
+  `-force-gfx-jobs native -token=<profile id> -config={'BackendUrl':'https://<ip>','Version':'live','MatchingVersion':'live'}`.
+- **The official game path is the parent of `SPT_Runtime`**, i.e. a single root with the game *and*
+  BepInEx. The base installs here split `gamefiles/` (exe, Unity) from `spt/` (`winhttp.dll`,
+  `doorstop_config.ini`, BepInEx, `SPT_Runtime`), and neither folder alone can start a modded game.
+  How a merged root is presented to Wine is **open** (Q15).
+- **Fresh prefix through `umu-run` + GE-Proton11-1: 18.5 s** (first run also downloaded the steamrt4
+  runtime), exit 0, `system.reg` + `user.reg` written, 699 MB. `umu` prints
+  `Executable not found: wineboot` and still creates the prefix (Proton's setup does it); a second init is
+  idempotent. Proton keeps `pfx/` inside `STEAM_COMPAT_DATA_PATH`; umu makes `pfx` a link to the prefix
+  itself, so the same folder works with both.
+- **Fresh prefix through plain Wine: ~9 s, 386 MB.** `wineboot -u` **exits before `system.reg`/`user.reg`
+  exist**; they appear a few seconds later when the wine server goes idle. Judging the prefix at exit
+  reported a healthy prefix as broken (fixed: bounded wait).
+- **Direct `proton run`** (no umu, `STEAM_COMPAT_DATA_PATH` + `STEAM_COMPAT_CLIENT_INSTALL_PATH`) works: a
+  fresh prefix in 2 s, 750 MB.
+- **Console output of a Windows program does not reach the pipe.** Proton starts the exe through its own
+  helper (`umu.exe`); `cmd.exe /c echo` printed nothing on stdout (also when run by hand). What arrives is
+  umu's and Proton's own stderr. A program's effect was proven with a file written inside the prefix, in
+  all three modes. This is why the game's own log (`BepInEx/LogOutput.log`) must be tailed as a source in
+  phase 11.
+- Failure cases against real data, each refused before anything started and with the exact path: a Proton
+  build that does not exist, a non-empty folder as prefix (left untouched), a prefix under a read-only
+  folder (the folder is named), a profile with no BepInEx override (warning).
+
 ## Mods in SPT 4.x are C#
 
 Client side (BepInEx 5, Mono):

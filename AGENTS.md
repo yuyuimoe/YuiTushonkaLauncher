@@ -23,6 +23,10 @@
 - Share a setup: `--export <name> <file.sptpack>`; review one with `--import <file> --instance <name>` (writes
   nothing), apply with `--apply` (options: `--replace`, `--overwrite-configs`, `--accept-changed-content`)
 - Install from the Forge: `--install-mod https://sp-mod.com/mod/download/<id>/<slug>/<version> --forge-id <id> --instance <name>`
+- Linux runtime: `--runtimes` (what was found), `--runtime-profile-add <name> --auto`,
+  `--runtime-assign <instance> <profile>`, `--runtime-plan <instance>` (read-only, exits 1 on an error),
+  `--prefix-init <instance>`, `--runtime-run <instance> --exe <path> [--args "…"]`
+- Open points that must close before 1.0: `docs/plan/91-before-1.0.md`
 - Real-delta tests: `YTT_SPT_BASE=<spt-installer-output> dotnet test --filter Live=Spt`
 - Scan an instance for migration: `dotnet run --project YuiTushonkaLauncher.Ui -- --migrate-scan <name>`
 - Install a local mod archive:
