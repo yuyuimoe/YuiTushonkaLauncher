@@ -28,8 +28,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   always copied), copy-on-write writer, layout detection (4.0 vs 4.1+), SPT/Tarkov version probing,
   patch-state detection, rename/delete, pre-flight checks (same volume, free space, link probe) and
   rollback on failure.
+- Mods: identity read from assembly metadata (`[BepInPlugin]` and `IModMetadata` literals, no code
+  execution), archive inspection and zip-slip-proof extraction, game-root → instance path mapping,
+  install/uninstall/pin with recorded hashes, and an integrity check that flags edited configs and
+  missing files.
 - Headless commands: `--migrate-only`, `--inspect-base <path>` and
-  `--create-instance <name> --from <base> --into <dir>`.
+  `--create-instance <name> --from <base> --into <dir>` and
+  `--install-mod <archive> --instance <name>`.
 - Git workflow: GitFlow, Conventional Commits hook, `X.Y.Z-pre-<sha>[.dirty]` versioning, `wt`
   worktrees.
 - Documentation: per-phase plan under `docs/plan/`, verified SPT/Forge facts, decisions D1–D17.
