@@ -721,4 +721,41 @@ public sealed class SptServerSupervisorTests : IDisposable
         _h.Supervisor.RecentOutput(instance.Id, 5000).Should().HaveCount(2000, "the buffer is bounded");
         _h.Supervisor.RecentOutput(Guid.NewGuid()).Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Start_RequiresAConsole_ForSpt40OnWindows()
+    {
+        using var harness = new SupervisorHarness(isWindows: true);
+        var instance = harness.AddInstance("one", layout: InstanceLayout.Spt40);
+
+        await harness.Supervisor.StartAsync(instance);
+
+        harness
+            .Spawner.Starts.Should()
+            .ContainSingle()
+            .Which.RequiresConsole.Should()
+            .BeTrue("SPT 4.0.x on Windows asks GetConsoleMode and aborts when the handle is a pipe");
+    }
+
+    [Fact]
+    public async Task Start_DoesNotRequireAConsole_ForSpt41OnWindows()
+    {
+        using var harness = new SupervisorHarness(isWindows: true);
+        var instance = harness.AddInstance("one", layout: InstanceLayout.Spt41Plus);
+
+        await harness.Supervisor.StartAsync(instance);
+
+        harness.Spawner.Starts.Should().ContainSingle().Which.RequiresConsole.Should().BeFalse("SPT 4.1.x no longer asks for a console");
+    }
+
+    [Fact]
+    public async Task Start_DoesNotRequireAConsole_OnLinux()
+    {
+        using var harness = new SupervisorHarness(isWindows: false);
+        var instance = harness.AddInstance("one", layout: InstanceLayout.Spt40);
+
+        await harness.Supervisor.StartAsync(instance);
+
+        harness.Spawner.Starts.Should().ContainSingle().Which.RequiresConsole.Should().BeFalse("Linux never needs a Windows console");
+    }
 }

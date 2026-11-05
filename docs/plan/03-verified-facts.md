@@ -353,6 +353,24 @@ Read from a real SPT 4.1.6 install (`base_tarkov41`) started as its own `SPT.Ser
 - **A Linux build has no extension:** the file is `SPT.Server.Linux`, so `Path.ChangeExtension(x, null)`
   yields `SPT.Server` and reads the *Windows* runtimeconfig.
 
+### Starting on Windows (measured 2026-11-05, SPT 4.0.9)
+
+- **SPT 4.0.x refuses a redirected stdout.** Started with its standard output on a pipe (a console app run by
+  a launcher that captures it) it aborts at startup: `Critical exception, stopping server...` /
+  `System.Exception: Unable to get console mode` at `SPTarkov.Server.Program.SetConsoleOutputMode`. The
+  process then exits with code **0**, so only the output says what happened.
+- **A real console handle is what it checks:** `GetConsoleMode` on the standard output handle. Started from an
+  interactive console (`ssh -t`, or its own `CreateProcess` with `CREATE_NO_WINDOW` and no redirection) it
+  boots normally: 10.3 s to answer ping on this VM (8 GB RAM, 4 cores), `Started webserver at
+  https://127.0.0.1:6969`, `Server has started, happy playing`. Its own log is
+  `SPT/user/logs/spt/spt<yyyyMMdd>.log`.
+- **SPT 4.1.x dropped the check:** the `SPT.Server.dll` of `base_tarkov41` (4.1.6) does not contain
+  `SetConsoleOutputMode` at all, so the pipe path is right there and only 4.0.x needs a console.
+- **There is no clean stop on Windows:** with a console but no window, the process has no Ctrl-C route the
+  launcher can reach, so `RequestStop` does nothing and the supervisor kills it after the grace period. Both
+  the server and the game are detached by a job object without `KILL_ON_JOB_CLOSE` and by
+  `CREATE_BREAKAWAY_FROM_JOB`, so the kill is the stop, not a side effect.
+
 ### The launcher API
 
 - **Transport:** HTTPS with a **self-signed certificate** the server creates on first start, and **both

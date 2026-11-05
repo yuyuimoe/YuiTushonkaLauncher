@@ -32,7 +32,7 @@ public sealed class BackupScannerTests : IDisposable
         pairs.Should().HaveCount(2);
         pairs[0].RelativePath.Should().Be("EscapeFromTarkov_Data/Managed/Assembly-CSharp.dll");
         pairs[1].RelativePath.Should().Be("SPT_Runtime/BepInEx/core/lower.dll");
-        pairs[0].TargetPath.Should().Be(Path.Combine(Root, pairs[0].RelativePath));
+        pairs[0].TargetPath.AsSlashes().Should().Be(Path.Combine(Root, pairs[0].RelativePath).AsSlashes());
     }
 
     [Fact]

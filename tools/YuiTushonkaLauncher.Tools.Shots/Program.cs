@@ -62,13 +62,14 @@ OffThread(async () =>
     await provider.GetRequiredService<IInstanceContext>().RefreshAsync();
 });
 
+// Light first; the dark pass comes after, because the theme is a property of the application, not of a window.
 var home = provider.GetRequiredService<HomeViewModel>();
+OffThread(async () => await home.LoadAsync(CancellationToken.None));
 OffThread(async () => await home.LoadAsync(CancellationToken.None));
 Render(new MainWindow { DataContext = home }, "home", 1180, 760);
 Render(new MainWindow { DataContext = home }, "home-small", 900, 560);
 
 var shell = provider.GetRequiredService<ShellViewModel>();
-var manager = new InstanceManagerWindow { DataContext = shell };
 foreach (
     var section in new[]
     {
@@ -82,7 +83,7 @@ foreach (
 {
     shell.Navigate(section);
     Dispatcher.UIThread.RunJobs();
-    Render(manager, $"manager-{section.ToString().ToLowerInvariant()}", 1180, 760);
+    Render(new InstanceManagerWindow { DataContext = shell }, $"manager-{section.ToString().ToLowerInvariant()}", 1180, 760);
 }
 
 var forge = provider.GetRequiredService<ForgePageViewModel>();
@@ -114,6 +115,21 @@ var picker = new SelectServerDialogViewModel(
 );
 Render(new SelectServerDialog { DataContext = picker }, "dialog-select-server", 480, 420);
 
+// The same screens with the dark variant: a colour that only works on white is a defect the light pass cannot see.
+if (Application.Current is { } application)
+{
+    application.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+    Dispatcher.UIThread.RunJobs();
+}
+
+var dark = provider.GetRequiredService<HomeViewModel>();
+OffThread(async () => await dark.LoadAsync(CancellationToken.None));
+Render(new MainWindow { DataContext = dark }, "home-dark", 1180, 760);
+Render(new ForgeWindow { DataContext = forge }, "forge-dark", 1180, 760);
+shell.Navigate(LauncherSection.Settings);
+Dispatcher.UIThread.RunJobs();
+Render(new InstanceManagerWindow { DataContext = shell }, "manager-settings-dark", 1180, 760);
+
 Console.WriteLine($"==> {Directory.GetFiles(outDir, "*.png").Length} PNG(s) in {outDir}");
 return 0;
 
@@ -141,6 +157,13 @@ void Render(Window window, string name, int width, int height)
         Dispatcher.UIThread.RunJobs();
     }
 
+    // A second capture in the same process can otherwise pick up the previous frame's surface.
+    window.InvalidateVisual();
+    Dispatcher.UIThread.RunJobs();
+    window.Measure(new Size(width, height));
+    window.Arrange(new Rect(0, 0, width, height));
+    Dispatcher.UIThread.RunJobs();
+
     var frame = window.CaptureRenderedFrame();
     if (frame is null)
     {
@@ -149,8 +172,12 @@ void Render(Window window, string name, int width, int height)
     }
 
     var file = Path.Combine(outDir, name + ".png");
-    frame.Save(file);
+    using (var stream = File.Create(file))
+    {
+        frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+    }
     Console.WriteLine($"{name}: {width}x{height}, {new FileInfo(file).Length / 1024} KiB, {window.GetVisualDescendants().Count()} visuals");
+    window.Close();
 }
 
 static void WriteFakeBase(string root)

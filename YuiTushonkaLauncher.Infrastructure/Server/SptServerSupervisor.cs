@@ -8,9 +8,9 @@ using YuiTushonkaLauncher.Core.Server;
 namespace YuiTushonkaLauncher.Infrastructure.Server;
 
 /// <summary>
-/// Runs the SPT servers: at most one per instance, a port nobody else uses, readiness by polling, a graceful
-/// stop, and no server left behind (the spawner ties it to the launcher; a leftover from a crash is found
-/// and stopped from its pid record).
+/// Runs the SPT servers: at most one per instance, a port nobody else uses, readiness by polling, a graceful stop, and a
+/// server that outlives the launcher ([D22](../../docs/plan/04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted));
+/// a leftover from a crash is found and stopped from its pid record.
 /// </summary>
 public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAsyncDisposable
 {
@@ -42,6 +42,8 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
 
     private readonly IInstanceRunStore _runStore;
 
+    private readonly IPlatformInfo _platform;
+
     private readonly TimeProvider _time;
 
     private readonly ILogger<SptServerSupervisor> _logger;
@@ -57,6 +59,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         IInstanceService instances,
         IProcessInspector inspector,
         IInstanceRunStore runStore,
+        IPlatformInfo platform,
         TimeProvider time,
         ILogger<SptServerSupervisor> logger
     )
@@ -71,6 +74,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         _instances = instances;
         _inspector = inspector;
         _runStore = runStore;
+        _platform = platform;
         _time = time;
         _logger = logger;
     }
@@ -311,6 +315,7 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
                 new ChildProcessStart
                 {
                     Command = plan.Command!,
+                    RequiresConsole = NeedsAConsole(instance),
                     OnOutput = line => entry.Lines.Add(new ServerOutputLine(_time.GetUtcNow(), line.IsError, line.Text)),
                 }
             );
@@ -544,10 +549,29 @@ public sealed class SptServerSupervisor : ISptServerSupervisor, IDisposable, IAs
         return $"The server exited with code {ExitCodeOf(child)?.ToString() ?? "unknown"} before it answered ping.{LastLinesText(entry)}";
     }
 
-    private static string LastLinesText(Entry entry)
+    /// <summary>
+    /// SPT 4.0.x on Windows calls <c>GetConsoleMode</c> on its standard output and aborts with "Unable to get console mode"
+    /// when that handle is a pipe, so it is started with a console of its own instead of with captured output. Measured on
+    /// 4.0.9; 4.1.x no longer does it (<c>docs/plan/03-verified-facts.md</c>).
+    /// </summary>
+    private bool NeedsAConsole(Instance instance)
+    {
+        return _platform.IsWindows && instance.SptVersion.Major == 4 && instance.SptVersion.Minor == 0;
+    }
+
+    private string LastLinesText(Entry entry)
     {
         var lines = entry.Lines.Last(8).Select(line => line.Text).Where(text => !string.IsNullOrWhiteSpace(text)).ToList();
-        return lines.Count == 0 ? string.Empty : " Last output: " + string.Join(" | ", lines);
+
+        if (lines.Count > 0)
+        {
+            return " Last output: " + string.Join(" | ", lines);
+        }
+
+        // Nothing was captured because this server keeps its console: its own log file is where the reason is.
+        return _platform.IsWindows
+            ? " The server's console output is not captured on Windows; its own log file holds the reason (see Logs)."
+            : string.Empty;
     }
 
     private void WriteRecord(Entry entry, Instance instance, ServerStartPlan plan, IChildProcess child)

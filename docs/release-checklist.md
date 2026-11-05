@@ -60,3 +60,13 @@ Windows will show "Windows protected your PC" until the binary is Authenticode-s
 
 Linux has no equivalent registry; publishing `SHA256SUMS` and, later, signing it with a GPG key is the equivalent
 statement.
+
+## Pre-releases are Linux only
+
+A tag with a label (`v0.2.0-rc.1`) skips the Windows job and marks the GitHub release as a pre-release
+([D23](plan/04-decisions.md#d23-the-10-gate-is-three-items-and-the-releases-are-sequenced)): no Windows machine has run
+the launcher yet, so a Windows installer would be a claim nobody checked. The workflow enforces it —
+`if: ${{ !contains(github.ref_name, '-') }}` on the Windows job.
+
+Checked on 2026-11-05 with `v0.1.0-rc.1` and `v0.2.0-rc.1`: three Linux artifacts (framework-dependent tarball,
+self-contained tarball, AppImage) plus `SHA256SUMS`, and the Windows job reported *skipped*.

@@ -110,6 +110,7 @@ public sealed class LogTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Platform", "Posix")]
     public async Task List_PutsTheNewestRunsFirst()
     {
         Write("Logs/log_2026.11.01/2026.11.01 application.log", "old\n");
@@ -125,6 +126,7 @@ public sealed class LogTests : IAsyncLifetime
     // ---- reading a tail ----
 
     [Fact]
+    [Trait("Platform", "Posix")]
     public async Task ReadTail_ReturnsTheNewestLines_AndSaysWhichTheyAre()
     {
         var path = Write("BepInEx/LogOutput.log", "one\ntwo\nthree\n");
@@ -135,7 +137,7 @@ public sealed class LogTests : IAsyncLifetime
         tail.Lines.Select(line => line.Text).Should().Equal("two", "three");
         tail.Lines.Select(line => line.Number).Should().Equal([1, 2], "the number is the position in the tail, not in the file");
         tail.TooLarge.Should().BeFalse();
-        tail.File.Path.Should().Be(path);
+        tail.File.Path.AsSlashes().Should().Be(path.AsSlashes());
     }
 
     [Fact]

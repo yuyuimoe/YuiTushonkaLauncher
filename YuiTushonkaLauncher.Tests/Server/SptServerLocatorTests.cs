@@ -3,6 +3,7 @@ using Xunit;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Server;
 using YuiTushonkaLauncher.Infrastructure.Server;
+using YuiTushonkaLauncher.Tests.Infrastructure;
 using YuiTushonkaLauncher.Tests.Runtime;
 
 namespace YuiTushonkaLauncher.Tests.Server;
@@ -29,10 +30,10 @@ public sealed class SptServerLocatorTests : IDisposable
         var location = Linux().Locate(instance);
 
         location.IsComplete.Should().BeTrue();
-        location.ExecutablePath.Should().EndWith("SPT_Runtime/SPT.Server.Linux");
-        location.WorkingDirectory.Should().EndWith("SPT_Runtime");
+        location.ExecutablePath!.AsSlashes().Should().EndWith("SPT_Runtime/SPT.Server.Linux");
+        location.WorkingDirectory.AsSlashes().Should().EndWith("SPT_Runtime");
         location.Endpoint.Port.Should().Be(6975);
-        location.ProfilesDirectory.Should().EndWith(Path.Combine("user", "profiles"));
+        location.ProfilesDirectory.AsSlashes().Should().EndWith("user/profiles");
     }
 
     [Fact]
