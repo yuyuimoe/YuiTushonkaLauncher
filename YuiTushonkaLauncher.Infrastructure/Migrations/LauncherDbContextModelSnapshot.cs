@@ -602,6 +602,9 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ActiveServer")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("AskBeforeStoppingProcesses")
                         .HasColumnType("INTEGER");
 
@@ -636,6 +639,10 @@ namespace YuiTushonkaLauncher.Infrastructure.Migrations
 
                     b.Property<int>("MaxConcurrentDownloads")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Servers")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Theme")
                         .IsRequired()

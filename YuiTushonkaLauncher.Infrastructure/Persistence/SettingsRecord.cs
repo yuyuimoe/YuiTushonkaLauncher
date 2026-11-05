@@ -1,5 +1,6 @@
 using System.Text.Json;
 using YuiTushonkaLauncher.Core.Configuration;
+using YuiTushonkaLauncher.Core.Server;
 
 namespace YuiTushonkaLauncher.Infrastructure.Persistence;
 
@@ -31,6 +32,12 @@ internal sealed class SettingsRecord
     /// <summary>The extra Proton roots as a JSON array: one column instead of a child table for a short list.</summary>
     public string ExtraProtonRoots { get; set; } = "[]";
 
+    /// <summary>The servers the user keeps, as a JSON array, for the same reason as the roots above.</summary>
+    public string Servers { get; set; } = "[]";
+
+    /// <summary>The name of the active server; empty means the local one.</summary>
+    public string? ActiveServer { get; set; }
+
     public string? UmuRunPath { get; set; }
 
     /// <summary>Stored as text: an unknown value from a hand-edited file falls back to keeping the window open.</summary>
@@ -50,6 +57,8 @@ internal sealed class SettingsRecord
             LogRetentionFiles = settings.LogRetentionFiles,
             FirstRunCompleted = settings.FirstRunCompleted,
             ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots),
+            Servers = JsonSerializer.Serialize(settings.Servers),
+            ActiveServer = settings.ActiveServer,
             UmuRunPath = settings.UmuRunPath,
             GameStartWindow = settings.GameStartWindow.ToString(),
             AskBeforeStoppingProcesses = settings.AskBeforeStoppingProcesses,
@@ -68,6 +77,8 @@ internal sealed class SettingsRecord
             LogRetentionFiles = LogRetentionFiles,
             FirstRunCompleted = FirstRunCompleted,
             ExtraProtonRoots = ReadRoots(ExtraProtonRoots),
+            Servers = ReadServers(Servers),
+            ActiveServer = string.IsNullOrWhiteSpace(ActiveServer) ? null : ActiveServer,
             UmuRunPath = UmuRunPath,
             GameStartWindow = ReadGameStartWindow(GameStartWindow),
             AskBeforeStoppingProcesses = AskBeforeStoppingProcesses,
@@ -84,6 +95,8 @@ internal sealed class SettingsRecord
         LogRetentionFiles = settings.LogRetentionFiles;
         FirstRunCompleted = settings.FirstRunCompleted;
         ExtraProtonRoots = JsonSerializer.Serialize(settings.ExtraProtonRoots);
+        Servers = JsonSerializer.Serialize(settings.Servers);
+        ActiveServer = settings.ActiveServer;
         UmuRunPath = settings.UmuRunPath;
         GameStartWindow = settings.GameStartWindow.ToString();
         AskBeforeStoppingProcesses = settings.AskBeforeStoppingProcesses;
@@ -92,6 +105,20 @@ internal sealed class SettingsRecord
     private static GameStartWindowAction ReadGameStartWindow(string? value)
     {
         return Enum.TryParse<GameStartWindowAction>(value, ignoreCase: true, out var action) ? action : GameStartWindowAction.KeepOpen;
+    }
+
+    private static ServerEntry[] ReadServers(string json)
+    {
+        try
+        {
+            var entries = JsonSerializer.Deserialize<ServerEntry[]>(json) ?? [];
+            return entries.Length > 0 ? entries : [ServerEntry.Local];
+        }
+        catch (JsonException)
+        {
+            // A hand-edited row must not leave the launcher without a server to show.
+            return [ServerEntry.Local];
+        }
     }
 
     private static string[] ReadRoots(string json)

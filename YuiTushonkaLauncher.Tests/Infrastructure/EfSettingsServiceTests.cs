@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using YuiTushonkaLauncher.Core.Configuration;
+using YuiTushonkaLauncher.Core.Server;
 using YuiTushonkaLauncher.Infrastructure.Persistence;
 
 namespace YuiTushonkaLauncher.Tests.Infrastructure;
@@ -22,6 +23,43 @@ public sealed class EfSettingsServiceTests
 
         await using var context = database.CreateContext();
         (await context.Settings.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task TheServerListSurvivesTheRoundTrip()
+    {
+        await using var database = new TestDatabase();
+        await database.InitializeAsync();
+        using var service = new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance);
+
+        var settings = LauncherSettings.Default with
+        {
+            Servers =
+            [
+                ServerEntry.Local with
+                {
+                    Port = 7000,
+                },
+                new ServerEntry
+                {
+                    Name = "Friend",
+                    Host = "10.0.0.5",
+                    Port = 6969,
+                },
+            ],
+            ActiveServer = "Friend",
+        };
+
+        await service.SaveAsync(settings);
+
+        var loaded = await new EfSettingsService(database.Factory, NullLogger<EfSettingsService>.Instance).LoadAsync();
+
+        loaded.Servers.Should().HaveCount(2);
+        loaded.Servers[0].IsBuiltIn.Should().BeTrue();
+        loaded.Servers[0].Port.Should().Be(7000);
+        loaded.Servers[1].Address.Should().Be("10.0.0.5:6969");
+        loaded.ActiveServer.Should().Be("Friend");
+        loaded.Should().Be(settings, "the settings compare by value, servers included");
     }
 
     [Fact]
