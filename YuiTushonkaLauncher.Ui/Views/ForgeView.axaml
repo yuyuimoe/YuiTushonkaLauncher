@@ -2,6 +2,7 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:controls="using:YuiTushonkaLauncher.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
@@ -10,7 +11,7 @@
   x:Class="YuiTushonkaLauncher.Views.ForgeView"
   x:DataType="vm:ForgePageViewModel"
 >
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
     <!-- Search, ordering and the two filters. -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
       <TextBox Grid.Column="0" Text="{Binding Search}" PlaceholderText="{Binding SearchPlaceholder}" />
@@ -146,13 +147,19 @@
                 />
               </StackPanel>
 
-              <!-- Three tabs: the mod itself, what it needs, and who needs it. -->
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <!-- The same tabs the forge's own mod page has: the mod, its versions, what it needs, who needs it. -->
+              <WrapPanel ItemSpacing="6" LineSpacing="6">
                 <Button
                   Command="{Binding ShowTabCommand}"
-                  CommandParameter="{x:Static vm:ForgeDetailTab.Details}"
-                  Content="{Binding DetailsTabLabel}"
-                  Classes.selected="{Binding IsDetailsTab}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Description}"
+                  Content="{Binding DescriptionTabLabel}"
+                  Classes.selected="{Binding IsDescriptionTab}"
+                />
+                <Button
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Versions}"
+                  Content="{Binding VersionsTabLabel}"
+                  Classes.selected="{Binding IsVersionsTab}"
                 />
                 <Button
                   Command="{Binding ShowTabCommand}"
@@ -166,9 +173,9 @@
                   Content="{Binding DependentsTabLabel}"
                   Classes.selected="{Binding IsDependentsTab}"
                 />
-              </StackPanel>
+              </WrapPanel>
 
-              <StackPanel Spacing="8" IsVisible="{Binding IsDetailsTab}">
+              <StackPanel Spacing="8" IsVisible="{Binding IsDescriptionTab}">
                 <StackPanel Spacing="3">
                   <TextBlock Text="{Binding ShortDescriptionLabel}" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding Shown.TeaserText}" TextWrapping="Wrap" />
@@ -176,7 +183,8 @@
 
                 <StackPanel Spacing="3">
                   <TextBlock Text="{Binding LongDescriptionLabel}" FontWeight="SemiBold" />
-                  <TextBlock Text="{Binding Description}" TextWrapping="Wrap" FontSize="12" />
+                  <controls:MarkdownView Document="{Binding DescriptionDocument}" OpenLinkCommand="{Binding OpenLinkCommand}" />
+                  <TextBlock Text="{Binding NoDescriptionText}" Classes="caption" IsVisible="{Binding !HasDescription}" />
                 </StackPanel>
 
                 <StackPanel Spacing="3" IsVisible="{Binding HasSourceLinks}">
@@ -302,8 +310,9 @@
                 <TextBlock Text="{Binding HasAddonResults, Converter={x:Static BoolConverters.Not}}" Classes="caption" />
               </StackPanel>
 
-              <StackPanel Spacing="4" Margin="0,6,0,0">
+              <StackPanel Spacing="6" Margin="0,6,0,0" IsVisible="{Binding IsVersionsTab}">
                 <TextBlock Text="{Binding VersionsLabel}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding NoVersionsText}" Classes="caption" IsVisible="{Binding !HasVersions}" />
                 <ComboBox ItemsSource="{Binding Versions}" SelectedItem="{Binding SelectedVersion}" HorizontalAlignment="Stretch">
                   <ComboBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:ForgeVersionRowViewModel">

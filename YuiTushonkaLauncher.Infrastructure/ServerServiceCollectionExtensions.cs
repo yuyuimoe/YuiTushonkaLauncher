@@ -33,6 +33,10 @@ public static class ServerServiceCollectionExtensions
         services.AddSingleton<ISptServerSupervisor, SptServerSupervisor>();
         services.AddSingleton<IServerProfileService, ServerProfileService>();
         services.AddSingleton<IServerPortService, ServerPortService>();
+
+        // The list of servers the user keeps, and the TCP probe behind the "test" button.
+        services.AddSingleton<IServerList, ServerList>();
+        services.AddSingleton<IEndpointProbe, EndpointProbe>();
         services.AddSingleton<IServerSyncService, ServerSyncService>();
 
         // Watches the supervised server and the recorded pair: the layers that rewrite instance files consume it.

@@ -1,3 +1,5 @@
+using YuiTushonkaLauncher.Core.Server;
+
 namespace YuiTushonkaLauncher.Core.Configuration;
 
 /// <summary>
@@ -39,6 +41,15 @@ public sealed record LauncherSettings
     /// </summary>
     public bool AskBeforeStoppingProcesses { get; init; } = true;
 
+    /// <summary>
+    /// The servers the launcher keeps: the local one, always first, and any others the user added. The local entry's
+    /// address is the one the instance's own server is told to use.
+    /// </summary>
+    public IReadOnlyList<ServerEntry> Servers { get; init; } = [ServerEntry.Local];
+
+    /// <summary>The name of the server being worked with; <c>null</c> means the local one.</summary>
+    public string? ActiveServer { get; init; }
+
     /// <summary>Set once the first-run flow has been completed.</summary>
     public bool FirstRunCompleted { get; init; }
 
@@ -58,6 +69,8 @@ public sealed record LauncherSettings
             && FirstRunCompleted == other.FirstRunCompleted
             && GameStartWindow == other.GameStartWindow
             && AskBeforeStoppingProcesses == other.AskBeforeStoppingProcesses
+            && string.Equals(ActiveServer, other.ActiveServer, StringComparison.OrdinalIgnoreCase)
+            && Servers.SequenceEqual(other.Servers)
             && UmuRunPath == other.UmuRunPath
             && ExtraProtonRoots.SequenceEqual(other.ExtraProtonRoots, StringComparer.Ordinal);
     }
@@ -78,6 +91,13 @@ public sealed record LauncherSettings
         {
             hash.Add(root, StringComparer.Ordinal);
         }
+
+        foreach (var server in Servers)
+        {
+            hash.Add(server);
+        }
+
+        hash.Add(ActiveServer, StringComparer.OrdinalIgnoreCase);
 
         return hash.ToHashCode();
     }

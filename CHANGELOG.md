@@ -175,3 +175,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 
 - The Forge sidebar's dependencies and dependents tabs are loaded when they are opened, once per mod, instead of with
   every selection.
+### Added
+
+- The server page keeps a list of servers, with `127.0.0.1:6969` as the local entry it always starts from. Entries can
+  be added, renamed, re-pointed, tested with a TCP probe and selected; only the local one can be started or stopped
+  here, and editing its port writes the instance's `http.json`.

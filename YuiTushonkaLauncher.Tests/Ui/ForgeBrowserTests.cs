@@ -181,12 +181,12 @@ public sealed class ForgeBrowserTests
         var page = await PageAsync(world, forge);
 
         page.HasSelection.Should().BeFalse();
-        page.IsDetailsTab.Should().BeTrue();
+        page.IsDescriptionTab.Should().BeTrue();
 
         page.ShowTabCommand.Execute(ForgeDetailTab.Dependents);
 
         page.IsDependentsTab.Should().BeTrue();
-        page.IsDetailsTab.Should().BeFalse();
+        page.IsDescriptionTab.Should().BeFalse();
     }
 
     /// <summary>No thumbnails: the row keeps its letter tile, which is what the view falls back to.</summary>

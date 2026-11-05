@@ -42,6 +42,8 @@ public sealed class ForgeLazyTests
         };
     }
 
+    private static FakeDependencyGraph Graph { get; } = new();
+
     private static async Task<(UiWorld World, FakeForgeClient Forge, ForgePageViewModel Page)> WorldAsync(params ForgeMod[] mods)
     {
         var forge = new FakeForgeClient();
@@ -50,7 +52,11 @@ public sealed class ForgeLazyTests
             forge.Mods[mod.Guid!] = mod;
         }
 
-        var world = await UiWorld.CreateAsync(configure: services => services.AddSingleton<IForgeClient>(forge));
+        var world = await UiWorld.CreateAsync(configure: services =>
+        {
+            services.AddSingleton<IForgeClient>(forge);
+            services.AddSingleton<IDependencyGraph>(Graph);
+        });
         await world.SeedInstanceAsync("lazy-tabs");
         return (world, forge, world.Get<ForgePageViewModel>());
     }
@@ -98,7 +104,7 @@ public sealed class ForgeLazyTests
 
         forge.DependencyRequests.Should().ContainSingle();
 
-        page.ShowTabCommand.Execute(ForgeDetailTab.Details);
+        page.ShowTabCommand.Execute(ForgeDetailTab.Description);
         page.ShowTabCommand.Execute(ForgeDetailTab.Dependencies);
         await page.TabsLoading;
 
@@ -106,18 +112,20 @@ public sealed class ForgeLazyTests
     }
 
     [Fact]
-    public async Task OpeningTheDependentsTabDoesNotFetchDependencies()
+    public async Task OpeningTheDependentsTabAsksTheGraphAndNotTheDependenciesEndpoint()
     {
         var (world, forge, page) = await WorldAsync(Mod(1, "one.mod"));
         await using var _ = world;
         page.ShowDetailsCommand.Execute(new ForgeModRowViewModel(world.Localizer, forge.Mods["one.mod"]));
         await page.DetailsLoading;
         forge.DependencyRequests.Clear();
+        Graph.DependentRequests.Clear();
 
         page.ShowTabCommand.Execute(ForgeDetailTab.Dependents);
         await page.TabsLoading;
 
         page.IsDependentsTab.Should().BeTrue();
-        forge.DependencyRequests.Should().BeEmpty("nothing is installed, so there are no dependents to look for");
+        Graph.DependentRequests.Should().Contain(1, "dependents come from the API's answers, turned around");
+        forge.DependencyRequests.Should().BeEmpty("the sidebar does not ask what the mod needs to learn who needs it");
     }
 }

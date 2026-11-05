@@ -142,13 +142,17 @@ internal static class ForgeMapper
 
     public static ForgeDependency ToModel(DependencyDto dto)
     {
+        // The entry's own "version" is absent on /mods/dependencies; the readable one is the compatible version.
+        var raw = dto.LatestCompatibleVersion?.Version ?? dto.Version;
         return new ForgeDependency
         {
-            ModId = dto.ModId,
+            ModId = dto.Id,
             Guid = dto.Guid,
             Name = dto.Name,
-            Version = SemanticVersion.TryParse(dto.Version, out var version) ? version : null,
+            Version = SemanticVersion.TryParse(raw, out var version) ? version : null,
             IsOptional = dto.IsOptional,
+            IsConflict = dto.Conflict == true,
+            DownloadUrl = dto.LatestCompatibleVersion?.Link,
         };
     }
 

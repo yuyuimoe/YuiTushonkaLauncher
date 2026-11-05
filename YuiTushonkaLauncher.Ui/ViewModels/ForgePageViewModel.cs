@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Forge;
+using YuiTushonkaLauncher.Core.Forge.Markdown;
 using YuiTushonkaLauncher.Core.Instances;
 using YuiTushonkaLauncher.Core.Localization;
 using YuiTushonkaLauncher.Core.Mods;
@@ -23,10 +24,19 @@ using YuiTushonkaLauncher.Startup;
 namespace YuiTushonkaLauncher.ViewModels;
 
 /// <summary>Which of the sidebar's tabs is showing.</summary>
+/// <summary>The sidebar's tabs, mirroring the ones the forge's own mod page offers.</summary>
 public enum ForgeDetailTab
 {
-    Details,
+    /// <summary>The description, drawn as the document its author wrote.</summary>
+    Description,
+
+    /// <summary>The published versions, and the button that installs one.</summary>
+    Versions,
+
+    /// <summary>What this mod needs.</summary>
     Dependencies,
+
+    /// <summary>What needs this mod.</summary>
     Dependents,
 }
 
@@ -45,6 +55,7 @@ public partial class ForgePageViewModel : PageViewModel
     private readonly IDialogService _dialogs;
     private readonly IThumbnailCache _thumbnails;
     private readonly IForgePageReader _pages;
+    private readonly IDependencyGraph _graph;
     private readonly IUrlOpener _urls;
     private readonly IAddonService _addons;
     private readonly TimeProvider _time;
@@ -71,6 +82,7 @@ public partial class ForgePageViewModel : PageViewModel
         IDialogService dialogs,
         IThumbnailCache thumbnails,
         IForgePageReader pages,
+        IDependencyGraph graph,
         IUrlOpener urls,
         IAddonService addons,
         TimeProvider time
@@ -85,6 +97,7 @@ public partial class ForgePageViewModel : PageViewModel
         _dialogs = dialogs;
         _thumbnails = thumbnails;
         _pages = pages;
+        _graph = graph;
         _urls = urls;
         _addons = addons;
         _time = time;
@@ -145,7 +158,7 @@ public partial class ForgePageViewModel : PageViewModel
     public partial ForgeVersionRowViewModel? SelectedVersion { get; set; }
 
     [ObservableProperty]
-    public partial ForgeDetailTab ActiveTab { get; set; } = ForgeDetailTab.Details;
+    public partial ForgeDetailTab ActiveTab { get; set; } = ForgeDetailTab.Description;
 
     /// <summary>Whether this window is looking for a mod or for an addon of one.</summary>
     [ObservableProperty]
@@ -249,9 +262,14 @@ public partial class ForgePageViewModel : PageViewModel
         get { return Text("forge.fika"); }
     }
 
-    public string DetailsTabLabel
+    public string DescriptionTabLabel
     {
-        get { return Text("forge.tabDetails"); }
+        get { return Text("forge.tabDescription"); }
+    }
+
+    public string VersionsTabLabel
+    {
+        get { return Text("forge.tabVersions"); }
     }
 
     public string DependenciesTabLabel
@@ -315,6 +333,16 @@ public partial class ForgePageViewModel : PageViewModel
         get { return Text("forge.longDescription"); }
     }
 
+    public string NoDescriptionText
+    {
+        get { return Text("forge.noDescription"); }
+    }
+
+    public string NoVersionsText
+    {
+        get { return Text("forge.noVersions"); }
+    }
+
     public string SourceCodeLabel
     {
         get { return Text("forge.sourceCode"); }
@@ -355,9 +383,27 @@ public partial class ForgePageViewModel : PageViewModel
         get { return Shown is not null; }
     }
 
-    public bool IsDetailsTab
+    /// <summary>The description, parsed into the sections its author wrote.</summary>
+    public MarkdownDocument DescriptionDocument { get; private set; } = MarkdownDocument.Empty;
+
+    public bool HasDescription
     {
-        get { return ActiveTab == ForgeDetailTab.Details; }
+        get { return !DescriptionDocument.IsEmpty; }
+    }
+
+    public bool HasVersions
+    {
+        get { return Versions.Count > 0; }
+    }
+
+    public bool IsDescriptionTab
+    {
+        get { return ActiveTab == ForgeDetailTab.Description; }
+    }
+
+    public bool IsVersionsTab
+    {
+        get { return ActiveTab == ForgeDetailTab.Versions; }
     }
 
     public bool IsDependenciesTab
@@ -549,7 +595,8 @@ public partial class ForgePageViewModel : PageViewModel
 
     partial void OnActiveTabChanged(ForgeDetailTab value)
     {
-        OnPropertyChanged(nameof(IsDetailsTab));
+        OnPropertyChanged(nameof(IsDescriptionTab));
+        OnPropertyChanged(nameof(IsVersionsTab));
         OnPropertyChanged(nameof(IsDependenciesTab));
         OnPropertyChanged(nameof(IsDependentsTab));
 
@@ -921,8 +968,12 @@ public partial class ForgePageViewModel : PageViewModel
         OnPropertyChanged(nameof(HasSelection));
         OnPropertyChanged(nameof(InstallBlocker));
         Versions.Clear();
+        DescriptionDocument = MarkdownDocument.Empty;
         Dependencies.Clear();
         Dependents.Clear();
+        OnPropertyChanged(nameof(DescriptionDocument));
+        OnPropertyChanged(nameof(HasDescription));
+        OnPropertyChanged(nameof(HasVersions));
         SourceLinks.Clear();
         ScanLinks.Clear();
         Description = string.Empty;
@@ -947,11 +998,15 @@ public partial class ForgePageViewModel : PageViewModel
             }
 
             SelectedVersion = Versions.FirstOrDefault();
+            OnPropertyChanged(nameof(HasVersions));
             OnPropertyChanged(nameof(CanInstall));
             OnPropertyChanged(nameof(InstallBlocker));
 
             var description = mod.Description ?? (await _forge.GetModAsync(mod.Id, cancellationToken)).Description;
-            Description = ForgeDescription.ToText(description);
+            DescriptionDocument = MarkdownParser.Parse(description);
+            Description = MarkdownParser.ToText(DescriptionDocument);
+            OnPropertyChanged(nameof(DescriptionDocument));
+            OnPropertyChanged(nameof(HasDescription));
 
             await LoadPageExtrasAsync(mod, cancellationToken);
 
@@ -1008,19 +1063,20 @@ public partial class ForgePageViewModel : PageViewModel
             return [];
         }
 
-        // The API rejects an SPT version nobody published for, and 0.0.0 is exactly that. Without an instance there is
-        // nothing to check dependencies against, so the sidebar says "none" instead of showing an API error.
-        if (_context.Active?.SptVersion is not { } sptVersion)
-        {
-            return [];
-        }
-
+        // The version whose dependencies are shown is the one the tab is looking at: a mod can gain and lose
+        // dependencies between releases, and the newest one is not always the version on offer.
+        var version = SelectedVersion?.Row.Version ?? mod.LatestVersion;
         var packages = new List<InstalledPackage>
         {
-            new() { Guid = mod.Guid, Version = mod.LatestVersion },
+            new() { Guid = mod.Guid, Version = version },
         };
-        var dependencies = await _forge.GetDependenciesAsync(packages, sptVersion, cancellationToken);
-        var found = DependenciesOf(dependencies, mod.Guid, mod.LatestVersion);
+        var dependencies = await _forge.GetDependenciesAsync(
+            packages,
+            await DependencySptVersionAsync(cancellationToken),
+            cancellationToken
+        );
+
+        var found = DependenciesOf(dependencies, mod.Guid, version);
         if (found.Count == 0)
         {
             return [];
@@ -1043,73 +1099,83 @@ public partial class ForgePageViewModel : PageViewModel
     }
 
     /// <summary>
-    /// Who depends on this mod: the installed mods' dependency lists, intersected with it. The API reports dependencies
-    /// per package, so the answer is already there — no second endpoint and no crawl.
+    /// The dependency endpoint insists on an SPT version, but the answer barely depends on which one is named. An open
+    /// instance decides; without one, the release the mod itself asks for; failing that, the newest the catalogue lists.
+    /// </summary>
+    private async Task<SemanticVersion> DependencySptVersionAsync(CancellationToken cancellationToken)
+    {
+        if (_context.Active?.SptVersion is { } active)
+        {
+            return active;
+        }
+
+        var constraint = SelectedVersion?.Row.Version is { } selected
+            ? ShownVersionConstraint(selected)
+            : ShownVersionConstraint(Shown?.LatestVersion);
+
+        var catalogue = await _forge.GetSptVersionsAsync(50, cancellationToken);
+        if (constraint is { } range)
+        {
+            foreach (var candidate in catalogue)
+            {
+                if (range.Satisfies(candidate.Version))
+                {
+                    return candidate.Version;
+                }
+            }
+        }
+
+        return catalogue.Count > 0 ? catalogue[0].Version : new SemanticVersion(4, 0, 0);
+    }
+
+    private VersionRange? ShownVersionConstraint(SemanticVersion? version)
+    {
+        if (version is null || Shown is null)
+        {
+            return null;
+        }
+
+        foreach (var published in Shown.Mod.Versions)
+        {
+            if (published.Version == version)
+            {
+                return published.SptConstraint;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Who needs this mod. The API answers "what does this need" and has no mirror, so the reverse comes from the same
+    /// answers collected over the catalogue (<see cref="IDependencyGraph" />) rather than from what happens to be
+    /// installed here.
     /// </summary>
     private async Task<IReadOnlyList<ForgeModReferenceViewModel>> LoadDependentsAsync(
         ForgeModRowViewModel mod,
         CancellationToken cancellationToken
     )
     {
-        if (_context.ActiveId is not { } instanceId || string.IsNullOrEmpty(mod.Guid))
-        {
-            return [];
-        }
-
-        var instance = await _instances.GetAsync(instanceId, cancellationToken);
-        if (instance is null)
-        {
-            return [];
-        }
-
-        var installed = instance
-            .InstalledMods.Where(row => !row.IsAddon && !string.IsNullOrEmpty(row.Guid))
-            .Select(row => new InstalledPackage { Guid = row.Guid, Version = row.Version })
-            .ToList();
-
-        if (installed.Count == 0)
-        {
-            return [];
-        }
-
-        if (_context.Active is not { } active)
-        {
-            return [];
-        }
-
-        var dependencies = await _forge.GetDependenciesAsync(installed, active.SptVersion, cancellationToken);
-        var dependents = new List<ForgeModReferenceViewModel>();
-        foreach (var package in installed)
-        {
-            var found = DependenciesOf(dependencies, package.Guid, package.Version);
-            if (found.Count == 0)
-            {
-                continue;
-            }
-
-            if (found.Any(dependency => string.Equals(dependency.Guid, mod.Guid, StringComparison.OrdinalIgnoreCase)))
-            {
-                var row = instance.InstalledMods.First(candidate => candidate.Guid == package.Guid);
-                dependents.Add(
-                    new ForgeModReferenceViewModel(
-                        row.Mod?.ForgeId ?? 0,
-                        row.Name,
-                        row.Guid,
-                        row.Version.ToString(),
-                        optional: false,
-                        installed: true
-                    )
-                );
-            }
-        }
-
-        return dependents;
+        var installed = await InstalledGuidsAsync(cancellationToken);
+        Status = Text("forge.readingDependents");
+        var progress = new Progress<DependencyGraphProgress>(report =>
+            Status = Localizer.Format("forge.readingCatalogue", report.Page, report.Pages)
+        );
+        var edges = await _graph.DependentsOfAsync(mod.Id, progress, cancellationToken);
+        Status = string.Empty;
+        return
+        [
+            .. edges.Select(edge => new ForgeModReferenceViewModel(
+                edge.FromId,
+                edge.FromName,
+                edge.FromGuid,
+                string.Empty,
+                optional: false,
+                installed: edge.FromGuid is { } guid && installed.Contains(guid)
+            )),
+        ];
     }
 
-    /// <summary>
-    /// The dependency list for one package. The API keys its answer by GUID; the composite form exists because a
-    /// caller may ask for several versions, so both shapes are read here rather than assumed.
-    /// </summary>
     private static IReadOnlyList<ForgeDependency> DependenciesOf(
         IReadOnlyDictionary<string, IReadOnlyList<ForgeDependency>> map,
         string guid,
@@ -1213,7 +1279,7 @@ public sealed class ForgeModRowViewModel : ViewModelBase
         : base(localizer)
     {
         Mod = mod;
-        LatestVersion = mod.Versions.Count > 0 ? mod.Versions[0].Version : new SemanticVersion(0, 0, 0);
+        LatestVersion = NewestVersion(mod.Versions);
     }
 
     public ForgeMod Mod { get; }
@@ -1279,6 +1345,24 @@ public sealed class ForgeModRowViewModel : ViewModelBase
     }
 
     public SemanticVersion LatestVersion { get; }
+
+    /// <summary>
+    /// The newest published version. The API lists versions oldest first, so the first one is the oldest release, and
+    /// calling it the latest offered an outdated version as the default everywhere.
+    /// </summary>
+    private static SemanticVersion NewestVersion(IReadOnlyList<ForgeModVersion> versions)
+    {
+        var newest = new SemanticVersion(0, 0, 0);
+        foreach (var version in versions)
+        {
+            if (version.Version > newest)
+            {
+                newest = version.Version;
+            }
+        }
+
+        return newest;
+    }
 
     /// <summary>Fetches the thumbnail once and decodes it off the UI thread's critical path.</summary>
     public async Task LoadThumbnailAsync(IThumbnailCache cache, CancellationToken cancellationToken = default)

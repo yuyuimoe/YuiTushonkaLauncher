@@ -88,6 +88,12 @@ public sealed record ForgeDependency
     public SemanticVersion? Version { get; init; }
 
     public bool? IsOptional { get; init; }
+
+    /// <summary>True when the API says this dependency clashes with the asking package.</summary>
+    public bool IsConflict { get; init; }
+
+    /// <summary>Where the compatible version can be downloaded, when the API says.</summary>
+    public string? DownloadUrl { get; init; }
 }
 
 /// <summary>Health of the API.</summary>
