@@ -10,8 +10,8 @@ This list was 13 items with no release date in sight; the session of 2026-11-05 
 | # | Point | What closes it |
 |---|---|---|
 | 1 | **Real Windows** — installer, create instance, start/stop server, install a mod, launch, logs, job object and `CREATE_BREAKAWAY_FROM_JOB`. | One run of each on a Windows machine that has the Tarkov files, with the result written into `docs/qa/manual-matrix.md`. |
-| 2 | **`.7z` and `.rar` mods install** ([D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip)). | The installer reads the three formats by content; a real `.7z` (BigBrain) and a real `.rar` install, extract and are identified. |
-| 3 | **Visual smoke** ([D29](04-decisions.md#d29-two-documents-that-make-gaps-visible-instead-of-remembered)). | `docs/qa/known-ugly.md` written: every screen opened in light and dark, with 1000 rows, and in a small window, with scrolling where needed. Ugly is allowed; cut off, unreadable or unreachable is not. |
+| 2 | ~~**`.7z` and `.rar` mods install**~~ — **done 2026-11-05** ([D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip)). | The installer reads the three formats by content; the real `DrakiaXYZ-BigBrain-1.5.0.7z` and `WTT-VoicePatcher-1.0.1.rar` were installed into an instance by `--install-mod`, inspected, extracted and identified. |
+| 3 | ~~**Visual smoke**~~ — **done 2026-11-05** ([D29](04-decisions.md#d29-two-documents-that-make-gaps-visible-instead-of-remembered)). | `docs/qa/known-ugly.md` written from ten rendered screens plus a dark pass; one real defect found (a Settings label painted under its checkbox) and fixed. The 1000-row scale case lives in `ModListScaleTests`. |
 
 ## Evidence that is welcome but does not gate
 
