@@ -13,6 +13,7 @@
     <PackageVersion Include="Avalonia" Version="12.1.5" />
     <PackageVersion Include="SharpCompress" Version="1.0.0" />
     <PackageVersion Include="Avalonia.Headless" Version="12.1.5" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.5" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.5" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.5" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.5" />

@@ -15,7 +15,7 @@
     <TextBlock Classes="sectionTitle" Text="{Binding Title}" />
 
     <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-      <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding LanguageLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding LanguageLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <ComboBox
         Grid.Row="0"
         Grid.Column="1"
@@ -24,7 +24,7 @@
         DisplayMemberBinding="{Binding Name}"
       />
 
-      <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding ThemeLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding ThemeLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <ComboBox
         Grid.Row="1"
         Grid.Column="1"
@@ -33,10 +33,10 @@
         DisplayMemberBinding="{Binding Name}"
       />
 
-      <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding InstancesRootLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding InstancesRootLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding InstancesRoot}" />
 
-      <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding DownloadsLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding DownloadsLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <NumericUpDown
         Grid.Row="3"
         Grid.Column="1"
@@ -47,7 +47,7 @@
         FormatString="0"
       />
 
-      <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding RetentionDaysLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding RetentionDaysLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <NumericUpDown
         Grid.Row="4"
         Grid.Column="1"
@@ -58,7 +58,7 @@
         FormatString="0"
       />
 
-      <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding RetentionFilesLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding RetentionFilesLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <NumericUpDown
         Grid.Row="5"
         Grid.Column="1"
@@ -69,7 +69,7 @@
         FormatString="0"
       />
 
-      <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding GameStartWindowLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding GameStartWindowLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <ComboBox
         Grid.Row="6"
         Grid.Column="1"
@@ -78,7 +78,7 @@
         DisplayMemberBinding="{Binding Name}"
       />
 
-      <TextBlock Grid.Row="7" Grid.Column="0" Text="{Binding AskBeforeStopLabel}" VerticalAlignment="Center" />
+      <TextBlock Grid.Row="7" Grid.Column="0" Text="{Binding AskBeforeStopLabel}" VerticalAlignment="Center" TextWrapping="Wrap" />
       <CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding AskBeforeStoppingProcesses}" />
     </Grid>
 
