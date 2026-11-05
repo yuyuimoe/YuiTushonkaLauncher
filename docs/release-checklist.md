@@ -61,12 +61,13 @@ Windows will show "Windows protected your PC" until the binary is Authenticode-s
 Linux has no equivalent registry; publishing `SHA256SUMS` and, later, signing it with a GPG key is the equivalent
 statement.
 
-## Pre-releases are Linux only
+## Every release ships both platforms
 
-A tag with a label (`v0.2.0-rc.1`) skips the Windows job and marks the GitHub release as a pre-release
-([D23](plan/04-decisions.md#d23-the-10-gate-is-three-items-and-the-releases-are-sequenced)): no Windows machine has run
-the launcher yet, so a Windows installer would be a claim nobody checked. The workflow enforces it —
-`if: ${{ !contains(github.ref_name, '-') }}` on the Windows job.
+A tag with a label (`v0.2.0-rc.5`) is still marked as a **pre-release** on GitHub, but it carries Windows artifacts too:
+the installer was built, installed, run and uninstalled on a real Windows machine, so shipping it is a claim the
+project can back ([D30](plan/04-decisions.md#d30-windows-ships-in-every-release-and-the-shell-association-opens-a-pack-review)).
+The `windows` job no longer looks at the tag's label, and the `release` job needs both jobs green.
 
-Checked on 2026-11-05 with `v0.1.0-rc.1` and `v0.2.0-rc.1`: three Linux artifacts (framework-dependent tarball,
-self-contained tarball, AppImage) plus `SHA256SUMS`, and the Windows job reported *skipped*.
+Checked on 2026-11-05: `v0.2.0-rc.3` and `v0.2.0-rc.4` were still Linux-only (the gate's Windows item closed after
+them); the next tag after this change builds both. The Windows half was proven on a Windows 10 VM with SPT 4.0.9 —
+see `docs/qa/manual-matrix.md`.

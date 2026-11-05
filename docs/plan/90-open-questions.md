@@ -55,8 +55,13 @@ answered ship `.7z` (including BigBrain and Waypoints); the client plugin drives
    to drive. **Still open after phase 10:** the routes exist in the server assembly but were not exercised;
    the mod sync did not need them (the server publishes its mod list). Exercise them before phase 11 or 12
    if the game expects the launcher to drive the download; a wrong guess wastes download bandwidth.
-6. **`.sptpack` MIME + shell integration.** Double-click import on Windows (registry) and Linux
-   (`.desktop` + MIME XML). Deferred to Phase 14.
+6. **`.sptpack` MIME + shell integration — done.** Windows registers `application/x-sptpack` in `HKCU` (the
+   installer's optional "associate" task); Linux ships a `.desktop` entry with `Exec=YuiTushonkaLauncher %f`, the MIME
+   XML, and an `install.sh` that sets it as the default. The app reads the path out of its command line and opens a
+   review, never a silent import (`PackOpenService`, `PackOpenTests`;
+   [D30](04-decisions.md#d30-windows-ships-in-every-release-and-the-shell-association-opens-a-pack-review)). The desktop
+   double-click itself is the one row still unticked in `docs/qa/manual-matrix.md`: it needs a desktop session with the
+   association installed.
 7. **Update channel for the app itself.** The official launcher has a signed manifest updater
    (`UpdateManifest`/`ManifestSignature`/`UpdateTransaction`). Do we build an equivalent, or ship via
    GitHub releases only?

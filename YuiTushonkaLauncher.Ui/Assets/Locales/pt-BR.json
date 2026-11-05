@@ -347,5 +347,26 @@
     "emptyHint": "Addons estendem um mod já instalado. Use “Instalar addons” para escolher o mod pai primeiro.",
     "count": "{0} addons",
     "files": "{0} arquivos"
+  },
+  "packs": {
+    "title": "Importar pacote",
+    "importTitle": "Importar {0}",
+    "missing": "O pacote não foi encontrado:\n{0}",
+    "noInstance": "Crie uma instância primeiro: um pacote é importado para dentro de uma.",
+    "rejected": "O pacote foi recusado: {0}",
+    "review": "{0} mod(s), {1} addon(s) e {2} config(s) do SPT {3} (código {4}).",
+    "wouldChange": "{0} item(ns) mudaria(m), {1} indisponível(is).",
+    "warnings": "Avisos:",
+    "moreItems": "…e mais {0}.",
+    "importDone": "Importação concluída: {0} instalado(s), {1} config(s) aplicada(s), {2} ignorado(s), {3} falhou(aram).",
+    "action": {
+      "install": "Instalar",
+      "replace": "Substituir",
+      "alreadyInstalled": "Já instalado",
+      "applyConfig": "Aplicar config",
+      "configUpToDate": "Config atualizada",
+      "keepLocalConfig": "Manter config local",
+      "unavailable": "Indisponível"
+    }
   }
 }
