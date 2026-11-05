@@ -80,6 +80,11 @@ jobs:
         run: bash scripts/publish.sh --version "${{ inputs.tag || github.ref_name }}" --only windows --no-tests
       - name: Build the installer
         shell: bash
+        env:
+          # Git Bash rewrites an argument that starts with '/' into a Windows path, which turns every /D define into a
+          # second script filename ('You may not specify more than one script filename'); this turns that off.
+          MSYS_NO_PATHCONV: "1"
+          MSYS2_ARG_CONV_EXCL: "*"
         run: |
           # The tag carries the 'v' and, for a pre-release, a '-label'. MyAppVersion takes the text form; Inno Setup's
           # VersionInfoVersion only accepts numbers, so strip both and pad to three parts.
@@ -91,7 +96,7 @@ jobs:
             *.*) numeric="$numeric.0" ;;
             *) numeric="$numeric.0.0" ;;
           esac
-          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
+          "C:/Program Files (x86)/Inno Setup 6/ISCC.exe" \
             "/DMyAppVersion=$version" \
             "/DMyVersionInfoVersion=$numeric" \
             "/DMySourceDir=dist\\win-x64-fdd" \
