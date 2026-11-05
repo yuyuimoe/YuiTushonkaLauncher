@@ -4,6 +4,7 @@ using Xunit;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Instances;
 using YuiTushonkaLauncher.Infrastructure.Instances;
+using YuiTushonkaLauncher.Tests.Infrastructure;
 
 namespace YuiTushonkaLauncher.Tests.Instances;
 
@@ -18,7 +19,7 @@ public sealed class BaseInstallProbeTests
         var info = probe.Inspect(install.Root);
 
         info.Layout.Should().Be(InstanceLayout.Spt41Plus);
-        info.RuntimeDirectory.Should().Be("spt/SPT_Runtime");
+        info.RuntimeDirectory.AsSlashes().Should().Be("spt/SPT_Runtime");
         info.SptVersion.Should().Be(SemanticVersion.Parse("4.1.6"));
     }
 
@@ -31,7 +32,7 @@ public sealed class BaseInstallProbeTests
         var info = probe.Inspect(install.Root);
 
         info.Layout.Should().Be(InstanceLayout.Spt40);
-        info.RuntimeDirectory.Should().Be("spt/SPT");
+        info.RuntimeDirectory.AsSlashes().Should().Be("spt/SPT");
         info.SptVersion.Should().Be(SemanticVersion.Parse("4.0.13"));
     }
 
