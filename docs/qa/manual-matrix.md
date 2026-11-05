@@ -103,3 +103,28 @@ so the Windows job reported *skipped*; the Windows path was proven on the VM dur
 | 6 | Re-run the workflow for the same tag | ☑ | a second run for `v0.2.0-rc.4` produced the same file names and a passing test run; the gzip tarball differs by 91 bytes because gzip records the build time, while the AppImage and the self-contained tarball are byte-identical |
 | 7 | The app opens a pack the shell hands it | ☑ | `PackOpenTests`: a `.sptpack` argument is found among flags, the plan is shown, and nothing is imported unless the user confirms |
 | 8 | Double-click a `.sptpack` on Linux | ☐ | the association (`.desktop` `Exec=… %f`, MIME XML, `install.sh`) ships and the app side is tested, but the click itself needs a desktop session with the association installed; the Windows installer's association was proven in `0.2.0-rc.2` |
+
+## Release 0.2.0-rc.5 — the first tag that ships Windows (2026-11-05)
+
+The Windows job had never run: every earlier tag was a pre-release and the old rule skipped it, so the release path
+had three defects that only real hardware/CI could show ([D30](../plan/04-decisions.md#d30-windows-ships-in-every-release-and-the-shell-association-opens-a-pack-review)).
+The tag was re-cut after each fix; the `release` job never published from a failing run, so nothing was shipped from
+those attempts.
+
+What broke, in order:
+
+1. `zip: command not found` (exit 127) — the runner's Git Bash has no Info-ZIP. `publish.sh` now uses `zip` when it
+   exists and `7z a -tzip` otherwise.
+2. `You may not specify more than one script filename` from ISCC — Git Bash rewrote every `/D` define into a Windows
+   path, so each define became a script. That step now sets `MSYS_NO_PATHCONV=1` / `MSYS2_ARG_CONV_EXCL=*`.
+3. `No files found matching …\packaging\windows\dist\win-x64-fdd\*` — Inno Setup resolves a relative `Source` against
+   the script, not the working directory. The defines now pass `..\..\dist\win-x64-fdd`, the form the `.iss` defaults
+   to.
+
+| # | Flow | Result | Evidence |
+|---|------|:------:|----------|
+| 1 | Both jobs run for a pre-release | ☑ | `Linux artifacts: success`, `Windows artifacts: success` (no longer *skipped*) |
+| 2 | The release carries seven assets | ☑ | `SHA256SUMS`; `-win-x64-setup.exe` (30 359 773 B), `-win-x64.zip`, `-win-x64-selfcontained.zip`; `-linux-x64{,-selfcontained}.tar.gz`; `-x86_64.AppImage` |
+| 3 | Every checksum matches | ☑ | `sha256sum -c SHA256SUMS`: all six artifacts `OK` |
+| 4 | The installer carries both versions | ☑ | `FileVersion` `0.2.0`, `ProductVersion` `0.2.0-rc.5` — the numeric/text split from D30 |
+| 5 | An older build sees the release | ☑ | the `0.1.0-rc.1` build printed `Newest release: v0.2.0-rc.5 … A newer release is available` |
