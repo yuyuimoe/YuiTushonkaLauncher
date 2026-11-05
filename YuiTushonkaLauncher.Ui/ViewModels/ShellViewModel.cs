@@ -123,8 +123,11 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         }
     }
 
-    /// <summary>Shows a section and lets it load, which is how a page refreshes when it becomes visible.</summary>
-    public void Navigate(LauncherSection section)
+    /// <summary>
+    /// Shows a section and waits for it to load. Production callers use <see cref="Navigate" />; tests use this one so a
+    /// page's first load cannot race the assertions that follow.
+    /// </summary>
+    public async Task NavigateAsync(LauncherSection section)
     {
         if (!_pages.TryGetValue(section, out var page))
         {
@@ -138,7 +141,13 @@ public partial class ShellViewModel : ViewModelBase, INavigationService
         }
 
         CurrentPage = page;
-        _ = LoadAsync(page);
+        await LoadAsync(page);
+    }
+
+    /// <summary>Shows a section and lets it load in the background, which is how a page refreshes when it becomes visible.</summary>
+    public void Navigate(LauncherSection section)
+    {
+        _ = NavigateAsync(section);
     }
 
     /// <summary>True when this instance's server or game is still running, which is what the close question asks.</summary>
