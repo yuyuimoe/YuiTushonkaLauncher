@@ -517,3 +517,24 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   100 is requested). 2 083 mods ≈ 42 pages; the dependency calls then go in batches of 50-ish per request.
 * `/mods/dependencies` rejects mod versions that are not plain semver (`4.4.3+fix` fails the whole request when it is
   the only one asked).
+
+## Mod archives (measured 2026-11-05)
+
+* The Forge download URL **never ends in an extension** — it ends in the release version
+  (`/mod/download/902/bigbrain/1.5.0`), which redirects to the author's host (GitHub for BigBrain). The file type
+  is only visible in the final `Content-Disposition`.
+* Of the top 100 mods by downloads, in the 50 that answered a HEAD: **19 `.7z`, 28 `.zip`**. Pages 3–4 of the same
+  ordering: 16 `.7z`, 44 `.zip`, 11 without an extension in the header. `.rar` is rare but real: `WTT - Voice
+  Patcher` (1418) ships **RAR v5**.
+* 7-Zip's default is a **solid** archive (`Solid = +` in `7z l -slt` even without `-ms=on`), so entries cannot be
+  opened by name cheaply; SharpCompress throws `ExtractAllEntries can only be used on solid archives or 7Zip
+  archives` when a *non*-solid archive is read that way. Both paths are needed: by name for zip/rar, one forward
+  pass for 7z.
+* Magic bytes that matter: zip `50 4B`, 7z `37 7A BC AF 27 1C`, rar v4 `52 61 72 21 1A 07 00`, rar v5
+  `… 07 01 00`.
+* End-to-end through the launcher: `--install-mod` on the real `DrakiaXYZ-BigBrain-1.5.0.7z` (16 KB) and on
+  `WTT-VoicePatcher-1.0.1.rar` (RAR v5, 3 KB) both inspected, extracted, identified (`me.sol…`/`com.…`) and wrote
+  `BepInEx/plugins/…dll` into a real instance.
+* Mods shipped inside a wrapper folder (`ModName/BepInEx/plugins/x.dll`) were classified **before** the wrapper was
+  stripped, so their plugin was seen as `Content` and never installed. Fixed by classifying after stripping; a test
+  pins it.

@@ -194,3 +194,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   — and a failed walk waits five minutes before it is tried again. It is also started when the browser opens, so the
   tab usually answers from what was already collected, and a catalogue that ignores the page number can no longer be
   asked for two hundred pages.
+### Added
+
+- `.7z` and `.rar` mod archives install. The format is read from the file's first bytes — the Forge URL ends in the
+  version, so a name is no evidence — and reading is via SharpCompress (managed, no native dependency). Solid 7z
+  archives are streamed in one forward pass.

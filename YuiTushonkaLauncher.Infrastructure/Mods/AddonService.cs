@@ -209,7 +209,7 @@ public sealed class AddonService(
         var fileName = Path.GetFileName(Uri.UnescapeDataString(request.DownloadUrl.AbsolutePath));
         if (string.IsNullOrWhiteSpace(fileName) || !fileName.Contains('.') || fileName.StartsWith(".", StringComparison.Ordinal))
         {
-            fileName = "addon.zip";
+            fileName = "addon.download";
         }
 
         var result = await downloader.DownloadAsync(

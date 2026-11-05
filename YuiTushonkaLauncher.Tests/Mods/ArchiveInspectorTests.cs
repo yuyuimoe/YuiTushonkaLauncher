@@ -12,6 +12,23 @@ public sealed class ArchiveInspectorTests
     private readonly ArchiveInspector _inspector = new(NullLogger<ArchiveInspector>.Instance);
 
     [Fact]
+    public void Inspect_ArchiveWrappedInOneFolder_StillFindsThePlugin()
+    {
+        // Most mods ship inside a wrapper folder; classification has to happen after it comes off, or the plugin is
+        // seen as content and lands nowhere.
+        using var archive = new ZipFixture()
+            .AddAssembly("ModName/BepInEx/plugins/ModName.dll", "ClientMod.dll")
+            .Add("ModName/readme.md", "hi");
+
+        var inspection = _inspector.Inspect(archive.Path);
+
+        inspection.RootPrefix.Should().Be("ModName");
+        inspection.Kind.Should().Be(ModKind.Client);
+        inspection.CandidateAssemblies.Should().Contain("BepInEx/plugins/ModName.dll");
+        inspection.Entries.Should().Contain(entry => entry.NeedsRelocation);
+    }
+
+    [Fact]
     public void Inspect_ClientMod_ClassifiesThePluginAndItsConfig()
     {
         using var archive = new ZipFixture()
