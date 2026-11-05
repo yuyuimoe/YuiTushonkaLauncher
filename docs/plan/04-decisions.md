@@ -310,3 +310,104 @@ merely exiting.
   launcher when the game starts".
 - **Patching and migrating refuse while the pair runs**, naming the process: with detached processes,
   "nothing else writes to these files" is no longer a safe assumption.
+
+## D23. The 1.0 gate is three items, and the releases are sequenced
+
+Settled with the maintainer on 2026-11-05, after a grilling session over every open question.
+
+- **The gate** — what must be true before the `1.0.0` tag: (1) the app runs on **real Windows** (installer,
+  instance, server, mod install, launch, logs, job object/breakaway), with the Tarkov files present on that
+  machine; (2) **`.7z` and `.rar` mods install**, which is most of the popular catalogue (see D24);
+  (3) a **visual smoke** passed with a written list of what is ugly but not broken (`docs/qa/known-ugly.md`).
+- **Not gate items, deliberately:** byte identity with the official launcher (done whenever a clean install is
+  patched by the official launcher — evidence, not a blocker), the mutation-harness anomaly, designed
+  light/dark palettes (the layout is temporary and will be redesigned), and everything in D26–D30 that does
+  not have a user waiting for it.
+- **Sequence:** tag `v0.1.0` on the state that exists (it exercises the release pipeline for the first time),
+  then 7z + remote servers (D24, D25), then `v0.2.0`, then the gate, then `1.0.0`. The gate is checked
+  against an app that already has the remote-server feature inside it, not against a version that must gain
+  it afterwards.
+- **The lesson that produced this rule:** the project had 13 "before 1.0" items and no release. A gate that
+  never closes is not a gate.
+
+## D24. Archives: 7z and rar are read, the format comes from the bytes, packs stay zip
+
+Measured before deciding: of the 50 most-downloaded mods that answered a HEAD request, **19 ship `.7z`** and 28
+`.zip` — and the `.7z` ones include BigBrain and Waypoints, the two dependencies SAIN declares. The current
+installer opens everything with `ZipFile`.
+
+- **Read** `.7z`, `.rar` and `.zip` through **SharpCompress** (managed, no native dependency). Writing stays
+  `.zip`: a `.sptpack` must remain a file a person can open and audit.
+- **The format is detected from the content**, never from the name: the Forge download URL ends in the version
+  (`/mod/download/902/bigbrain/1.5.0`), so the current code saves every download as `mod.zip` regardless of
+  what it is. Magic bytes decide (`7z¼¯'`, `Rar!`, `PK`).
+- The archive inspection that classifies entries runs on the same reader, so a `.7z` gets the same entry
+  vetting as a `.zip` — no second, weaker path.
+
+## D25. A server that is not this machine
+
+The maintainer asked for a **server picker**: choosing the local entry starts the instance's server with it;
+choosing a remote one (`host` other than loopback) connects to it and lists its profiles.
+
+- **The address travels as the launch argument** we already build:
+  `-config={'BackendUrl':'https://host:port',…}`. Nothing is written to a config file, so
+  [D6](#d6-copy-on-write-before-every-write)'s invariant is untouched.
+- **The picker appears when there is more than one server**, remembers the last choice per instance, and
+  offers "always use this one".
+- **A remote server is trusted on first use, without blocking.** Its self-signed certificate is accepted
+  (requiring a CA would reject every real SPT server and break Fika), and the **fingerprint is recorded**; if it
+  changes, the launcher says so instead of silently accepting a new one. Loopback keeps accepting anything —
+  it is the server we started ourselves.
+- **Remote profiles can be listed, selected, created, renamed and wiped**, because that is what a player with
+  friends needs before the permission model exists. Destructive actions on a remote server ask for the profile
+  name to be typed and name the server they will act on. A future server-side permission sync can tighten
+  this; the launcher's dialogs are written so that tightening is a policy change, not a rewrite.
+
+## D26. `.sptpack` stays integrity-only for 1.0
+
+- No signatures, no producing-install hash: the format keeps `formatVersion` 1 and gains a **reserved
+  `signature` field that is null**, so a v2 that signs does not have to break v1 files.
+- Because names inside a package are unauthenticated, the review screen shows, for every entry: the declared
+  name, its **GUID**, the **Forge-confirmed name** (or "not on the Forge"), the version, and a
+  **"not verified" badge at the top of the dialog** — the reader must know what they are looking at before
+  reading the list.
+- Shell integration (MIME type, double-click import, registry/`.desktop`) waits for 1.1: without signed
+  packages, registering a file type that opens a privileged flow only adds surface.
+
+## D27. Update sources, and nothing downloads itself
+
+- **Mods:** the Forge first; if the mod is not on the Forge (D28's external link), the project's GitHub or
+  GitLab releases; otherwise "check manually". A mod that is not on the Forge gains an optional repository link
+  recorded per installed mod, and the launcher may compare the installed version with the repository's latest
+  release.
+- **The app itself:** GitHub Releases plus the existing manual check. The Forge has no application-release
+  endpoint, and inventing one is backend work, not launcher work.
+- **Nothing is downloaded without a click.** An available version is shown, with the page to go to.
+
+## D28. Small decisions, all settled in the same session
+
+| Point | Decision |
+|---|---|
+| Detached process output (Q21) | The process writes to **a file it owns**; the launcher follows the file. No inherited pipe, so a launcher crash cannot leave a process writing into a dead pipe. Windows keeps the pipe until it has been run for real. |
+| Wine prefix (Q19) | A **golden prefix cloned with reflinks where the file system supports them, a copy otherwise**, per instance. |
+| `IsConfig` and `.txt` (Q14) | `.txt` counts as config, same extension rule for export and integrity. |
+| Exporting a log selection above 64 MiB (Q18) | Allowed, written to a file the user chooses; the viewer still stops at the limit. |
+| `http.json` on `0.0.0.0` (Q18) | Warned and **offered** at instance creation (checkbox to pin `127.0.0.1`); never rewritten silently. |
+| Mods the Forge does not have (Q16) | Reported and linked; an optional repository link per mod (D27). No "copy from this install". |
+| The server's profile backups (Q17) | Left to the server; the launcher only shows where they are. |
+| `GAMEID` for umu (Q18) | `umu-sptushonka` — it exists in the umu database (store `none`). `umu-default` does not. |
+| Linux hardening (Q10) | Documented, no `winetricks`/`winecfg` buttons. |
+| `LayoutVersion` (Q17) | **Inferred from the disk**; the folder is the source of truth. |
+| `--stale --scan` (Q24) | Linux only: `/proc/<pid>` matched by **executable inside the instance root *and* the port it holds**; `--reap` kills only what matched both. Nothing on Windows until it has been run there. |
+| Light/dark palettes (Q25) | Out of the gate: the layout is temporary and will be redesigned. |
+| Dependents index (Q31) | The complete catalogue walk stays, with **the date of the index and a refresh button** in the tab. |
+| Description parser (Q32) | Frozen: no tables, footnotes or reference links unless a real description needs them. |
+
+## D29. Two documents that make gaps visible instead of remembered
+
+- `docs/tech-debt.md` — one line per accepted debt: where it hurts, why it was accepted, what would close it.
+  It never blocks a release, and it starts with the mutation-harness anomaly, the dependency graph's 99
+  requests per rebuild, and the game's `-config` built by string concatenation.
+- `docs/qa/known-ugly.md` — filled in during the visual smoke (D23): one line per screen, what is ugly, and
+  what is *not* broken. Passing the smoke means: every screen opened in light and dark, with 1000 rows, and in
+  a small window, with scrolling where it is needed.

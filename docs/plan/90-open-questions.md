@@ -2,7 +2,33 @@
 
 Everything still unresolved, with who/what resolves it.
 
+## Resolved in the grilling session of 2026-11-05
+
+Every question below that was still open was put to the maintainer in four rounds and answered. The items are
+kept with their original text for context; each line here says where the decision now lives.
+
+| Question | Decision |
+|---|---|
+| The release gate, tag sequence, and what waits for 1.1 | [D23](04-decisions.md#d23-the-10-gate-is-three-items-and-the-releases-are-sequenced) |
+| `.sptpack` authenticity — integrity only, reserved `signature`, review screen, MIME in 1.1 | [D26](04-decisions.md#d26-sptpack-stays-integrity-only-for-10) |
+| 7z/rar archives, format by content, packs stay zip | [D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip) |
+| Servers that are not this machine: picker, TOFU fingerprint, remote profile management | [D25](04-decisions.md#d25-a-server-that-is-not-this-machine) |
+| Update sources for the app and for mods — nothing downloads itself | [D27](04-decisions.md#d27-update-sources-and-nothing-downloads-itself) |
+| Detached process output, Wine prefix, `.txt` as config, log export above 64 MiB, `http.json` on `0.0.0.0`, mods absent from the Forge, server profile backups, umu `GAMEID`, Linux hardening, `LayoutVersion`, `--stale --scan`, palettes, dependents index, description parser | [D28](04-decisions.md#d28-small-decisions-all-settled-in-the-same-session) |
+| Where accepted debt and "ugly but not broken" are written down | [D29](04-decisions.md#d29-two-documents-that-make-gaps-visible-instead-of-remembered) |
+
+The facts that decided several of them, measured during the session: 19 of the 50 most-downloaded mods that
+answered ship `.7z` (including BigBrain and Waypoints); the client plugin drives `singleplayer/bundles` and
+`user/cache/bundles` itself, so the launcher does not; the backend address travels as the
+`-config={'BackendUrl':…}` launch argument, not as a file; and the umu database has `umu-sptushonka`, not
+`umu-default`.
+
+
 ## Blocks Phase 8 (export/import)
+
+1. **Threat model for `.sptpack` — resolved.** Decided in the 2026-11-05 session: integrity only, `formatVersion` 1
+   with a reserved `signature` field, always show the GUID and the Forge-confirmed name, MIME in 1.1
+   ([D26](04-decisions.md#d26-sptpack-stays-integrity-only-for-10)). The original text follows for context.
 
 1. **Threat model for `.sptpack` — defaults implemented, authenticity still open.** The baseline is now
    code and documented as [D19](04-decisions.md#d19-a-sptpack-is-a-list-of-names-never-a-payload): no
@@ -167,6 +193,6 @@ Everything still unresolved, with who/what resolves it.
 * **Q32 — the description parser is not CommonMark.** It covers headings, paragraphs, both list kinds, code, quotes,
   rules, images and inline emphasis and links; tables, footnotes and reference-style links are read as plain text. That
   is deliberate — mod descriptions are short — but it is a limitation to state, not a parser to grow.
-* **Q33 — a server entry that is not local does nothing yet.** It is stored, tested and reported, but nothing points
+* **Q33 — a server entry that is not local does nothing yet.** *Resolved: [D25](04-decisions.md#d25-a-server-that-is-not-this-machine) — the address travels as a launch argument, and the picker is the flow. The original text follows.* It is stored, tested and reported, but nothing points
   the game at it: the game's server address is still the instance's own. Deciding whether a remote entry should rewrite
   the game's configuration (and how that interacts with D6, the copy-on-write invariant) is still open.
