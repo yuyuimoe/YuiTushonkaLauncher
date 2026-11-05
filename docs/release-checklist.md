@@ -42,9 +42,12 @@ Run through this for every tagged release. It exists because the last step of a 
 
 ## Known gaps for 1.0 (see `docs/plan/91-before-1.0.md`)
 
-- Windows has not been run on real hardware yet; the job-object path of the detached pair is untested.
-- No code signing certificate (see the section below), so SmartScreen will warn on first run.
-- Byte identity with the official launcher's output is unverified.
+- **The real game's first frame on Windows.** The VM has no GPU, so `EscapeFromTarkov.exe` starts and stays alive but
+  never renders. The process launch and the detach are proven; the game's own screen is not.
+- **No code signing certificate** (see the section below), so SmartScreen will warn on first run.
+- **Byte identity with the official launcher's output** is unverified (Q12). Evidence, not a gate.
+- **The `.sptpack` double-click on a real Linux desktop** and **forwarding a package to a launcher that is already
+  running** are untested; both are listed in `docs/tech-debt.md`.
 
 ## Code signing
 
@@ -68,6 +71,9 @@ the installer was built, installed, run and uninstalled on a real Windows machin
 project can back ([D30](plan/04-decisions.md#d30-windows-ships-in-every-release-and-the-shell-association-opens-a-pack-review)).
 The `windows` job no longer looks at the tag's label, and the `release` job needs both jobs green.
 
-Checked on 2026-11-05: `v0.2.0-rc.3` and `v0.2.0-rc.4` were still Linux-only (the gate's Windows item closed after
-them); the next tag after this change builds both. The Windows half was proven on a Windows 10 VM with SPT 4.0.9 —
-see `docs/qa/manual-matrix.md`.
+Checked on 2026-11-05: `v0.2.0-rc.3` and `v0.2.0-rc.4` were Linux-only (the gate's Windows item closed after them);
+`v0.2.0-rc.5` is the first tag that shipped both. Its workflow built the three Linux artifacts, the two Windows zips and
+the Inno Setup installer — seven assets, every checksum matching — and the setup's `FileVersion` reads `0.2.0` while
+its `ProductVersion` reads `0.2.0-rc.5`. The three release-path defects that first Windows run found (no `zip` on the
+runner, Git Bash rewriting the `/D` defines, a relative `Source` resolved against the script) are written down in
+`docs/qa/manual-matrix.md`. The Windows half itself was proven on a Windows 10 VM with SPT 4.0.9.
