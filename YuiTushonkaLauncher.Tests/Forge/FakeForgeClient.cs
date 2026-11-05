@@ -27,6 +27,12 @@ public sealed class FakeForgeClient : IForgeClient
     /// <summary>GUID batches the resolver asked for, in order.</summary>
     public List<string[]> GuidRequests { get; } = [];
 
+    /// <summary>Version lookups, by mod id: the sidebar's details tab asks for these.</summary>
+    public List<int> VersionRequests { get; } = [];
+
+    /// <summary>Dependency lookups, by the GUIDs they asked about: only the dependencies tab asks for these.</summary>
+    public List<string[]> DependencyRequests { get; } = [];
+
     /// <summary>Adds a mod with one version.</summary>
     public FakeForgeClient WithMod(string guid, string version, int forgeId = 1, string? name = null)
     {
@@ -129,6 +135,7 @@ public sealed class FakeForgeClient : IForgeClient
 
     public Task<IReadOnlyList<ForgeModVersion>> GetModVersionsAsync(int modId, CancellationToken cancellationToken = default)
     {
+        VersionRequests.Add(modId);
         if (Unreachable)
         {
             throw new ForgeUnavailableException("the fake Forge is unreachable");
@@ -164,6 +171,7 @@ public sealed class FakeForgeClient : IForgeClient
     )
     {
         var result = new Dictionary<string, IReadOnlyList<ForgeDependency>>(StringComparer.OrdinalIgnoreCase);
+        DependencyRequests.Add([.. packages.Select(package => package.Guid)]);
 
         foreach (var package in packages)
         {

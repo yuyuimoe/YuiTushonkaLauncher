@@ -98,3 +98,16 @@ Three tabs: **Details**, **Dependencies**, **Dependents**.
 * Endorsement windows cannot be exact: the API reports a total per mod, not votes over time. The label says
   "most endorsed · last 7 days" and the tooltip in `forge.sortEndorsedWeek` explains the approximation.
 * The sidebar's long description is plain text; links inside it are not clickable.
+
+## Follow-up from the first real run (screenshot)
+
+* **The sidebar scrolls.** Its `ScrollViewer` sat in the `Auto` row of a `Grid RowDefinitions="Auto,*"`, so it grew to
+  its content and the window simply cut it off. Measured with a headless window at 1000×620 and a deliberately long
+  description: before, extent = viewport = 3108 (nothing scrolls); after, extent 3108 against a viewport of 526.
+* **Tabs are lazy.** Selecting a mod fetches the details tab only (versions, description, licence, source, scans).
+  Dependencies are fetched when the dependencies tab is first opened for that mod, dependents likewise, and switching
+  back and forth costs nothing. Tests count the fake client's calls: one dependency lookup after the tab is opened,
+  still one after leaving and returning, none at all when only dependents is opened.
+* **Opening the browser searches.** `LoadAsync` loads the categories and, when the list is empty, runs the current
+  ordering once — the window opens with results instead of an empty page waiting for a keystroke. `App.OpenForge`
+  calls it when the window is shown, so closing and reopening keeps the last list (it only searches when empty).

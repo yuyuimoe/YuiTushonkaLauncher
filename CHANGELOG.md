@@ -165,3 +165,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 - **Addons page and addon mode:** installed addons are grouped under the mod they extend, and "Install addons" opens
   the browser to pick a parent first. The requirement is green when the parent is installed and red when it is not, and
   an addon whose `mod_version_constraint` does not fit the installed parent cannot be installed.
+### Fixed
+
+- The Forge sidebar ran past the bottom of the window instead of scrolling: the scroll viewer was in the auto-sized row
+  of its grid, so it grew with the content and was clipped. It now takes the available height and scrolls.
+- Opening the Forge window showed an empty page until the first keystroke; it now runs the current search once on open.
+
+### Changed
+
+- The Forge sidebar's dependencies and dependents tabs are loaded when they are opened, once per mod, instead of with
+  every selection.

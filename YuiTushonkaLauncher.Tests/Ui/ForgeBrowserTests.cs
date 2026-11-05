@@ -150,6 +150,11 @@ public sealed class ForgeBrowserTests
 
         page.ShowDetailsCommand.Execute(new ForgeModRowViewModel(world.Localizer, forge.Mods["parent.mod"]));
         await page.DetailsLoading;
+
+        // Dependencies are a tab: they arrive when the tab is opened, not with the selection.
+        page.ShowTabCommand.Execute(ForgeDetailTab.Dependencies);
+        await page.TabsLoading;
+
         page.Dependencies.Should().ContainSingle();
         page.Dependencies[0].ModId.Should().Be(5);
 

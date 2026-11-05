@@ -54,6 +54,13 @@ public partial class ForgePageViewModel : PageViewModel
     /// <summary>Set while a row is restored from the history, so the selection does not record a new step.</summary>
     private bool _restoring;
 
+    /// <summary>Which mod the two lazy tabs were last filled for, so switching back costs nothing.</summary>
+    private int? _tabModId;
+
+    private bool _dependenciesLoaded;
+
+    private bool _dependentsLoaded;
+
     public ForgePageViewModel(
         ILocalizer localizer,
         IForgeClient forge,
@@ -404,6 +411,9 @@ public partial class ForgePageViewModel : PageViewModel
     /// </summary>
     public Task DetailsLoading { get; private set; } = Task.CompletedTask;
 
+    /// <summary>The lazy tab load in flight: dependencies or dependents, whichever tab is showing.</summary>
+    public Task TabsLoading { get; private set; } = Task.CompletedTask;
+
     /// <summary>True when at least one published version fits the active instance's SPT release.</summary>
     public bool CanInstall
     {
@@ -444,26 +454,32 @@ public partial class ForgePageViewModel : PageViewModel
         }
     }
 
-    /// <summary>Loads the category list once, so the filter is usable before the first search.</summary>
+    /// <summary>
+    /// Opens the browser: the category filter once, and an initial search so the window is never an empty page waiting
+    /// for a keystroke.
+    /// </summary>
     [RelayCommand]
     public async Task LoadAsync(CancellationToken cancellationToken)
     {
-        if (Categories.Count > 0)
+        if (Categories.Count == 0)
         {
-            return;
+            await RunAsync(async () =>
+            {
+                var categories = await _forge.GetCategoriesAsync(cancellationToken);
+                Categories.Clear();
+                foreach (var category in categories.OrderBy(category => category.Title, StringComparer.CurrentCultureIgnoreCase))
+                {
+                    Categories.Add(new ForgeCategoryOption(category.Id, category.Title));
+                }
+
+                OnPropertyChanged(nameof(SptVersionText));
+            });
         }
 
-        await RunAsync(async () =>
+        if (Results.Count == 0 && !IsBusy)
         {
-            var categories = await _forge.GetCategoriesAsync(cancellationToken);
-            Categories.Clear();
-            foreach (var category in categories.OrderBy(category => category.Title, StringComparer.CurrentCultureIgnoreCase))
-            {
-                Categories.Add(new ForgeCategoryOption(category.Id, category.Title));
-            }
-
-            OnPropertyChanged(nameof(SptVersionText));
-        });
+            await SearchAsync(cancellationToken);
+        }
     }
 
     [RelayCommand]
@@ -536,12 +552,92 @@ public partial class ForgePageViewModel : PageViewModel
         OnPropertyChanged(nameof(IsDetailsTab));
         OnPropertyChanged(nameof(IsDependenciesTab));
         OnPropertyChanged(nameof(IsDependentsTab));
+
+        // Opening a tab is what fetches it. A tab the user never opens never costs a request.
+        TabsLoading = EnsureTabAsync(CancellationToken.None);
     }
 
     [RelayCommand]
     private void ShowTab(ForgeDetailTab tab)
     {
         ActiveTab = tab;
+        TabsLoading = EnsureTabAsync(CancellationToken.None);
+    }
+
+    /// <summary>Forgets what the two lazy tabs held: the mod they belong to changed.</summary>
+    private void RememberLoaded(ForgeModRowViewModel mod)
+    {
+        _tabModId = mod.Id;
+        _dependenciesLoaded = false;
+        _dependentsLoaded = false;
+        Dependencies.Clear();
+        Dependents.Clear();
+        OnPropertyChanged(nameof(HasDependencies));
+        OnPropertyChanged(nameof(HasDependents));
+    }
+
+    /// <summary>Fills the tab that is showing, once per mod.</summary>
+    private Task EnsureTabAsync(CancellationToken cancellationToken)
+    {
+        if (Shown is not { } mod || _tabModId != mod.Id)
+        {
+            return Task.CompletedTask;
+        }
+
+        return ActiveTab switch
+        {
+            ForgeDetailTab.Dependencies => EnsureDependenciesAsync(mod, cancellationToken),
+            ForgeDetailTab.Dependents => EnsureDependentsAsync(mod, cancellationToken),
+            _ => Task.CompletedTask,
+        };
+    }
+
+    private async Task EnsureDependenciesAsync(ForgeModRowViewModel mod, CancellationToken cancellationToken)
+    {
+        if (_dependenciesLoaded)
+        {
+            return;
+        }
+
+        _dependenciesLoaded = true;
+        try
+        {
+            foreach (var dependency in await LoadDependenciesAsync(mod, cancellationToken))
+            {
+                Dependencies.Add(dependency);
+            }
+
+            OnPropertyChanged(nameof(HasDependencies));
+        }
+        catch (ForgeException exception)
+        {
+            _dependenciesLoaded = false;
+            Error = ViewModelErrors.Describe(exception, Localizer);
+        }
+    }
+
+    private async Task EnsureDependentsAsync(ForgeModRowViewModel mod, CancellationToken cancellationToken)
+    {
+        if (_dependentsLoaded)
+        {
+            return;
+        }
+
+        _dependentsLoaded = true;
+        try
+        {
+            foreach (var dependent in await LoadDependentsAsync(mod, cancellationToken))
+            {
+                Dependents.Add(dependent);
+            }
+
+            OnPropertyChanged(nameof(HasDependents));
+        }
+        catch (ForgeException exception)
+        {
+            _dependentsLoaded = false;
+            Error = ViewModelErrors.Describe(exception, Localizer);
+        }
     }
 
     [RelayCommand]
@@ -858,19 +954,11 @@ public partial class ForgePageViewModel : PageViewModel
             Description = ForgeDescription.ToText(description);
 
             await LoadPageExtrasAsync(mod, cancellationToken);
-            Dependencies.Clear();
-            foreach (var dependency in await LoadDependenciesAsync(mod, cancellationToken))
-            {
-                Dependencies.Add(dependency);
-            }
 
-            foreach (var dependent in await LoadDependentsAsync(mod, cancellationToken))
-            {
-                Dependents.Add(dependent);
-            }
-
-            OnPropertyChanged(nameof(HasDependencies));
-            OnPropertyChanged(nameof(HasDependents));
+            // Dependencies and dependents are tabs the user may never open: they are fetched when a tab is shown, not
+            // with every selection.
+            RememberLoaded(mod);
+            TabsLoading = EnsureTabAsync(cancellationToken);
         }
         catch (ForgeException exception)
         {
