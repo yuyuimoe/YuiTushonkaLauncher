@@ -225,7 +225,15 @@
     "portApplied": "Port applied to the instance; restart the server to use it.",
     "testing": "Testing…",
     "reachable": "Reachable ({0} ms).",
-    "unreachable": "Nothing answered: {0}"
+    "unreachable": "Nothing answered: {0}",
+    "pickTitle": "Which server?",
+    "pickBody": "The game will talk to the server you choose.",
+    "pickRemember": "Always use this server for this instance",
+    "pickLocalHint": "The local server is started with the game.",
+    "pickRemoteHint": "This server runs elsewhere; it will be checked, not started.",
+    "pickConfirm": "Use this server",
+    "remoteState": "Using the server at {0}",
+    "certificateChanged": "The certificate of {0} changed since the last connection."
   },
   "logs": {
     "title": "Logs",

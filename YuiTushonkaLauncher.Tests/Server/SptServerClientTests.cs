@@ -308,9 +308,36 @@ public sealed class SptServerClientTests : IDisposable
     [Fact]
     public void Factory_CreatesAClientForTheEndpoint()
     {
-        using var client = (SptServerClient)new SptServerClientFactory().Create(new ServerEndpoint("10.0.0.5", 7000));
+        var trust = new RecordingTrust();
+        using var client = (SptServerClient)new SptServerClientFactory(trust).Create(new ServerEndpoint("10.0.0.5", 7000));
 
         client.BaseUri.Should().Be(new Uri("https://10.0.0.5:7000"));
+        trust.Evaluated.Should().BeEmpty("creating a client is not a connection");
+    }
+
+    /// <summary>A trust store that records what was asked, for the factory tests.</summary>
+    private sealed class RecordingTrust : Core.Server.ICertificateTrust
+    {
+        public List<(string Address, string Fingerprint)> Evaluated { get; } = [];
+
+        public event EventHandler<Core.Server.CertificateTrustChange>? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public Core.Server.CertificateTrustResult Evaluate(string address, string fingerprint)
+        {
+            Evaluated.Add((address, fingerprint));
+            return new Core.Server.CertificateTrustResult(Core.Server.CertificateTrustOutcome.FirstSeen);
+        }
+
+        public Core.Server.CertificateTrustInfo? Find(string address)
+        {
+            return null;
+        }
+
+        public void Forget(string address) { }
     }
 
     // ---- the real handler, against a real HTTPS server with a certificate nobody trusts ----

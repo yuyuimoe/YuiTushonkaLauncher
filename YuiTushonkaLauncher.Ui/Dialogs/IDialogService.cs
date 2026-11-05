@@ -15,6 +15,9 @@ public interface IDialogService
     /// <summary>Yes/no with a body. The dialog itself carries the optional checkbox, and its value is read after a yes.</summary>
     Task<bool> ConfirmAsync(ConfirmDialogViewModel dialog, CancellationToken cancellationToken = default);
 
+    /// <summary>Which server to launch against. <c>null</c> when the user cancels.</summary>
+    Task<Core.Server.ServerEntry?> SelectServerAsync(SelectServerDialogViewModel dialog, CancellationToken cancellationToken = default);
+
     /// <summary>The create-instance window, which previews the plan before it creates anything.</summary>
     Task<Instance?> CreateInstanceAsync(CreateInstanceDialogViewModel dialog, CancellationToken cancellationToken = default);
 

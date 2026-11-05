@@ -36,6 +36,7 @@ public static class ServerServiceCollectionExtensions
 
         // The list of servers the user keeps, and the TCP probe behind the "test" button.
         services.AddSingleton<IServerList, ServerList>();
+        services.AddSingleton<ICertificateTrust, CertificateTrustStore>();
         services.AddSingleton<IEndpointProbe, EndpointProbe>();
         services.AddSingleton<IServerSyncService, ServerSyncService>();
 

@@ -538,3 +538,14 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
 * Mods shipped inside a wrapper folder (`ModName/BepInEx/plugins/x.dll`) were classified **before** the wrapper was
   stripped, so their plugin was seen as `Content` and never installed. Fixed by classifying after stripping; a test
   pins it.
+
+## Servers that are not this machine (2026-11-05)
+
+* The game reads its backend address from the launch argument we build, `-config={'BackendUrl':'https://host:port',…}`
+  — there is no file to edit, so pointing at another machine is an argument change (D25).
+* The SPT launcher API (`/launcher/v2/{ping,version,types,profiles,profile,login,register}`) validates almost nothing:
+  profile listing and selection work against a remote server exactly as against a local one. Everything is TLS with
+  a certificate the server generates itself, which is why a CA check would reject every real server.
+* `RemoteCertificateValidationCallback` receives `(sender, certificate, chain, errors)`: the certificate is the
+  second parameter. The launcher now computes its SHA-256 and records it for non-loopback addresses, without ever
+  refusing the connection.

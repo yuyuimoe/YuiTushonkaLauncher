@@ -60,12 +60,30 @@ public sealed class FakeDialogService : IDialogService
 
     public List<CreateInstanceDialogViewModel> CreateDialogs { get; } = [];
 
+    /// <summary>Every server picker the flow asked for.</summary>
+    public List<SelectServerDialogViewModel> ServerDialogs { get; } = [];
+
+    /// <summary>Answers the server picker: the test chooses an entry, or <c>null</c> to cancel.</summary>
+    public Func<SelectServerDialogViewModel, Core.Server.ServerEntry?>? OnSelectServer { get; set; }
+
     /// <summary>Runs instead of showing the create window: the test fills the form and presses create.</summary>
     public Func<CreateInstanceDialogViewModel, Task<Instance?>>? OnCreate { get; set; }
 
     public string? NextPath { get; set; }
 
     public string? NextSavePath { get; set; }
+
+    public Task<Core.Server.ServerEntry?> SelectServerAsync(
+        SelectServerDialogViewModel dialog,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ServerDialogs.Add(dialog);
+        Asked.Add("select-server");
+        // A handler that answers null means "cancelled", which is different from having no handler at all.
+        var chosen = OnSelectServer is { } handler ? handler(dialog) : dialog.Selected?.Entry;
+        return Task.FromResult(chosen);
+    }
 
     public Task<bool> ConfirmAsync(ConfirmDialogViewModel dialog, CancellationToken cancellationToken = default)
     {
