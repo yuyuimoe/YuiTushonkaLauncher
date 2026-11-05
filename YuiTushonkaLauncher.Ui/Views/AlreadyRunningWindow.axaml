@@ -1,0 +1,26 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="420"
+  d:DesignHeight="180"
+  x:Class="YuiTushonkaLauncher.Views.AlreadyRunningWindow"
+  x:DataType="vm:AlreadyRunningViewModel"
+  Icon="/Assets/icon.ico"
+  Width="420"
+  SizeToContent="Height"
+  CanResize="False"
+  WindowStartupLocation="CenterScreen"
+  Title="{Binding Title}"
+>
+  <Border Padding="24">
+    <StackPanel Spacing="16">
+      <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock TextWrapping="Wrap" Text="{Binding Body}" />
+      <Button Content="{Binding CloseLabel}" HorizontalAlignment="Right" Click="OnCloseClick" />
+    </StackPanel>
+  </Border>
+</Window>

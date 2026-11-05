@@ -1,0 +1,30 @@
+# Normalize line endings: text is LF in the repository, whatever the OS.
+* text=auto eol=lf
+
+*.cs        text diff=csharp
+*.csproj    text diff=xml
+*.props     text diff=xml
+*.targets   text diff=xml
+*.axaml     text diff=xml
+*.xaml      text diff=xml
+*.axaml.cs  text diff=csharp
+*.json      text
+*.md        text diff=markdown
+*.toml      text
+*.sh        text eol=lf
+*.yml       text
+*.yaml      text
+
+# Windows-only scripts keep CRLF.
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# Binary assets
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.ico       binary
+*.ttf       binary
+*.otf       binary
+*.zip       binary
+*.7z        binary

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+    <!-- A .sptpack is a zip; the glob is what the file manager uses, the magic is what `file` reports. -->
+    <mime-type type="application/x-sptpack">
+        <comment>SPT mod pack</comment>
+        <comment xml:lang="pt-BR">Pacote de mods do SPT</comment>
+        <sub-class-of type="application/zip" />
+        <generic-icon name="package-x-generic" />
+        <magic priority="60">
+            <match value="PK\x03\x04" type="string" offset="0" />
+            <match value="manifest.json" type="string" offset="30:9999" />
+        </magic>
+        <glob pattern="*.sptpack" />
+    </mime-type>
+</mime-info>

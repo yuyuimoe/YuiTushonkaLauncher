@@ -1,0 +1,353 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:controls="using:YuiTushonkaLauncher.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="980"
+  d:DesignHeight="640"
+  x:Class="YuiTushonkaLauncher.Views.ForgeView"
+  x:DataType="vm:ForgePageViewModel"
+>
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+    <!-- Search, ordering and the two filters. -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
+      <TextBox Grid.Column="0" Text="{Binding Search}" PlaceholderText="{Binding SearchPlaceholder}" />
+      <Button Grid.Column="1" Classes="primary" Command="{Binding SearchCommand}" Content="{Binding SearchButtonLabel}" />
+      <ComboBox
+        Grid.Column="2"
+        ItemsSource="{Binding Sorts}"
+        SelectedItem="{Binding SelectedSort}"
+        MinWidth="150"
+        AutomationProperties.Name="{Binding SortLabel}"
+      />
+      <ComboBox
+        Grid.Column="3"
+        ItemsSource="{Binding Categories}"
+        SelectedItem="{Binding SelectedCategory}"
+        MinWidth="130"
+        AutomationProperties.Name="{Binding CategoryLabel}"
+      />
+      <CheckBox Grid.Column="4" Content="{Binding FeaturedLabel}" IsChecked="{Binding FeaturedOnly}" />
+      <CheckBox Grid.Column="5" Content="{Binding FikaLabel}" IsChecked="{Binding FikaOnly}" />
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,360">
+      <!-- Results, with their thumbnail. -->
+      <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,10,0">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+          <Button
+            Grid.Column="0"
+            Command="{Binding GoBackCommand}"
+            IsEnabled="{Binding CanGoBack}"
+            Content="{Binding BackGlyph}"
+            AutomationProperties.Name="{Binding BackLabel}"
+          />
+          <TextBlock Grid.Column="1" Text="{Binding ResultsText}" Classes="caption" VerticalAlignment="Center" />
+          <Button
+            Grid.Column="2"
+            Command="{Binding GoForwardCommand}"
+            IsEnabled="{Binding CanGoForward}"
+            Content="{Binding ForwardGlyph}"
+            AutomationProperties.Name="{Binding ForwardLabel}"
+          />
+        </Grid>
+
+        <StackPanel Grid.Row="1" Spacing="6" VerticalAlignment="Top" IsVisible="{Binding !HasResults}">
+          <TextBlock Text="{Binding EmptyText}" Classes="caption" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <ListBox
+          Grid.Row="1"
+          ItemsSource="{Binding Results}"
+          SelectedItem="{Binding Selected}"
+          IsVisible="{Binding HasResults}"
+          DoubleTapped="OnRowDoubleTapped"
+        >
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ForgeModRowViewModel">
+              <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="10" Margin="0,2">
+                <Border Grid.Column="0" Width="36" Height="36" CornerRadius="4" Background="{DynamicResource YttAccentSoftBrush}">
+                  <Panel>
+                    <TextBlock
+                      Text="{Binding Initial}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontWeight="Bold"
+                      IsVisible="{Binding !HasThumbnail}"
+                    />
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
+                  </Panel>
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="1">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding TeaserText}" Classes="caption" FontSize="11" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding AuthorText}" Classes="caption" FontSize="11" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding DownloadsText}" Classes="caption" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+
+      <!-- The sidebar: what the mod is, and what it needs. -->
+      <Border Grid.Column="1" Background="{DynamicResource YttRailBrush}" Padding="14">
+        <Grid RowDefinitions="*">
+          <TextBlock
+            Grid.Row="0"
+            Text="{Binding SelectPrompt}"
+            Classes="caption"
+            TextWrapping="Wrap"
+            VerticalAlignment="Top"
+            IsVisible="{Binding !HasSelection}"
+          />
+
+          <ScrollViewer
+            Grid.Row="0"
+            IsVisible="{Binding HasSelection}"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+          >
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                <Button
+                  Grid.Column="0"
+                  Command="{Binding GoBackCommand}"
+                  IsEnabled="{Binding CanGoBack}"
+                  Content="{Binding BackGlyph}"
+                  AutomationProperties.Name="{Binding BackLabel}"
+                />
+                <Button
+                  Grid.Column="1"
+                  Command="{Binding GoForwardCommand}"
+                  IsEnabled="{Binding CanGoForward}"
+                  Content="{Binding ForwardGlyph}"
+                  HorizontalAlignment="Left"
+                  AutomationProperties.Name="{Binding ForwardLabel}"
+                />
+                <Button Grid.Column="2" Command="{Binding OpenInSiteCommand}" Content="{Binding OpenInSiteLabel}" />
+              </Grid>
+
+              <TextBlock Text="{Binding Shown.Name}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Shown.TeaserText}" Classes="caption" TextWrapping="Wrap" />
+
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Shown.Guid, StringFormat='GUID: {0}'}" Classes="caption" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Shown.Id, StringFormat='ID: {0}'}" Classes="caption" FontSize="11" />
+                <TextBlock Text="{Binding Shown.DownloadsText}" Classes="caption" FontSize="11" />
+                <TextBlock
+                  Text="{Binding LicenseText}"
+                  Classes="caption"
+                  FontSize="11"
+                  IsVisible="{Binding HasLicense}"
+                  TextWrapping="Wrap"
+                />
+              </StackPanel>
+
+              <!-- The same tabs the forge's own mod page has: the mod, its versions, what it needs, who needs it. -->
+              <WrapPanel ItemSpacing="6" LineSpacing="6">
+                <Button
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Description}"
+                  Content="{Binding DescriptionTabLabel}"
+                  Classes.selected="{Binding IsDescriptionTab}"
+                />
+                <Button
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Versions}"
+                  Content="{Binding VersionsTabLabel}"
+                  Classes.selected="{Binding IsVersionsTab}"
+                />
+                <Button
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Dependencies}"
+                  Content="{Binding DependenciesTabLabel}"
+                  Classes.selected="{Binding IsDependenciesTab}"
+                />
+                <Button
+                  Command="{Binding ShowTabCommand}"
+                  CommandParameter="{x:Static vm:ForgeDetailTab.Dependents}"
+                  Content="{Binding DependentsTabLabel}"
+                  Classes.selected="{Binding IsDependentsTab}"
+                />
+              </WrapPanel>
+
+              <StackPanel Spacing="8" IsVisible="{Binding IsDescriptionTab}">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding ShortDescriptionLabel}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Shown.TeaserText}" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding LongDescriptionLabel}" FontWeight="SemiBold" />
+                  <controls:MarkdownView Document="{Binding DescriptionDocument}" OpenUrlCommand="{Binding OpenUrlCommand}" />
+                  <TextBlock Text="{Binding NoDescriptionText}" Classes="caption" IsVisible="{Binding !HasDescription}" />
+                </StackPanel>
+
+                <StackPanel Spacing="3" IsVisible="{Binding HasSourceLinks}">
+                  <TextBlock Text="{Binding SourceCodeLabel}" FontWeight="SemiBold" />
+                  <ItemsControl ItemsSource="{Binding SourceLinks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ForgeLinkViewModel">
+                        <Button
+                          Classes="link"
+                          Content="{Binding Label}"
+                          Command="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).OpenLinkCommand}"
+                          CommandParameter="{Binding}"
+                        />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Spacing="3" IsVisible="{Binding HasScanLinks}">
+                  <TextBlock Text="{Binding VirusTotalLabel}" FontWeight="SemiBold" />
+                  <TextBlock
+                    Text="{Binding ScanSummary}"
+                    Classes="caption"
+                    FontSize="11"
+                    IsVisible="{Binding ScanSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                  />
+                  <ItemsControl ItemsSource="{Binding ScanLinks}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ForgeLinkViewModel">
+                        <Button
+                          Classes="link"
+                          Content="{Binding Label}"
+                          Command="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).OpenLinkCommand}"
+                          CommandParameter="{Binding}"
+                        />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Spacing="4" IsVisible="{Binding IsDependenciesTab}">
+                <TextBlock Text="{Binding NoDependenciesText}" Classes="caption" IsVisible="{Binding !HasDependencies}" />
+                <ItemsControl ItemsSource="{Binding Dependencies}" DoubleTapped="OnReferenceDoubleTapped">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ForgeModReferenceViewModel">
+                      <Border Padding="4" Classes="card" Margin="0,0,0,4">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                          <StackPanel Grid.Column="0" Spacing="1">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Guid}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding OptionalText}" Classes="caption" FontSize="10" HorizontalAlignment="Right" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <StackPanel Spacing="4" IsVisible="{Binding IsDependentsTab}">
+                <TextBlock Text="{Binding NoDependentsText}" Classes="caption" IsVisible="{Binding !HasDependents}" />
+                <ItemsControl ItemsSource="{Binding Dependents}" DoubleTapped="OnReferenceDoubleTapped">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ForgeModReferenceViewModel">
+                      <Border Padding="4" Classes="card" Margin="0,0,0,4">
+                        <StackPanel Spacing="1">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Guid}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <!-- Versions, only the ones this instance's SPT release accepts. -->
+              <!-- Addon mode: the parent comes from the results, and the requirement decides the colour. -->
+              <StackPanel Spacing="4" Margin="0,6,0,0" IsVisible="{Binding IsAddonMode}">
+                <TextBlock Text="{Binding ParentLabel}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Shown.Name}" Classes="caption" IsVisible="{Binding HasParent}" />
+                <Button
+                  Command="{Binding UseAsParentCommand}"
+                  CommandParameter="{Binding Shown}"
+                  Content="{Binding UseAsParentLabel}"
+                  HorizontalAlignment="Stretch"
+                />
+                <TextBlock
+                  Text="{Binding RequirementText}"
+                  Classes="caption"
+                  Classes.ok="{Binding IsRequirementMet}"
+                  Classes.missing="{Binding !IsRequirementMet}"
+                  TextWrapping="Wrap"
+                />
+                <ItemsControl ItemsSource="{Binding AddonResults}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ForgeAddonRowViewModel">
+                      <Border Classes="card" Padding="6" Margin="0,0,0,4">
+                        <StackPanel Spacing="2">
+                          <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          <TextBlock
+                            Text="{Binding RequirementText}"
+                            Classes="caption"
+                            FontSize="10"
+                            Classes.ok="{Binding CanInstall}"
+                            Classes.missing="{Binding !CanInstall}"
+                            TextWrapping="Wrap"
+                          />
+                          <Button
+                            Content="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).InstallAddonLabel}"
+                            Command="{Binding $parent[UserControl].((vm:ForgePageViewModel)DataContext).InstallAddonCommand}"
+                            CommandParameter="{Binding}"
+                            IsEnabled="{Binding CanInstall}"
+                          />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding HasAddonResults, Converter={x:Static BoolConverters.Not}}" Classes="caption" />
+              </StackPanel>
+
+              <StackPanel Spacing="6" Margin="0,6,0,0" IsVisible="{Binding IsVersionsTab}">
+                <TextBlock Text="{Binding VersionsLabel}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding NoVersionsText}" Classes="caption" IsVisible="{Binding !HasVersions}" />
+                <ComboBox ItemsSource="{Binding Versions}" SelectedItem="{Binding SelectedVersion}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ForgeVersionRowViewModel">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding VersionText}" />
+                        <TextBlock Text="{Binding ConstraintText}" Classes="caption" FontSize="11" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button
+                  Classes="primary"
+                  Command="{Binding InstallCommand}"
+                  Content="{Binding InstallLabel}"
+                  HorizontalAlignment="Stretch"
+                  IsEnabled="{Binding CanInstall}"
+                />
+                <TextBlock
+                  Text="{Binding InstallBlocker}"
+                  Classes="error"
+                  FontSize="11"
+                  TextWrapping="Wrap"
+                  IsVisible="{Binding InstallBlocker, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <StackPanel Grid.Row="2" Margin="0,8,0,0">
+      <TextBlock Text="{Binding SptVersionText}" Classes="caption" />
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+      <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+</UserControl>

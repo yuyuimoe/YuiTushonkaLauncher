@@ -1,0 +1,68 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="760"
+  d:DesignHeight="520"
+  x:Class="YuiTushonkaLauncher.Views.AddonsView"
+  x:DataType="vm:AddonsPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,10">
+      <TextBlock Grid.Column="0" Text="{Binding Title}" Classes="sectionTitle" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Command="{Binding LoadCommand}" Content="{Binding CountText}" Margin="0,0,8,0" />
+      <Button Grid.Column="2" Classes="primary" Command="{Binding InstallAddonsCommand}" Content="{Binding InstallLabel}" />
+    </Grid>
+
+    <TextBlock Grid.Row="1" Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+    <StackPanel Grid.Row="2" Spacing="6" VerticalAlignment="Top" IsVisible="{Binding !HasAddons}">
+      <TextBlock Text="{Binding EmptyText}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="caption" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2" IsVisible="{Binding HasAddons}">
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:AddonGroupViewModel">
+            <StackPanel Spacing="4" Margin="0,0,0,12">
+              <TextBlock Text="{Binding HeaderText}" FontWeight="SemiBold" />
+              <ItemsControl ItemsSource="{Binding Addons}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:AddonRowViewModel">
+                    <Border Classes="card" Padding="8" Margin="0,0,0,4">
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                        <StackPanel Grid.Column="0" Spacing="1">
+                          <TextBlock Text="{Binding Name}" />
+                          <TextBlock Text="{Binding Guid}" Classes="caption" FontSize="10" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="caption" VerticalAlignment="Center" />
+                        <TextBlock
+                          Grid.Column="2"
+                          Text="{Binding FileCountText}"
+                          Classes="caption"
+                          FontSize="11"
+                          VerticalAlignment="Center"
+                        />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <TextBlock
+      Grid.Row="3"
+      Text="{Binding Status}"
+      Classes="caption"
+      IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+    />
+  </Grid>
+</UserControl>

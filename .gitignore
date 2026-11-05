@@ -1,0 +1,61 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+Build/
+publish/
+artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+.vscode/
+*.DotSettings.user
+
+# Test + coverage
+[Tt]est[Rr]esults/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.trx
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+
+# Avalonia / desktop
+*.app
+*.dmg
+*.msi
+*.AppImage
+*.tar.gz
+*.zip
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local worktrees (wt creates siblings by default, but never commit a nested one)
+.worktrees/
+
+# Local scratch: game files, instances, downloaded mods, patch artifacts
+local/
+*.local.json
+
+# Logs
+*.log
+logs/
+dist/

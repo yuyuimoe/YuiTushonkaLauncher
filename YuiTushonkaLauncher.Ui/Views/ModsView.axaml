@@ -1,0 +1,73 @@
+<UserControl
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DesignWidth="700"
+  d:DesignHeight="480"
+  x:Class="YuiTushonkaLauncher.Views.ModsView"
+  x:DataType="vm:ModsPageViewModel"
+>
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+      <TextBlock Grid.Column="0" Classes="sectionTitle" Text="{Binding Title}" />
+      <Button Grid.Column="1" Classes="primary" Command="{Binding OpenBrowserCommand}" Content="{Binding BrowseLabel}" />
+      <Button Grid.Column="2" Command="{Binding InstallFromFileCommand}" Content="{Binding InstallFileLabel}" />
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+      <TextBox Grid.Column="0" Classes="search" Text="{Binding Search}" PlaceholderText="{Binding SearchLabel}" />
+      <TextBlock Grid.Column="1" Text="{Binding CountText}" VerticalAlignment="Center" />
+    </Grid>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+      <TextBox Grid.Column="0" Classes="search" Text="{Binding UrlToInstall}" PlaceholderText="{Binding InstallUrlLabel}" />
+      <Button Grid.Column="1" Command="{Binding InstallFromUrlCommand}" Content="{Binding InstallLabel}" Margin="0,0,8,0" />
+      <Button Grid.Column="2" Command="{Binding LoadCommand}" Content="{Binding SearchLabel}" IsVisible="False" />
+    </Grid>
+
+    <StackPanel Grid.Row="2" Spacing="4">
+      <TextBlock Text="{Binding Error}" Classes="error" IsVisible="{Binding HasError}" />
+      <TextBlock Text="{Binding Status}" Classes="caption" IsVisible="{Binding HasStatus}" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="3" Spacing="6" Margin="0,24" IsVisible="{Binding !HasMods}">
+      <TextBlock Text="{Binding EmptyText}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="caption" />
+    </StackPanel>
+
+    <!-- The list is virtualized: only the visible rows exist, so a thousand mods are still one screen of controls. -->
+    <ListBox Grid.Row="3" Classes="dense" ItemsSource="{Binding Mods}" SelectedItem="{Binding Selected}" IsVisible="{Binding HasMods}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:ModRowViewModel">
+          <Grid ColumnDefinitions="*,160,120,140,Auto" Margin="0,2">
+            <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding Guid}" Classes="caption" Margin="8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Version}" Classes="caption" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="{Binding KindText}" Classes="caption" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+              <Button
+                Command="{Binding $parent[UserControl].((vm:ModsPageViewModel)DataContext).TogglePinCommand}"
+                CommandParameter="{Binding}"
+                Content="✱"
+                ToolTip.Tip="{Binding $parent[UserControl].((vm:ModsPageViewModel)DataContext).PinLabel}"
+                AutomationProperties.Name="{Binding $parent[UserControl].((vm:ModsPageViewModel)DataContext).PinLabel}"
+              />
+              <Button
+                Command="{Binding $parent[UserControl].((vm:ModsPageViewModel)DataContext).UninstallCommand}"
+                CommandParameter="{Binding}"
+                Content="{Binding $parent[UserControl].((vm:ModsPageViewModel)DataContext).UninstallLabel}"
+              />
+            </StackPanel>
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" IsVisible="{Binding CanActOnSelection}">
+      <Button Command="{Binding TogglePinCommand}" CommandParameter="{Binding Selected}" Content="{Binding PinLabel}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

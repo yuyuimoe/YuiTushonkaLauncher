@@ -1,0 +1,129 @@
+name: Release
+
+# A tag is a release: vX.Y.Z, or vX.Y.Z-label for a pre-release. Re-running the workflow for the same tag must produce
+# the same file names and a passing test run, which is why everything below is derived from the tag and the build
+# arguments are explicit.
+#
+# A tag with a label (v0.1.0-rc.1) is a pre-release, and a pre-release is Linux only: there is no Windows machine to
+# verify it on yet ([D23](../docs/plan/04-decisions.md)), so shipping a Windows installer would be a claim nobody
+# checked. The windows job is skipped and the release is marked as a pre-release on GitHub.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (must already exist)"
+        required: true
+
+# One release per tag: re-running the workflow for the same tag replaces nothing and must not overlap with itself.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  linux:
+    name: Linux artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore local tools
+        run: dotnet tool restore
+      - name: appimagetool
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSL -o "$HOME/.local/bin/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$HOME/.local/bin/appimagetool"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Publish (runs the tests first)
+        run: bash scripts/publish.sh --version "${{ github.ref_name }}" --only linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+          if-no-files-found: error
+
+  windows:
+    name: Windows artifacts
+    # Pre-releases are Linux only: see the note at the top of the file.
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Publish
+        shell: bash
+        run: bash scripts/publish.sh --version "${{ github.ref_name }}" --only windows --no-tests
+      - name: Build the installer
+        shell: cmd
+        run: >
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          /DMyAppVersion=${{ github.ref_name }}
+          /DMySourceDir=dist\win-x64-fdd
+          /DMyOutputDir=dist
+          packaging\windows\launcher.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: [linux, windows]
+    # Windows is skipped for a pre-release, so "skipped" is as good as "success" there; the Linux job is not optional.
+    if: ${{ always() && needs.linux.result == 'success' && (needs.windows.result == 'success' || needs.windows.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        working-directory: artifacts
+        run: sha256sum ./* > SHA256SUMS
+      - name: Release notes from Conventional Commits
+        run: bash scripts/release-notes.sh "${{ github.ref_name }}" > RELEASE_NOTES.md
+      - name: Note the checksums in the body
+        run: |
+          printf '\n## Checksums\n\n```\n' >> RELEASE_NOTES.md
+          cat artifacts/SHA256SUMS >> RELEASE_NOTES.md
+          printf '```\n' >> RELEASE_NOTES.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            artifacts/*.zip
+            artifacts/*.tar.gz
+            artifacts/*.AppImage
+            artifacts/*-setup.exe
+            artifacts/SHA256SUMS
+          fail_on_unmatched_files: false

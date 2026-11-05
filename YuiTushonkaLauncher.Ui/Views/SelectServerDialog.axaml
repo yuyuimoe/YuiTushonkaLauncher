@@ -1,0 +1,42 @@
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:YuiTushonkaLauncher.ViewModels"
+  x:Class="YuiTushonkaLauncher.Views.SelectServerDialog"
+  x:DataType="vm:SelectServerDialogViewModel"
+  Width="480"
+  SizeToContent="Height"
+  CanResize="False"
+  WindowStartupLocation="CenterOwner"
+  Title="{Binding Title}"
+  ShowInTaskbar="False"
+>
+  <StackPanel Margin="20" Spacing="12">
+    <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Body}" Classes="caption" TextWrapping="Wrap" />
+
+    <Border Classes="card" Padding="6" MaxHeight="220">
+      <ListBox ItemsSource="{Binding Servers}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ServerChoiceViewModel">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel Grid.Column="0" Spacing="1">
+                <TextBlock Text="{Binding Name}" FontSize="12" />
+                <TextBlock Text="{Binding Address}" Classes="caption" FontSize="10" />
+              </StackPanel>
+              <TextBlock Grid.Column="1" Text="{Binding DetailText}" Classes="caption" FontSize="10" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+
+    <TextBlock Text="{Binding SelectedHint}" Classes="caption" TextWrapping="Wrap" />
+    <CheckBox Content="{Binding RememberLabel}" IsChecked="{Binding RememberChoice}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{Binding ConfirmLabel}" Command="{Binding AcceptCommand}" Classes="primary" IsEnabled="{Binding CanConfirm}" />
+      <Button Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

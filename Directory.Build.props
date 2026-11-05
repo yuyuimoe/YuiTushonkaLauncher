@@ -1,0 +1,75 @@
+<Project>
+  <!--
+    Version scheme: <X.Y.Z>-pre-<short sha>[.dirty]
+
+      0.1.0                       clean tree, no sha resolvable (e.g. exported tarball)
+      0.1.0-pre-a1b2c3d           clean tree at commit a1b2c3d
+      0.1.0-pre-a1b2c3d.dirty     tracked files modified / staged
+
+    Rules:
+      - VersionPrefix is the single source of truth for the release line; bump it here.
+      - CI overrides the whole thing with `-p:Version=…` when building a tagged release.
+      - AssemblyVersion stays 0.0.0.0 on purpose: nothing here is a library other
+        assemblies bind to, and a sha in AssemblyVersion breaks binding.
+  -->
+  <PropertyGroup>
+    <VersionPrefix Condition="'$(VersionPrefix)' == ''">0.1.0</VersionPrefix>
+    <Version Condition="'$(Version)' == ''">$(VersionPrefix)</Version>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">0.0.0.0</AssemblyVersion>
+    <FileVersion Condition="'$(FileVersion)' == ''">$(VersionPrefix).0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- Shared settings for every project in the solution. -->
+  <PropertyGroup>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
+    <LangVersion Condition="'$(LangVersion)' == ''">latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Same as the official launcher: docs are generated, missing docs are not a warning. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!--
+    A release build passes -p:GitVersion=false -p:VersionPrefix=X.Y.Z -p:Version=X.Y.Z: the version then comes from the tag
+    and carries neither a sha nor a -pre suffix. Everything else keeps the development scheme above.
+  -->
+  <Target
+    Name="_ResolveGitVersion"
+    BeforeTargets="GenerateAssemblyInfo;GetAssemblyVersion"
+    Condition="'$(GitVersion)' != 'false' and '$(Version)' == '$(VersionPrefix)'"
+  >
+    <Exec
+      Command="git rev-parse --short=7 HEAD"
+      ConsoleToMSBuild="true"
+      StandardOutputImportance="low"
+      IgnoreExitCode="true"
+      ContinueOnError="true"
+    >
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitSha" />
+    </Exec>
+    <Exec
+      Command="git status --porcelain --untracked-files=no"
+      ConsoleToMSBuild="true"
+      StandardOutputImportance="low"
+      IgnoreExitCode="true"
+      ContinueOnError="true"
+    >
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitStatus" />
+    </Exec>
+
+    <PropertyGroup>
+      <_GitSha Condition="'$(_GitSha)' == ''">nogit</_GitSha>
+      <_DirtySuffix Condition="'$(_GitStatus)' != ''">.dirty</_DirtySuffix>
+      <Version>$(VersionPrefix)-pre-$(_GitSha)$(_DirtySuffix)</Version>
+      <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
+    </PropertyGroup>
+
+    <Message Importance="high" Text="YuiTushonkaLauncher version: $(Version)" />
+  </Target>
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>YuiTushonkaLauncher.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <!-- Design is needed at design time only (IDesignTimeDbContextFactory for `dotnet ef`). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="SharpCompress" />
+    <PackageReference Include="System.Threading.RateLimiting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
+    <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="YuiTushonkaLauncher.Tests" />
+  </ItemGroup>
+</Project>

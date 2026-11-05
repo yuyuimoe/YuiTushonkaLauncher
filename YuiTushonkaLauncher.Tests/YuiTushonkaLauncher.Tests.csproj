@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>YuiTushonkaLauncher.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="WireMock.Net" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Patching\Fixtures\*.bin;Patching\Fixtures\*.delta">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Mods\Fixtures\*.7z">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Forge\Fixtures\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YuiTushonkaLauncher.Core\YuiTushonkaLauncher.Core.csproj" />
+    <ProjectReference Include="..\YuiTushonkaLauncher.Infrastructure\YuiTushonkaLauncher.Infrastructure.csproj" />
+    <ProjectReference Include="..\YuiTushonkaLauncher.Patching\YuiTushonkaLauncher.Patching.csproj" />
+    <!-- The headless UI tests drive the real shell, pages and views, so the app assembly is referenced. -->
+    <ProjectReference Include="..\YuiTushonkaLauncher.Ui\YuiTushonkaLauncher.Ui.csproj" />
+    <!-- The coverage gate is tested like any other code: a gate with no tests is a guess. -->
+    <ProjectReference Include="..\tools\YuiTushonkaLauncher.Tools.CoverageGate\YuiTushonkaLauncher.Tools.CoverageGate.csproj" />
+    <!-- Fixture assemblies used by the mod identity tests; copied to the test output. -->
+    <ProjectReference Include="..\TestFixtures\ClientMod\ClientMod.csproj" />
+    <ProjectReference Include="..\TestFixtures\ServerMod\ServerMod.csproj" />
+  </ItemGroup>
+</Project>

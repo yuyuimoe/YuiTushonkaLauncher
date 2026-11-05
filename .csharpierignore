@@ -1,0 +1,11 @@
+# Paths CSharpier must not touch.
+
+# Build output (should already be excluded, listed for clarity).
+**/bin/**
+**/obj/**
+
+# Migrations and generated sources are machine-written.
+**/Migrations/**
+
+# Hand-aligned declarations become unreadable when reflowed (mirrors the official launcher).
+/YuiTushonkaLauncher.Core/Paths/Paths.cs

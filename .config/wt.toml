@@ -1,0 +1,22 @@
+# Project configuration (wt / worktrunk) — see https://worktrunk.dev/hook/
+#
+# GitFlow + worktrees: one worktree per feature/, release/ or hotfix/ branch.
+#   wt switch --create feature/phase-04-instances
+#   wt switch develop
+#
+# Hooks run automatically on the matching lifecycle step; the first use asks for approval.
+
+# Restore as soon as a worktree is created so the branch is buildable immediately.
+post-start = "dotnet restore"
+
+# Every change must build before it is merged back. Tests come later (Phase 13);
+# until then `dotnet build` is the gate.
+pre-merge = "dotnet build --nologo -c Release"
+
+[commit.generation]
+template-append = """
+- Conventional Commits are mandatory: `<type>(<scope>)!: <subject>`. Allowed types:
+  build, ci, chore, docs, feat, fix, perf, refactor, revert, style, test.
+- Write commit bodies and code comments in English.
+- One logical change per commit; do not mix a refactor with a behaviour change.
+"""
