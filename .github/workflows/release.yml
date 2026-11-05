@@ -27,6 +27,9 @@ concurrency:
 env:
   DOTNET_NOLOGO: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # The first Windows run died mid-restore on a dropped nuget.org connection; retry harder instead of failing a release.
+  NUGET_ENABLE_ENHANCED_HTTP_RETRY: true
+  NUGET_HTTP_RETRY_COUNT: "5"
 
 jobs:
   linux:
