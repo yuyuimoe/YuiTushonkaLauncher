@@ -135,7 +135,7 @@ public sealed class LogTests : IAsyncLifetime
         tail.Lines.Select(line => line.Text).Should().Equal("two", "three");
         tail.Lines.Select(line => line.Number).Should().Equal([1, 2], "the number is the position in the tail, not in the file");
         tail.TooLarge.Should().BeFalse();
-        tail.File.Path.Should().Be(path);
+        tail.File.Path.AsSlashes().Should().Be(path.AsSlashes());
     }
 
     [Fact]

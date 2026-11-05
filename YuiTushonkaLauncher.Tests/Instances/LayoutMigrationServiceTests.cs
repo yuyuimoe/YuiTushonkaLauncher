@@ -313,7 +313,7 @@ public sealed class LayoutMigrationServiceTests : IAsyncLifetime
 
         await using var context = _database.CreateContext();
         var backup = (await context.Instances.AsNoTracking().SingleAsync()).Patch.BackupPath;
-        backup.Should().Be(Path.Combine(Root, "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll.spt-bak"));
+        backup!.AsSlashes().Should().Be(Path.Combine(Root, "EscapeFromTarkov_Data", "Managed", "Assembly-CSharp.dll.spt-bak").AsSlashes());
     }
 
     [Fact]

@@ -149,7 +149,10 @@ void Render(Window window, string name, int width, int height)
     }
 
     var file = Path.Combine(outDir, name + ".png");
-    frame.Save(file);
+    using (var stream = File.Create(file))
+    {
+        frame.Save(stream, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+    }
     Console.WriteLine($"{name}: {width}x{height}, {new FileInfo(file).Length / 1024} KiB, {window.GetVisualDescendants().Count()} visuals");
 }
 
