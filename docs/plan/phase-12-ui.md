@@ -16,7 +16,8 @@ All screens, navigation, theming and localization — built once, on top of serv
       - Forge browser — search, filters (category, SPT version, Fika compatibility, featured),
         detail pane with version list and dependencies;
       - dialogs — create instance, adopt existing install (migration plan), dependency resolution,
-        export/import, wipe confirmation, update prompt;
+        the pack import review (opened when the shell hands over a `.sptpack`), wipe confirmation,
+        update prompt. The export dialog is not built yet (phase 8's UI task);
       - notifications — toasts for new mod versions and finished downloads, plus an inbox.
 - [x] Replace the reflection `ViewLocator` with explicit view registration (prepares trimming,
       [D14](../plan/04-decisions.md#d14-no-native-aot)).

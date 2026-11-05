@@ -45,8 +45,9 @@ integrity-only entries. `shareCode` = SHA-256 of the canonical manifest.
       [an open question](../plan/90-open-questions.md#blocks-phase-8-exportimport)): zip-slip guard,
       `configs/**`-only allowlist, entry-count/size caps, no symlinks, and a review screen before any
       write.
-- [ ] UI: export dialog (name, include/exclude configs, resulting share code + copy button), import
-      dialog with the plan review.
+- [ ] UI: export dialog (name, include/exclude configs, resulting share code + copy button). Still open.
+- [x] UI: import review and apply, reached when the shell opens a `.sptpack` (`PackOpenService`): the plan, the
+      share code, what would change and what is unavailable, and a confirmation before any write.
 - [x] CLI-friendly: `--export <instance> <out.sptpack>` / `--import <file> --into <dir>` so the flow is
       testable and scriptable.
 
