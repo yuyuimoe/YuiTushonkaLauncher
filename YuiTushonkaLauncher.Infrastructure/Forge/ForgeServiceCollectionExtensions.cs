@@ -39,6 +39,9 @@ public static class ForgeServiceCollectionExtensions
 
         services.AddSingleton<ForgeSptVersionCatalog>();
 
+        // Who needs whom: the API has no reverse lookup, so the answers it does give are kept and turned around.
+        services.AddSingleton<IDependencyGraph, DependencyGraph>();
+
         // The page reader asks the site, not the API, for the three things the API never sends.
         services.AddSingleton<IForgePageReader>(provider =>
         {

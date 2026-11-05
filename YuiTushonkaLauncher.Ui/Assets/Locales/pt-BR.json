@@ -155,7 +155,8 @@
     "sortNewest": "Mods mais novos",
     "sortUpdated": "Atualizados recentemente",
     "sortName": "Nome",
-    "tabDetails": "Detalhes",
+    "tabDescription": "Descrição",
+    "tabVersions": "Versões",
     "tabDependencies": "Dependências",
     "tabDependents": "Dependentes",
     "openInSite": "Abrir no site",
@@ -174,7 +175,11 @@
     "addonNeedsOtherParent": "Exige {0} {1}",
     "installAddon": "Instalar",
     "addonInstalled": "Addon instalado {0} {1}",
-    "noAddons": "Nenhum addon para este mod."
+    "noAddons": "Nenhum addon para este mod.",
+    "noDescription": "Sem descrição publicada.",
+    "noVersions": "Nenhuma versão serve para o SPT desta instância.",
+    "readingDependents": "Lendo as respostas de dependência do catálogo…",
+    "readingCatalogue": "Lendo o catálogo… página {0} de {1}"
   },
   "server": {
     "title": "Servidor",

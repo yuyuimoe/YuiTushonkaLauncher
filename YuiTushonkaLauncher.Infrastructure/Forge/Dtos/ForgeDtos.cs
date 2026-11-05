@@ -323,13 +323,15 @@ internal sealed class IncompatibleDto
 }
 
 /// <summary>One dependency row. Fields are optional: the payload is not fully documented.</summary>
+/// <summary>
+/// One entry of <c>/mods/dependencies</c>. The mod is identified by <c>id</c> — there is no <c>mod_id</c> field, and a
+/// reader that expects one silently finds no dependencies at all. The version to install is not the entry's own but the
+/// one in <c>latest_compatible_version</c>.
+/// </summary>
 internal sealed class DependencyDto
 {
     [JsonPropertyName("id")]
     public int? Id { get; set; }
-
-    [JsonPropertyName("mod_id")]
-    public int? ModId { get; set; }
 
     [JsonPropertyName("guid")]
     public string? Guid { get; set; }
@@ -337,9 +339,31 @@ internal sealed class DependencyDto
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
+    [JsonPropertyName("slug")]
+    public string? Slug { get; set; }
+
     [JsonPropertyName("version")]
     public string? Version { get; set; }
 
     [JsonPropertyName("is_optional")]
     public bool? IsOptional { get; set; }
+
+    [JsonPropertyName("conflict")]
+    public bool? Conflict { get; set; }
+
+    [JsonPropertyName("latest_compatible_version")]
+    public CompatibleVersionDto? LatestCompatibleVersion { get; set; }
+}
+
+/// <summary>The version of a dependency that the asking package's SPT release accepts.</summary>
+internal sealed class CompatibleVersionDto
+{
+    [JsonPropertyName("id")]
+    public int? Id { get; set; }
+
+    [JsonPropertyName("version")]
+    public string? Version { get; set; }
+
+    [JsonPropertyName("link")]
+    public string? Link { get; set; }
 }
