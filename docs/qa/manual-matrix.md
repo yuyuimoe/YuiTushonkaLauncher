@@ -128,3 +128,27 @@ What broke, in order:
 | 3 | Every checksum matches | ☑ | `sha256sum -c SHA256SUMS`: all six artifacts `OK` |
 | 4 | The installer carries both versions | ☑ | `FileVersion` `0.2.0`, `ProductVersion` `0.2.0-rc.5` — the numeric/text split from D30 |
 | 5 | An older build sees the release | ☑ | the `0.1.0-rc.1` build printed `Newest release: v0.2.0-rc.5 … A newer release is available` |
+
+## Release 1.0.0 — the checklist, executed (2026-11-05)
+
+First stable release, both platforms, published from `v1.0.0`. The release job was re-run once for the same tag; the
+names are identical and the tests green (the gzip tarballs differ by a few bytes because gzip records the build time;
+the AppImage, the setup and both Windows zips are byte-identical).
+
+| # | Checklist item | Result | Evidence |
+|---|----------------|:------:|----------|
+| 1 | `develop` green, build with zero warnings, tests, CSharpier | ☑ | `dotnet build -c Release`: `0 Warning(s) 0 Error(s)`; `1346` tests pass; `csharpier check` clean |
+| 2 | Coverage gate ≥ 90 % | ☑ | `CoverageGate`: Core 97.2 %, Infrastructure 91.6 % — `Coverage floor met.` |
+| 3 | `CHANGELOG.md` finalised | ☑ | `[1.0.0] - 2026-11-05` grouped by type (46 Added, 6 Changed, 12 Fixed) with an upgrading note |
+| 4 | Migration notes | ☑ | the 1.0.0 section says upgrading needs nothing: migrations run on start |
+| 5 | Known gaps written down | ☑ | `docs/plan/91-before-1.0.md` and the checklist's "Known gaps for 1.0" |
+| 6 | Version matches the tag | ☑ | `VersionPrefix` `1.0.0`; the artifacts print `1.0.0` |
+| 7 | Tag and workflow | ☑ | `v1.0.0`; `Linux artifacts`, `Windows artifacts`, `Publish the release` all green |
+| 8 | Seven artifacts | ☑ | `SHA256SUMS`; `-win-x64-setup.exe`, `-win-x64.zip`, `-win-x64-selfcontained.zip`; `-x86_64.AppImage`, `-linux-x64.tar.gz`, `-linux-x64-selfcontained.tar.gz` |
+| 9 | Re-run for the same tag | ☑ | second run: identical names, green tests, byte-identical AppImage/setup/zips |
+| 10 | Installer on Windows | ☑ (Windows 10 VM) | silent install exit 0, installed app `--version` `1.0.0`, uninstall exit 0, install dir gone, `%LOCALAPPDATA%` survives |
+| 11 | AppImage on Linux | ☑ / ☐ | tarball and the AppImage's own binary print `1.0.0`; the AppImage runtime hangs in this sandbox (FUSE/integration), so the wrapper was not exercised end-to-end; the `.sptpack` desktop double-click still needs a desktop session |
+| 12 | `--version` on every artifact | ☑ | `1.0.0` from the AppImage binary, the tarball, the Windows zip, the setup (`FileVersion`/`ProductVersion` `1.0.0`) and the installed app |
+| 13 | Update check | ☑ | the 1.0.0 build: "Newest release: v1.0.0 … This build is up to date"; the `0.1.0-rc.1` build: "A newer release is available" |
+| 14 | Manual QA matrix filled in | ☑ | this section |
+| 15 | Checksums in the release body | ☑ | the workflow writes `SHA256SUMS` into the release notes and publishes the file |
