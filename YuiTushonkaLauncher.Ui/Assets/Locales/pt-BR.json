@@ -49,7 +49,8 @@
     "lines": "Linhas",
     "emptyValue": "—",
     "back": "Voltar",
-    "forward": "Avançar"
+    "forward": "Avançar",
+    "remove": "Remover"
   },
   "instances": {
     "title": "Instâncias",
@@ -207,7 +208,24 @@
     "started": "Servidor pronto em {0}.",
     "stopped": "Servidor parado.",
     "port": "Porta {0}",
-    "noProfiles": "Crie um perfil antes de iniciar."
+    "noProfiles": "Crie um perfil antes de iniciar.",
+    "servers": "Servidores",
+    "addServer": "Adicionar servidor",
+    "activate": "Usar este servidor",
+    "test": "Testar",
+    "name": "Nome",
+    "host": "Host",
+    "portLabel": "Porta",
+    "active": "Ativo",
+    "localKind": "roda aqui",
+    "remoteKind": "em outro lugar",
+    "saved": "Servidor salvo.",
+    "activated": "Servidor selecionado.",
+    "invalidPort": "A porta é um número entre 1 e 65535.",
+    "portApplied": "Porta aplicada à instância; reinicie o servidor para usá-la.",
+    "testing": "Testando…",
+    "reachable": "Acessível ({0} ms).",
+    "unreachable": "Nada respondeu: {0}"
   },
   "logs": {
     "title": "Logs",

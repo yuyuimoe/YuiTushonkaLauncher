@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,6 +37,9 @@ public partial class ServerPageViewModel : PageViewModel
     ];
 
     private readonly IServerProfileService _profiles;
+    private readonly IServerList _servers;
+    private readonly IServerPortService _ports;
+    private readonly IEndpointProbe _probe;
     private readonly IServerSyncService _sync;
     private readonly IInstanceContext _context;
     private readonly IDialogService _dialogs;
@@ -46,6 +50,9 @@ public partial class ServerPageViewModel : PageViewModel
         ILocalizer localizer,
         ISptServerSupervisor supervisor,
         IServerProfileService profiles,
+        IServerList servers,
+        IServerPortService ports,
+        IEndpointProbe probe,
         IServerSyncService sync,
         IInstanceContext context,
         IDialogService dialogs,
@@ -54,6 +61,9 @@ public partial class ServerPageViewModel : PageViewModel
         : base(localizer)
     {
         _profiles = profiles;
+        _servers = servers;
+        _ports = ports;
+        _probe = probe;
         _dialogs = dialogs;
         _logger = logger;
         _server = supervisor;
@@ -66,6 +76,9 @@ public partial class ServerPageViewModel : PageViewModel
     public ObservableCollection<string> Output { get; } = [];
 
     public ObservableCollection<ProfileRowViewModel> Profiles { get; } = [];
+
+    /// <summary>The servers the launcher keeps: the local one first, then whatever the user added.</summary>
+    public ObservableCollection<ServerEntryRowViewModel> Servers { get; } = [];
 
     [ObservableProperty]
     public partial string StatusLine { get; set; } = string.Empty;
@@ -90,6 +103,104 @@ public partial class ServerPageViewModel : PageViewModel
 
     [ObservableProperty]
     public partial ProfileRowViewModel? SelectedProfile { get; set; }
+
+    [ObservableProperty]
+    public partial ServerEntryRowViewModel? SelectedServer { get; set; }
+
+    [ObservableProperty]
+    public partial string EditName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EditHost { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EditPort { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string ServerStatusText { get; set; } = string.Empty;
+
+    public bool HasServers
+    {
+        get { return Servers.Count > 0; }
+    }
+
+    /// <summary>True when the active server runs on this machine, which is the only kind the launcher can start.</summary>
+    public bool IsLocalActive
+    {
+        get { return _servers.Active.IsLocal; }
+    }
+
+    public string ActiveServerAddress
+    {
+        get { return _servers.Active.Address; }
+    }
+
+    /// <summary>Only a server on this machine can be started here.</summary>
+    public bool CanStart
+    {
+        get { return IsLocalActive && !IsRunning; }
+    }
+
+    /// <summary>And only one that is running here can be stopped here.</summary>
+    public bool CanStop
+    {
+        get { return IsLocalActive && IsRunning; }
+    }
+
+    public bool CanRemoveSelectedServer
+    {
+        get { return SelectedServer is { Entry.IsBuiltIn: false }; }
+    }
+
+    public string ServersLabel
+    {
+        get { return Text("server.servers"); }
+    }
+
+    public string AddServerLabel
+    {
+        get { return Text("server.addServer"); }
+    }
+
+    public string SaveServerLabel
+    {
+        get { return Text("common.save"); }
+    }
+
+    public string RemoveServerLabel
+    {
+        get { return Text("common.remove"); }
+    }
+
+    public string ActivateServerLabel
+    {
+        get { return Text("server.activate"); }
+    }
+
+    public string TestServerLabel
+    {
+        get { return Text("server.test"); }
+    }
+
+    public string ServerNameLabel
+    {
+        get { return Text("server.name"); }
+    }
+
+    public string ServerHostLabel
+    {
+        get { return Text("server.host"); }
+    }
+
+    public string ServerPortLabel
+    {
+        get { return Text("server.portLabel"); }
+    }
+
+    public string ActiveServerLabel
+    {
+        get { return Text("server.active"); }
+    }
 
     public string Title
     {
@@ -175,6 +286,8 @@ public partial class ServerPageViewModel : PageViewModel
     [RelayCommand]
     public async Task RefreshAsync(CancellationToken cancellationToken)
     {
+        await LoadServersAsync(cancellationToken);
+
         if (_context.Active is not { } instance)
         {
             Profiles.Clear();
@@ -196,6 +309,178 @@ public partial class ServerPageViewModel : PageViewModel
         }
 
         await LoadProfilesAsync(instance.Id, cancellationToken);
+    }
+
+    /// <summary>Reads the server list and fills the editor with the active entry.</summary>
+    private async Task LoadServersAsync(CancellationToken cancellationToken)
+    {
+        await _servers.LoadAsync(cancellationToken);
+
+        var active = _servers.Active;
+        Servers.Clear();
+        foreach (var entry in _servers.All)
+        {
+            Servers.Add(
+                new ServerEntryRowViewModel(Localizer, entry, isActive: entry.Name.Equals(active.Name, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        OnPropertyChanged(nameof(HasServers));
+        OnPropertyChanged(nameof(IsLocalActive));
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStop));
+        OnPropertyChanged(nameof(ActiveServerAddress));
+
+        var keep = SelectedServer?.Entry.Name;
+        SelectedServer =
+            Servers.FirstOrDefault(row => string.Equals(row.Name, keep, StringComparison.OrdinalIgnoreCase))
+            ?? Servers.FirstOrDefault(row => row.IsActive)
+            ?? Servers.FirstOrDefault();
+    }
+
+    partial void OnIsRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanStop));
+    }
+
+    partial void OnSelectedServerChanged(ServerEntryRowViewModel? value)
+    {
+        if (value is not { } row)
+        {
+            return;
+        }
+
+        EditName = row.Entry.Name;
+        EditHost = row.Entry.Host;
+        EditPort = row.Entry.Port.ToString(CultureInfo.InvariantCulture);
+        ServerStatusText = string.Empty;
+        OnPropertyChanged(nameof(CanRemoveSelectedServer));
+    }
+
+    /// <summary>Adding starts a row the editor can fill in; nothing is stored until it is saved.</summary>
+    [RelayCommand]
+    private void AddServer()
+    {
+        var taken = Servers.Select(row => row.Entry.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var index = 1;
+        while (taken.Contains($"Server {index}"))
+        {
+            index++;
+        }
+
+        var entry = new ServerEntry
+        {
+            Name = $"Server {index}",
+            Host = "127.0.0.1",
+            Port = ServerEndpoint.DefaultPort,
+        };
+        var row = new ServerEntryRowViewModel(Localizer, entry, isActive: false);
+        Servers.Add(row);
+        SelectedServer = row;
+    }
+
+    [RelayCommand]
+    private async Task SaveServer(CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(EditPort, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port))
+        {
+            ServerStatusText = Text("server.invalidPort");
+            return;
+        }
+
+        var draft = new ServerEntry
+        {
+            Name = EditName.Trim(),
+            Host = EditHost.Trim(),
+            Port = port,
+            IsBuiltIn = SelectedServer?.Entry.IsBuiltIn ?? false,
+        };
+
+        if (draft.ValidationError() is { } validation)
+        {
+            ServerStatusText = ViewModelErrors.Describe(new ServerListException(validation), Localizer);
+            return;
+        }
+
+        try
+        {
+            var saved = await _servers.SaveAsync(draft, cancellationToken);
+            var message = Text("server.saved");
+
+            // The local entry's port is the server's own: http.json is what the server reads, so the edit goes there
+            // too, and a running server keeps the old one until it is restarted.
+            if (saved.IsLocal && _context.ActiveId is { } instanceId)
+            {
+                await _ports.SetPortAsync(instanceId, saved.Port, cancellationToken);
+                message = Text("server.portApplied");
+            }
+
+            await LoadServersAsync(cancellationToken);
+
+            // A renamed row is a new name in the list: the saved entry, not the old name, is the one to keep selected.
+            SelectedServer =
+                Servers.FirstOrDefault(row => string.Equals(row.Name, saved.Name, StringComparison.OrdinalIgnoreCase)) ?? SelectedServer;
+            ServerStatusText = message;
+        }
+        catch (Exception exception) when (exception is ServerListException or ServerPortException)
+        {
+            ServerStatusText = ViewModelErrors.Describe(exception, Localizer);
+        }
+    }
+
+    [RelayCommand]
+    private async Task RemoveServer(CancellationToken cancellationToken)
+    {
+        if (SelectedServer is not { } row)
+        {
+            return;
+        }
+
+        try
+        {
+            await _servers.RemoveAsync(row.Entry.Name, cancellationToken);
+            await LoadServersAsync(cancellationToken);
+        }
+        catch (ServerListException exception)
+        {
+            ServerStatusText = ViewModelErrors.Describe(exception, Localizer);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ActivateServer(CancellationToken cancellationToken)
+    {
+        if (SelectedServer is not { } row)
+        {
+            return;
+        }
+
+        try
+        {
+            await _servers.ActivateAsync(row.Entry.Name, cancellationToken);
+            ServerStatusText = Text("server.activated");
+            await LoadServersAsync(cancellationToken);
+        }
+        catch (ServerListException exception)
+        {
+            ServerStatusText = ViewModelErrors.Describe(exception, Localizer);
+        }
+    }
+
+    [RelayCommand]
+    private async Task TestServer(CancellationToken cancellationToken)
+    {
+        if (SelectedServer is not { } row)
+        {
+            return;
+        }
+
+        ServerStatusText = Text("server.testing");
+        var result = await _probe.ProbeAsync(row.Entry.Endpoint, cancellationToken);
+        ServerStatusText = result.Reachable
+            ? Localizer.Format("server.reachable", result.Milliseconds ?? 0)
+            : Localizer.Format("server.unreachable", result.Failure ?? string.Empty);
     }
 
     partial void OnNewUsernameChanged(string value)
@@ -481,6 +766,42 @@ public sealed class ProfileRowViewModel : ViewModelBase
             return Profile.PendingWipe ? Text("server.wipe")
                 : Profile.InvalidOrUnloadable ? Text("common.unknown")
                 : string.Empty;
+        }
+    }
+}
+
+/// <summary>One row of the server list.</summary>
+public sealed class ServerEntryRowViewModel : ViewModelBase
+{
+    public ServerEntryRowViewModel(ILocalizer localizer, ServerEntry entry, bool isActive)
+        : base(localizer)
+    {
+        IsActive = isActive;
+        Entry = entry;
+    }
+
+    public ServerEntry Entry { get; }
+
+    /// <summary>True for the entry the launcher is working with.</summary>
+    public bool IsActive { get; }
+
+    public string Name
+    {
+        get { return Entry.Name; }
+    }
+
+    public string Address
+    {
+        get { return Entry.Address; }
+    }
+
+    /// <summary>What the row says about itself: whether the launcher can run it, and whether it is the active one.</summary>
+    public string DetailText
+    {
+        get
+        {
+            var kind = Entry.IsLocal ? Text("server.localKind") : Text("server.remoteKind");
+            return IsActive ? Text("server.active") + " · " + kind : kind;
         }
     }
 }

@@ -35,9 +35,6 @@ public partial class AddonsPageViewModel : PageViewModel
     /// <summary>The addons, grouped by the mod they extend.</summary>
     public ObservableCollection<AddonGroupViewModel> Groups { get; } = [];
 
-    [ObservableProperty]
-    public partial string Status { get; set; } = string.Empty;
-
     public string Title
     {
         get { return Text("addons.title"); }

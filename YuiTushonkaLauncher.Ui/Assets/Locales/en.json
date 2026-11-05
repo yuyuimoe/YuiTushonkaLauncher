@@ -49,7 +49,8 @@
     "lines": "Lines",
     "emptyValue": "—",
     "back": "Back",
-    "forward": "Forward"
+    "forward": "Forward",
+    "remove": "Remove"
   },
   "instances": {
     "title": "Instances",
@@ -207,7 +208,24 @@
     "started": "Server ready in {0}.",
     "stopped": "Server stopped.",
     "port": "Port {0}",
-    "noProfiles": "Create a profile before launching."
+    "noProfiles": "Create a profile before launching.",
+    "servers": "Servers",
+    "addServer": "Add server",
+    "activate": "Use this server",
+    "test": "Test",
+    "name": "Name",
+    "host": "Host",
+    "portLabel": "Port",
+    "active": "Active",
+    "localKind": "runs here",
+    "remoteKind": "elsewhere",
+    "saved": "Server saved.",
+    "activated": "Server selected.",
+    "invalidPort": "A port is a number between 1 and 65535.",
+    "portApplied": "Port applied to the instance; restart the server to use it.",
+    "testing": "Testing…",
+    "reachable": "Reachable ({0} ms).",
+    "unreachable": "Nothing answered: {0}"
   },
   "logs": {
     "title": "Logs",
