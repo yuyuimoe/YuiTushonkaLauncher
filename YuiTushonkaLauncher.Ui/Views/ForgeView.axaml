@@ -94,10 +94,22 @@
 
       <!-- The sidebar: what the mod is, and what it needs. -->
       <Border Grid.Column="1" Background="{DynamicResource YttRailBrush}" Padding="14">
-        <Grid RowDefinitions="Auto,*">
-          <TextBlock Grid.Row="0" Text="{Binding SelectPrompt}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasSelection}" />
+        <Grid RowDefinitions="*">
+          <TextBlock
+            Grid.Row="0"
+            Text="{Binding SelectPrompt}"
+            Classes="caption"
+            TextWrapping="Wrap"
+            VerticalAlignment="Top"
+            IsVisible="{Binding !HasSelection}"
+          />
 
-          <ScrollViewer Grid.Row="0" IsVisible="{Binding HasSelection}">
+          <ScrollViewer
+            Grid.Row="0"
+            IsVisible="{Binding HasSelection}"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+          >
             <StackPanel Spacing="8">
               <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
                 <Button

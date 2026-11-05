@@ -122,6 +122,9 @@ public partial class App : Application
         });
 
         page.Mode = mode;
+
+        // Opening the browser gives it a list to show; the first search is part of opening, not of typing.
+        _ = page.LoadAsync(CancellationToken.None);
         return window;
     }
 
