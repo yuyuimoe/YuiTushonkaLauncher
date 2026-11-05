@@ -42,9 +42,12 @@ Run through this for every tagged release. It exists because the last step of a 
 
 ## Known gaps for 1.0 (see `docs/plan/91-before-1.0.md`)
 
-- Windows has not been run on real hardware yet; the job-object path of the detached pair is untested.
-- No code signing certificate (see the section below), so SmartScreen will warn on first run.
-- Byte identity with the official launcher's output is unverified.
+- **The real game's first frame on Windows.** The VM has no GPU, so `EscapeFromTarkov.exe` starts and stays alive but
+  never renders. The process launch and the detach are proven; the game's own screen is not.
+- **No code signing certificate** (see the section below), so SmartScreen will warn on first run.
+- **Byte identity with the official launcher's output** is unverified (Q12). Evidence, not a gate.
+- **The `.sptpack` double-click on a real Linux desktop** and **forwarding a package to a launcher that is already
+  running** are untested; both are listed in `docs/tech-debt.md`.
 
 ## Code signing
 
