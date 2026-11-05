@@ -16,6 +16,11 @@ on:
         description: "Tag to build (must already exist)"
         required: true
 
+# One release per tag: re-running the workflow for the same tag replaces nothing and must not overlap with itself.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
