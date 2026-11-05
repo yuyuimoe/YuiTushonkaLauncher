@@ -4,13 +4,14 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
+using CommunityToolkit.Mvvm.Input;
 using YuiTushonkaLauncher.Core.Forge.Markdown;
 
 namespace YuiTushonkaLauncher.Controls;
 
 /// <summary>
 /// Draws a parsed mod description: headings, paragraphs, both list kinds, code, quotes, rules and images, with links
-/// that call <see cref="OpenLinkCommand" />. It is a panel, not a document viewer — the launcher has no web view and no
+/// that call <see cref="OpenUrlCommand" />. It is a panel, not a document viewer — the launcher has no web view and no
 /// intention of gaining one for a text field, so everything here is a handful of controls a text block can wrap.
 /// </summary>
 public sealed class MarkdownView : StackPanel
@@ -20,10 +21,14 @@ public sealed class MarkdownView : StackPanel
         nameof(Document)
     );
 
-    /// <summary>Invoked with a link's address when the user clicks it.</summary>
-    public static readonly StyledProperty<ICommand?> OpenLinkCommandProperty = AvaloniaProperty.Register<MarkdownView, ICommand?>(
-        nameof(OpenLinkCommand)
-    );
+    /// <summary>
+    /// Invoked with a link's address when the user clicks it. Typed for a string on purpose: a command built for
+    /// another parameter type cannot be bound here at all, which is what a bare <see cref="ICommand" /> allowed.
+    /// </summary>
+    public static readonly StyledProperty<IRelayCommand<string>?> OpenUrlCommandProperty = AvaloniaProperty.Register<
+        MarkdownView,
+        IRelayCommand<string>?
+    >(nameof(OpenUrlCommand));
 
     /// <summary>A view with nothing in it.</summary>
     public MarkdownView()
@@ -34,7 +39,7 @@ public sealed class MarkdownView : StackPanel
     static MarkdownView()
     {
         DocumentProperty.Changed.AddClassHandler<MarkdownView>((view, _) => view.Rebuild());
-        OpenLinkCommandProperty.Changed.AddClassHandler<MarkdownView>((view, _) => view.Rebuild());
+        OpenUrlCommandProperty.Changed.AddClassHandler<MarkdownView>((view, _) => view.Rebuild());
     }
 
     /// <summary>The parsed description to draw.</summary>
@@ -45,10 +50,10 @@ public sealed class MarkdownView : StackPanel
     }
 
     /// <summary>Invoked with a link's address when the user clicks it.</summary>
-    public ICommand? OpenLinkCommand
+    public IRelayCommand<string>? OpenUrlCommand
     {
-        get { return GetValue(OpenLinkCommandProperty); }
-        set { SetValue(OpenLinkCommandProperty, value); }
+        get { return GetValue(OpenUrlCommandProperty); }
+        set { SetValue(OpenUrlCommandProperty, value); }
     }
 
     private void Rebuild()
@@ -235,15 +240,36 @@ public sealed class MarkdownView : StackPanel
         {
             Content = text,
             Classes = { "link" },
-            Command = OpenLinkCommand,
-            CommandParameter = url,
             Padding = new Thickness(0),
             MinHeight = 0,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
         };
 
+        // A click handler rather than a bound command: a Button asks its command CanExecute while it attaches to the
+        // tree, and a command of the wrong parameter type throws there, taking the window down with it.
+        button.Click += (_, _) => InvokeLink(url);
         ToolTip.SetTip(button, url);
         return new InlineUIContainer(button);
+    }
+
+    private void InvokeLink(string url)
+    {
+        if (OpenUrlCommand is not { } command)
+        {
+            return;
+        }
+
+        try
+        {
+            if (command.CanExecute(url))
+            {
+                OpenUrlCommand.Execute(url);
+            }
+        }
+        catch (ArgumentException)
+        {
+            // A command that cannot take an address simply does not open the link; that is not worth a crash.
+        }
     }
 }

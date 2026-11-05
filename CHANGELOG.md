@@ -180,3 +180,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 - The server page keeps a list of servers, with `127.0.0.1:6969` as the local entry it always starts from. Entries can
   be added, renamed, re-pointed, tested with a TCP probe and selected; only the local one can be started or stopped
   here, and editing its port writes the instance's `http.json`.
+### Fixed
+
+- Opening a mod's description crashed the window: the rendered document handed a bare address to the sidebar's link
+  command, which is built for a link view model, and the thrown `ArgumentException` came out of `CanExecute` while the
+  button was attaching. Document links now have a command of their own, typed for a string, and the view invokes it
+  from a click handler instead of binding it.

@@ -183,7 +183,7 @@
 
                 <StackPanel Spacing="3">
                   <TextBlock Text="{Binding LongDescriptionLabel}" FontWeight="SemiBold" />
-                  <controls:MarkdownView Document="{Binding DescriptionDocument}" OpenLinkCommand="{Binding OpenLinkCommand}" />
+                  <controls:MarkdownView Document="{Binding DescriptionDocument}" OpenUrlCommand="{Binding OpenUrlCommand}" />
                   <TextBlock Text="{Binding NoDescriptionText}" Classes="caption" IsVisible="{Binding !HasDescription}" />
                 </StackPanel>
 
