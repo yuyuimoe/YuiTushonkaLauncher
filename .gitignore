@@ -58,3 +58,4 @@ local/
 # Logs
 *.log
 logs/
+dist/
