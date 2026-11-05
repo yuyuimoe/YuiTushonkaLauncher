@@ -39,11 +39,14 @@ jobs:
         run: dotnet tool restore
       - name: Build
         run: dotnet build YuiTushonkaLauncher.slnx -c Release --nologo
+      # A handful of assertions pin POSIX behaviour (a directory's timestamp can be set there and not on Windows); they
+      # are marked with Platform=Posix and skipped on the Windows leg, whose real-run check is the 1.0 gate item D23.
       - name: Test
         run: >
           dotnet test YuiTushonkaLauncher.slnx -c Release --no-build --nologo
           --settings coverlet.runsettings --collect:"XPlat Code Coverage"
           --results-directory TestResults --logger "trx;LogFileName=results.trx"
+          ${{ matrix.os == 'windows-latest' && '--filter Platform!=Posix' || '' }}
       - name: Coverage gate (Core and Infrastructure at 90 %)
         if: matrix.os == 'ubuntu-latest'
         run: >
