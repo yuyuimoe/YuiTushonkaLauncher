@@ -848,6 +848,26 @@ public partial class ForgePageViewModel : PageViewModel
         }
     }
 
+    /// <summary>
+    /// Opens an address from a rendered description. The link buttons in the sidebar carry a
+    /// <see cref="ForgeLinkViewModel" />; a document's link is a bare address, and handing one to a command built for
+    /// the other threw out of <c>CanExecute</c> while the button was being attached.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanOpenUrl))]
+    private void OpenUrl(string? url)
+    {
+        // Execute does not consult CanExecute, so the guard is needed in both places.
+        if (CanOpenUrl(url))
+        {
+            _urls.Open(url!);
+        }
+    }
+
+    private static bool CanOpenUrl(string? url)
+    {
+        return !string.IsNullOrWhiteSpace(url);
+    }
+
     [RelayCommand]
     private void OpenInSite()
     {
