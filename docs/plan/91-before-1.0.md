@@ -13,6 +13,10 @@ This list was 13 items with no release date in sight; the session of 2026-11-05 
 | 2 | ~~**`.7z` and `.rar` mods install**~~ — **done 2026-11-05** ([D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip)). | The installer reads the three formats by content; the real `DrakiaXYZ-BigBrain-1.5.0.7z` and `WTT-VoicePatcher-1.0.1.rar` were installed into an instance by `--install-mod`, inspected, extracted and identified. |
 | 3 | ~~**Visual smoke**~~ — **done 2026-11-05** ([D29](04-decisions.md#d29-two-documents-that-make-gaps-visible-instead-of-remembered)). | `docs/qa/known-ugly.md` written from ten rendered screens plus a dark pass; one real defect found (a Settings label painted under its checkbox) and fixed. The 1000-row scale case lives in `ModListScaleTests`. |
 
+**The gate is closed.** All three items are done, and what remains below is evidence, not a blocker. The next tag is
+`1.0.0` unless the maintainer decides otherwise, and every release from now on ships Windows as well
+([D30](04-decisions.md#d30-windows-ships-in-every-release-and-the-shell-association-opens-a-pack-review)).
+
 ## Evidence that is welcome but does not gate
 
 - **Byte identity with the official launcher** (Q12): run the official launcher once on a clean 4.1.6 install

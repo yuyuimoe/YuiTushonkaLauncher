@@ -6,9 +6,10 @@ name: Release
 # ref is the tag; a dispatch carries the tag the operator typed, so the jobs check out that tag's commit and name the
 # release after it even when the run was started from a branch.
 #
-# A tag with a label (v0.1.0-rc.1) is a pre-release, and a pre-release is Linux only: there is no Windows machine to
-# verify it on yet ([D23](../docs/plan/04-decisions.md)), so shipping a Windows installer would be a claim nobody
-# checked. The windows job is skipped and the release is marked as a pre-release on GitHub.
+# A tag with a label (v0.1.0-rc.1) is marked as a pre-release on GitHub, but it ships Windows artifacts too. The old
+# rule (pre-releases are Linux only, because no Windows machine had run the launcher) died with the gate's Windows item
+# ([D30](../docs/plan/04-decisions.md)): the installer was built, installed, run and uninstalled on a real Windows VM,
+# so every release can carry it.
 on:
   push:
     tags: ["v*"]
@@ -60,8 +61,6 @@ jobs:
 
   windows:
     name: Windows artifacts
-    # Pre-releases are Linux only: see the note at the top of the file.
-    if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -106,8 +105,8 @@ jobs:
   release:
     name: Publish the release
     needs: [linux, windows]
-    # Windows is skipped for a pre-release, so "skipped" is as good as "success" there; the Linux job is not optional.
-    if: ${{ always() && needs.linux.result == 'success' && (needs.windows.result == 'success' || needs.windows.result == 'skipped') }}
+    # Both platforms ship now ([D30](../docs/plan/04-decisions.md)), so both have to be green before anything is published.
+    if: ${{ always() && needs.linux.result == 'success' && needs.windows.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

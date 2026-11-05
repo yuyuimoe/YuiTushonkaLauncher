@@ -347,5 +347,26 @@
     "emptyHint": "Addons extend a mod that is already installed. Use “Install addons” to pick the parent first.",
     "count": "{0} addons",
     "files": "{0} files"
+  },
+  "packs": {
+    "title": "Import a pack",
+    "importTitle": "Import {0}",
+    "missing": "The package could not be found:\n{0}",
+    "noInstance": "Create an instance first: a pack is imported into one.",
+    "rejected": "The package was refused: {0}",
+    "review": "{0} mod(s), {1} addon(s) and {2} config(s) from SPT {3} (share code {4}).",
+    "wouldChange": "{0} item(s) would change, {1} unavailable.",
+    "warnings": "Warnings:",
+    "moreItems": "…and {0} more.",
+    "importDone": "Import finished: {0} installed, {1} config(s) applied, {2} skipped, {3} failed.",
+    "action": {
+      "install": "Install",
+      "replace": "Replace",
+      "alreadyInstalled": "Already installed",
+      "applyConfig": "Apply config",
+      "configUpToDate": "Config up to date",
+      "keepLocalConfig": "Keep local config",
+      "unavailable": "Unavailable"
+    }
   }
 }

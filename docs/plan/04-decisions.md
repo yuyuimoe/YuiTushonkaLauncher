@@ -411,3 +411,24 @@ choosing a remote one (`host` other than loopback) connects to it and lists its 
 - `docs/qa/known-ugly.md` — filled in during the visual smoke (D23): one line per screen, what is ugly, and
   what is *not* broken. Passing the smoke means: every screen opened in light and dark, with 1000 rows, and in
   a small window, with scrolling where it is needed.
+
+## D30. Windows ships in every release, and the shell association opens a pack review
+
+Settled with the maintainer on 2026-11-05, right after the gate's Windows item closed
+([D23](#d23-the-10-gate-is-three-items-and-the-releases-are-sequenced)).
+
+- **The reason for Linux-only pre-releases is gone.** It was "no Windows machine has run the launcher yet", so a
+  Windows installer would have been a claim nobody checked. The VM run proved the installer builds, installs per user,
+  runs, uninstalls and leaves `%LOCALAPPDATA%\YuiTushonkaLauncher` behind, and that the server and the real game survive
+  the launcher's death (`docs/qa/manual-matrix.md`). Every release, pre-release included, now builds Windows.
+- **The workflow requires both platforms.** The `windows` job lost its `!contains(tag, '-')` gate, and the `release`
+  job now needs `linux` **and** `windows` green. A tag whose Windows half fails publishes nothing, instead of shipping
+  Linux only without saying so.
+- **A `.sptpack` the shell opens is reviewed, never imported silently.** The Linux desktop entry and the Windows
+  registry association hand the path to the app as a plain argument; `PackOpenService` reads it, plans the import
+  against the active instance, shows the plan (share code, what would change, what is unavailable, the first 25 lines)
+  and only writes after the user confirms. The review keeps what
+  [D26](#d26-sptpack-stays-integrity-only-for-10) already requires: the package is untrusted, so every name is shown
+  with its GUID next to it.
+- **What this does not claim:** the review is reached from the shell association; there is still no dedicated
+  export/import page, and the export dialog stays open (phase 8's UI task).

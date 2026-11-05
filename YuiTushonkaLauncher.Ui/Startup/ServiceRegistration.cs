@@ -68,6 +68,7 @@ public static class ServiceRegistration
         services.AddSingleton<IUrlOpener, UrlOpener>();
         services.AddSingleton<DialogService>();
         services.AddSingleton<IDialogService>(provider => provider.GetRequiredService<DialogService>());
+        services.AddSingleton<PackOpenService>();
 
         services.AddSingleton<LaunchPanelViewModel>();
         services.AddSingleton<StatusBarViewModel>();

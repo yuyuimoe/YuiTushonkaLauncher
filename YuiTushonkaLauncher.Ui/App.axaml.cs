@@ -83,7 +83,32 @@ public partial class App : Application
         Log.Information("Startup: window ready");
         desktop.Exit += OnDesktopExit;
 
+        // A pack handed over by the desktop (double-click, "Open with") is reviewed once the window exists, so the
+        // dialog has an owner and the shell is already listening for what the import changes.
+        if (Program.PendingPackPath is { } package)
+        {
+            window.Opened += (_, _) => _ = OpenPackAsync(package);
+        }
+
         _ = LoadAsync(_home);
+    }
+
+    /// <summary>Reviews and imports the package the shell association opened the launcher with.</summary>
+    private async Task OpenPackAsync(string packagePath)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _services.GetRequiredService<PackOpenService>().RunAsync(packagePath);
+        }
+        catch (Exception exception)
+        {
+            Log.Error(exception, "Importing the pack the desktop opened failed");
+        }
     }
 
     /// <summary>Creates the manager window on first use and navigates it to the section that asked for it.</summary>

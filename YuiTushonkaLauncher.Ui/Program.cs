@@ -8,6 +8,7 @@ using Serilog.Events;
 using YuiTushonkaLauncher.Core.Abstractions;
 using YuiTushonkaLauncher.Infrastructure.Paths;
 using YuiTushonkaLauncher.Infrastructure.Processes;
+using YuiTushonkaLauncher.Services;
 
 namespace YuiTushonkaLauncher;
 
@@ -20,6 +21,12 @@ internal static class Program
 
     /// <summary>The language asked for on the command line, when there was one; the settings value otherwise.</summary>
     internal static string? LanguageOverride { get; private set; }
+
+    /// <summary>
+    /// A <c>.sptpack</c> the desktop environment handed over (double-click, "Open with"), or <c>null</c>. The shell
+    /// association's command line is just the path, with no flag, so it is read here and acted on once the window exists.
+    /// </summary>
+    internal static string? PendingPackPath { get; private set; }
 
     /// <summary>Whether this process owns the instance lock.</summary>
     internal static StartupMode StartupMode { get; private set; } = StartupMode.Normal;
@@ -49,6 +56,7 @@ internal static class Program
 
         Paths = new AppPaths();
         LanguageOverride = ReadLanguage(args);
+        PendingPackPath = PackOpenService.PackageIn(args);
         Paths.EnsureCreated();
         ConfigureLogging(Paths, ReadVerbose(args));
 
