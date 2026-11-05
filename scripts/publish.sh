@@ -43,6 +43,22 @@ if [ "$run_tests" = 1 ]; then
   dotnet test "$root/YuiTushonkaLauncher.Tests" --no-build -c Release --nologo
 fi
 
+# Packs a published folder into a zip. The Windows runner has no `zip` (a Git Bash without Info-ZIP), and the job had
+# never run, so the first real Windows release died on `zip: command not found`; 7-Zip is what the image ships instead.
+zip_folder() {
+  local destination="$1" folder="$2"
+  rm -f "$destination"
+
+  if command -v zip >/dev/null 2>&1; then
+    (cd "$(dirname "$folder")" && zip -qr "$destination" "$(basename "$folder")")
+  elif command -v 7z >/dev/null 2>&1; then
+    (cd "$(dirname "$folder")" && 7z a -tzip -bso0 -bsp0 "$destination" "$(basename "$folder")")
+  else
+    echo "no zip tool found (need 'zip' or '7z'): cannot pack $folder" >&2
+    exit 1
+  fi
+}
+
 publish() {
   local rid="$1" self_contained="$2" destination="$3"
   echo "==> publish $rid (self-contained: $self_contained)"
@@ -109,7 +125,8 @@ case "$only" in
   ""|windows)
     publish win-x64 false "$out/win-x64-fdd"
     publish win-x64 true "$out/win-x64-scd"
-    (cd "$out" && zip -qr "YuiTushonkaLauncher-$release_version-win-x64.zip" win-x64-fdd && zip -qr "YuiTushonkaLauncher-$release_version-win-x64-selfcontained.zip" win-x64-scd)
+    zip_folder "$out/YuiTushonkaLauncher-$release_version-win-x64.zip" "$out/win-x64-fdd"
+    zip_folder "$out/YuiTushonkaLauncher-$release_version-win-x64-selfcontained.zip" "$out/win-x64-scd"
     echo "==> windows zips"
     ;;
 esac
