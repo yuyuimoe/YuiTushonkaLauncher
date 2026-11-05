@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using YuiTushonkaLauncher.Core.Domain;
 using YuiTushonkaLauncher.Core.Mods;
@@ -16,20 +15,29 @@ public sealed class ArchiveInspector(ILogger<ArchiveInspector> logger) : IArchiv
     /// <inheritdoc />
     public ArchiveInspection Inspect(string archivePath)
     {
-        using var archive = ZipFile.OpenRead(archivePath);
-        var entries = new List<ArchiveEntry>(archive.Entries.Count);
+        // The format is read from the bytes: a mod can arrive as zip, 7z or rar and the name says nothing.
+        using var archive = ModArchiveContent.Open(archivePath);
+        var archiveEntries = archive.Entries;
+        var entries = new List<ArchiveEntry>(archiveEntries.Count);
         var unsafeEntries = new List<string>();
 
-        foreach (var entry in archive.Entries)
+        foreach (var entry in archiveEntries)
         {
-            if (string.IsNullOrEmpty(entry.Name))
+            if (entry.IsDirectory)
             {
-                // Directory entry.
+                continue;
+            }
+
+            // A link is not a file a mod may bring: it points somewhere, and the launcher would either write a useless
+            // empty file or follow it out of the instance.
+            if (!string.IsNullOrEmpty(entry.LinkTarget))
+            {
+                unsafeEntries.Add($"{entry.Key} (symbolic link)");
                 continue;
             }
 
             // Rootedness has to be judged before normalisation strips the leading separator.
-            var raw = entry.FullName;
+            var raw = entry.Key ?? string.Empty;
 
             if (IsUnsafe(raw, out var reason))
             {
@@ -39,30 +47,24 @@ public sealed class ArchiveInspector(ILogger<ArchiveInspector> logger) : IArchiv
                     {
                         RelativePath = Normalize(raw),
                         Kind = ArchiveEntryKind.Unsafe,
-                        Length = entry.Length,
+                        Length = entry.Size,
                     }
                 );
                 continue;
             }
 
-            var relative = Normalize(raw);
-            var entryKind = Classify(relative);
-
-            if (entryKind == ArchiveEntryKind.Unsafe)
-            {
-                unsafeEntries.Add($"{raw} (ships a patched game binary)");
-            }
-
             entries.Add(
                 new ArchiveEntry
                 {
-                    RelativePath = relative,
-                    Kind = entryKind,
-                    Length = entry.Length,
+                    RelativePath = Normalize(raw),
+                    Kind = ArchiveEntryKind.Content,
+                    Length = entry.Size,
                 }
             );
         }
 
+        // The wrapper folder comes off before anything is classified: a mod shipped as "ModName/BepInEx/plugins/x.dll"
+        // is a client mod, and judging it by the wrapped path called it content and put its plugin nowhere.
         var rootPrefix = FindRootPrefix(entries);
         if (rootPrefix is not null)
         {
@@ -77,6 +79,28 @@ public sealed class ArchiveInspector(ILogger<ArchiveInspector> logger) : IArchiv
                 ),
             ];
         }
+
+        entries =
+        [
+            .. entries.Select(entry =>
+            {
+                if (entry.Kind == ArchiveEntryKind.Unsafe)
+                {
+                    return entry;
+                }
+
+                var kind = Classify(entry.RelativePath);
+                if (kind == ArchiveEntryKind.Unsafe)
+                {
+                    unsafeEntries.Add($"{entry.RelativePath} (ships a patched game binary)");
+                }
+
+                return entry with
+                {
+                    Kind = kind,
+                };
+            }),
+        ];
 
         var client = entries.Count(entry => entry.Kind == ArchiveEntryKind.ClientAssembly);
         var server = entries.Count(entry => entry.Kind == ArchiveEntryKind.ServerAssembly);
@@ -112,8 +136,9 @@ public sealed class ArchiveInspector(ILogger<ArchiveInspector> logger) : IArchiv
         };
 
         logger.LogInformation(
-            "Inspected {Archive}: {Kind}, {Entries} entries ({Client} client, {Server} server assemblies), root prefix '{Prefix}'",
+            "Inspected {Archive} ({Format}): {Kind}, {Entries} entries ({Client} client, {Server} server assemblies), root prefix '{Prefix}'",
             Path.GetFileName(archivePath),
+            ModArchiveContent.Describe(archive.Format),
             kind,
             entries.Count,
             client,

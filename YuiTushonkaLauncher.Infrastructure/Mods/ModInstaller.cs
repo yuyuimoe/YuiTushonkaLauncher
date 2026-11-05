@@ -246,10 +246,12 @@ public sealed partial class ModInstaller(
             throw new InstanceValidationException(["No archive and no download URL were provided."]);
         }
 
+        // The URL ends in the release version, never in an extension, so the file name is a label rather than a
+        // claim: the archive's format is read from its bytes when it is opened.
         var fileName = Path.GetFileName(Uri.UnescapeDataString(request.DownloadUrl.AbsolutePath));
         if (string.IsNullOrWhiteSpace(fileName) || !fileName.Contains('.'))
         {
-            fileName = "mod.zip";
+            fileName = "mod.download";
         }
 
         var downloadDirectory = Path.Combine(paths.DownloadsDirectory, "mods");
