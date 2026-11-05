@@ -115,6 +115,18 @@ case "$only" in
 esac
 
 echo "==> checksums"
-(cd "$out" && sha256sum ./*.tar.gz ./*.zip ./*.AppImage 2>/dev/null | tee SHA256SUMS)
+(
+  cd "$out"
+  # A pre-release is Linux only, and a machine without appimagetool keeps the AppDir instead; a pattern that matched
+  # nothing must not fail the run.
+  shopt -s nullglob
+  artifacts=(*.tar.gz *.zip *.AppImage *.appdir.tar.gz)
+  if [ ${#artifacts[@]} -eq 0 ]; then
+    echo "no artifacts to checksum" >&2
+    exit 1
+  fi
+  # "*.tar.gz" also matches the AppDir tarball; sort -u keeps one line per file.
+  sha256sum "${artifacts[@]}" | sort -k2 -u | tee SHA256SUMS
+)
 
 echo "==> done"
