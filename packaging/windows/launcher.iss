@@ -4,10 +4,18 @@
 ; reads a folder the player already has (the SPT install) instead of owning a program directory.
 ;
 ; Built by scripts/publish.sh (or the release workflow) with:
-;   ISCC.exe /DMyAppVersion=1.2.3 /DMySourceDir=dist\win-x64-fdd /DMyOutputDir=dist packaging\windows\launcher.iss
+;   ISCC.exe /DMyAppVersion=1.2.3 /DMyVersionInfoVersion=1.2.3 /DMySourceDir=dist\win-x64-fdd
+;     /DMyOutputDir=dist packaging\windows\launcher.iss
+;
+; MyAppVersion is the human version (it may carry a pre-release label) and MyVersionInfoVersion is the numeric one the
+; Windows file properties accept: 'v0.3.0' and '0.3.0-rc.2' are both fine as text, neither is a legal
+; VersionInfoVersion. The release workflow passes the second one separately.
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
+#endif
+#ifndef MyVersionInfoVersion
+  #define MyVersionInfoVersion MyAppVersion
 #endif
 #ifndef MySourceDir
   #define MySourceDir "..\..\dist\win-x64-fdd"
@@ -28,7 +36,7 @@ AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-VersionInfoVersion={#MyAppVersion}
+VersionInfoVersion={#MyVersionInfoVersion}
 VersionInfoProductName={#MyAppName}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Setup

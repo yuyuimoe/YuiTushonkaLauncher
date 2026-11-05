@@ -53,6 +53,10 @@ zip, built from `feature/windows-first-run`).
 | 5 | Install a mod from the Forge | ☑ | `--install-mod https://sp-mod.com/mod/download/902/bigbrain/1.4.0 --forge-id 902 --instance win1`: `.7z` read by content, `1 file(s)`, `+ BepInEx/plugins/DrakiaXYZ-BigBrain.dll`, integrity `clean=True` |
 | 6 | Start and stop the server | ☑ | `--server-run win1 --seconds 45`: `Server of 'win1' ready at https://127.0.0.1:6969/ after 10.3 s (pid 9404)`; SPT's own log: `Server: 4.0.9`, `Started webserver at https://127.0.0.1:6969`, `Server has started, happy playing`; stopped by the supervisor's kill after the 15 s grace period (Windows has no clean stop for a windowless console process) |
 | 7 | Read the server's log | ☑ | `SPT\user\logs\spt\spt20261105.log`: 17 550 bytes, `Server has started, happy playing` |
+| 8 | Build and run the Inno Setup installer | ☑ | Built `YuiTushonkaLauncher-0.2.0-rc.2-win-x64-setup.exe` with Inno Setup 6.7.4 (per-user, no admin): silent install exit 0, installed to `%LOCALAPPDATA%\Programs\YuiTushonkaLauncher`, the installed `--inspect-base C:\SPTarkov` answered `shape Merged, layout Spt40, SPT 4.0.9`, and the `HKCU\Software\Classes\application/x-sptpack` association was created |
+| 9 | Uninstall and keep the data | ☑ | `unins000.exe /VERYSILENT` exit 0; the install directory is gone, `%LOCALAPPDATA%\YuiTushonkaLauncher` survives with `launcher.db` (221 184 bytes), `cache`, `downloads`, `instances`, `logs`, `run`; the `.sptpack` association was removed |
+| 10 | Full `--launch` with the real game | ☑ | `--launch win1 --profile qa-user --game-program ...\EscapeFromTarkov.exe`: `server pid 9824 … game pid 2260 … Detached`; port 6969 answered; the launcher exited |
+| 11 | Job object / breakaway survival | ☑ | After the launcher exited, `--stale` listed `server pid 9824 … Running [WindowsJob]` and `game pid 2260 … Running [WindowsJob]`; `--stale --reap` reported `Stopped 2 process(es)` and both were gone seconds later; `CREATE_BREAKAWAY_FROM_JOB` plus no `KILL_ON_JOB_CLOSE` works on hardware |
 
 ### The console fact this run produced
 
@@ -68,9 +72,17 @@ its own log file instead of the launcher. See `docs/plan/03-verified-facts.md`.
 
 ### Still not run on Windows
 
-- The Inno Setup installer (`.exe`), its per-user install, and the uninstall.
-- A full `--launch` (server + game, detached) with the real `EscapeFromTarkov.exe`.
-- The job object and `CREATE_BREAKAWAY_FROM_JOB` as a *survival* test (the launcher exits, the pair keeps running). The
-  job no longer carries `KILL_ON_JOB_CLOSE`, but whether that lets the pair outlive the launcher has not been observed
-  on hardware yet.
+- The real game's first frame: the VM has no GPU, so `EscapeFromTarkov.exe` starts and stays alive but never renders.
+  The process launch and the detach are proven; the game's own screen is not.
 - `--stale --scan`, which stays 1.1 ([D28](../plan/04-decisions.md)).
+
+### The installer's version bug this run produced
+
+The `.iss` fed `VersionInfoVersion={#MyAppVersion}`, and the workflow fed the tag (`v0.2.0-rc.2`). Inno Setup's
+`VersionInfoVersion` only accepts numbers, so the build failed with *Value of [Setup] section directive
+"VersionInfoVersion" is invalid* for every tag — the Windows job had never run, because every release so far was a
+pre-release and the Windows job is gated on a label-free tag. The fix: `launcher.iss` takes `MyVersionInfoVersion`
+separately (the text version may carry a `v` and a `-label`), and the workflow strips the `v` and the label and pads
+the number to three parts before calling `ISCC.exe`. Proven on the VM: with `MyAppVersion=0.2.0-rc.2` and
+`MyVersionInfoVersion=0.2.0`, the installer compiled and produced
+`YuiTushonkaLauncher-0.2.0-rc.2-win-x64-setup.exe`.
