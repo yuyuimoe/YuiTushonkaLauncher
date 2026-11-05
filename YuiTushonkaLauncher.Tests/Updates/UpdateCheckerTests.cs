@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -20,7 +21,7 @@ namespace YuiTushonkaLauncher.Tests.Updates;
 /// </summary>
 public sealed class UpdateCheckerTests : IDisposable
 {
-    private const string LatestPath = "/repos/" + GitHubReleaseChecker.DefaultRepository + "/releases/latest";
+    private const string ReleasesPath = "/repos/" + GitHubReleaseChecker.DefaultRepository + "/releases";
 
     private readonly WireMockServer _server = WireMockServer.Start();
 
@@ -47,19 +48,30 @@ public sealed class UpdateCheckerTests : IDisposable
             response = response.WithHeader("Content-Type", "application/json").WithBody(json);
         }
 
-        _server.Given(Request.Create().WithPath(LatestPath).UsingGet()).RespondWith(response);
+        _server.Given(Request.Create().WithPath(ReleasesPath).UsingGet()).RespondWith(response);
     }
 
     private static string Release(string tag)
     {
+        return Releases((tag, "2026-11-01T10:00:00Z"));
+    }
+
+    /// <summary>
+    /// The list endpoint answers an array, newest first. A pre-release is a normal published release here, so it is
+    /// carried next to the stable ones and the first usable entry wins.
+    /// </summary>
+    private static string Releases(params (string Tag, string PublishedAt)[] releases)
+    {
         return JsonSerializer.Serialize(
-            new
-            {
-                tag_name = tag,
-                html_url = "https://github.com/SP-Tushonka/YuiTushonkaLauncher/releases/tag/" + tag,
-                body = "notes",
-                published_at = "2026-11-01T10:00:00Z",
-            }
+            releases
+                .Select(release => new
+                {
+                    tag_name = release.Tag,
+                    html_url = "https://github.com/" + GitHubReleaseChecker.DefaultRepository + "/releases/tag/" + release.Tag,
+                    body = "notes",
+                    published_at = release.PublishedAt,
+                })
+                .ToArray()
         );
     }
 
@@ -109,6 +121,61 @@ public sealed class UpdateCheckerTests : IDisposable
 
         result.HasUpdate.Should().BeFalse();
         result.Latest!.Version.Should().Be(SemanticVersion.Parse("0.2.0"));
+    }
+
+    [Fact]
+    public async Task APreReleaseIsOfferedToAnOlderReleaseBuild()
+    {
+        // The project ships pre-releases as its only releases; a build running v0.1.0-rc.1 is a release, not a
+        // development build, and must be told that v0.2.0-rc.3 exists.
+        Respond(HttpStatusCode.OK, Releases(("v0.2.0-rc.3", "2026-11-02T10:00:00Z"), ("v0.1.0", "2026-10-01T10:00:00Z")));
+
+        var result = await Checker("0.1.0-rc.1").CheckAsync();
+
+        result.Failed.Should().BeFalse();
+        result.HasUpdate.Should().BeTrue();
+        result.Latest!.Tag.Should().Be("v0.2.0-rc.3");
+    }
+
+    [Fact]
+    public async Task ADraftReleaseIsSkipped()
+    {
+        _server
+            .Given(Request.Create().WithPath(ReleasesPath).UsingGet())
+            .RespondWith(
+                Response
+                    .Create()
+                    .WithStatusCode(HttpStatusCode.OK)
+                    .WithHeader("Content-Type", "application/json")
+                    .WithBody(
+                        JsonSerializer.Serialize(
+                            new object[]
+                            {
+                                new
+                                {
+                                    tag_name = "v0.3.0",
+                                    html_url = "https://github.com/" + GitHubReleaseChecker.DefaultRepository + "/releases/tag/v0.3.0",
+                                    draft = true,
+                                    body = "notes",
+                                    published_at = "2026-11-03T10:00:00Z",
+                                },
+                                new
+                                {
+                                    tag_name = "v0.2.0",
+                                    html_url = "https://github.com/" + GitHubReleaseChecker.DefaultRepository + "/releases/tag/v0.2.0",
+                                    draft = false,
+                                    body = "notes",
+                                    published_at = "2026-11-02T10:00:00Z",
+                                },
+                            }
+                        )
+                    )
+            );
+
+        var result = await Checker("0.1.0").CheckAsync();
+
+        result.HasUpdate.Should().BeTrue();
+        result.Latest!.Tag.Should().Be("v0.2.0");
     }
 
     [Fact]
