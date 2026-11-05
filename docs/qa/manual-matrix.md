@@ -86,3 +86,19 @@ separately (the text version may carry a `v` and a `-label`), and the workflow s
 the number to three parts before calling `ISCC.exe`. Proven on the VM: with `MyAppVersion=0.2.0-rc.2` and
 `MyVersionInfoVersion=0.2.0`, the installer compiled and produced
 `YuiTushonkaLauncher-0.2.0-rc.2-win-x64-setup.exe`.
+
+## Release 0.2.0-rc.4 — Linux pipeline and GUI launch (2026-11-05)
+
+Host: Fedora (the development machine), real display `:0`, default `XDG_DATA_HOME`. The tag carries the
+update-checker fix (it reads the release list, so pre-releases are seen). A pre-release is Linux only ([D23](../plan/04-decisions.md)),
+so the Windows job reported *skipped*; the Windows path was proven on the VM during `0.2.0-rc.2` (above).
+
+| # | Flow | Result | Evidence |
+|---|------|:------:|----------|
+| 1 | Workflow produces the Linux artifacts | ☑ | `YuiTushonkaLauncher-0.2.0-rc.4-x86_64.AppImage`, `-linux-x64.tar.gz`, `-linux-x64-selfcontained.tar.gz`, `SHA256SUMS`; the Windows job reported *skipped* |
+| 2 | Checksums match the published files | ☑ | `sha256sum -c SHA256SUMS`: all three artifacts `OK` |
+| 3 | `--version` prints the tag | ☑ | the AppImage and the framework-dependent tarball both print `0.2.0-rc.4` |
+| 4 | Update check against the new release | ☑ | the released build: `Newest release: v0.2.0-rc.4 … This build is up to date (or ahead of the last release)`; an older build (`0.1.0-rc.1`) reported `A newer release is available` |
+| 5 | Launch and close the GUI | ☑ | `DISPLAY=:0` launch reached `Startup: window ready`; `timeout -s TERM 25` ended it with exit 124 and no process was left behind |
+| 6 | Re-run the workflow for the same tag | ☑ | a second run for `v0.2.0-rc.4` produced the same file names and a passing test run; the gzip tarball differs by 91 bytes because gzip records the build time, while the AppImage and the self-contained tarball are byte-identical |
+| 7 | Double-click a `.sptpack` on Linux | ☐ | needs a desktop session with the association installed; the Windows installer's association was proven in `0.2.0-rc.2` |

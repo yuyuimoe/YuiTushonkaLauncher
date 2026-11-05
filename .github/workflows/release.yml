@@ -2,7 +2,9 @@ name: Release
 
 # A tag is a release: vX.Y.Z, or vX.Y.Z-label for a pre-release. Re-running the workflow for the same tag must produce
 # the same file names and a passing test run, which is why everything below is derived from the tag and the build
-# arguments are explicit.
+# arguments are explicit. "The tag" is `inputs.tag || github.ref_name`: a tag push leaves the input empty and the event
+# ref is the tag; a dispatch carries the tag the operator typed, so the jobs check out that tag's commit and name the
+# release after it even when the run was started from a branch.
 #
 # A tag with a label (v0.1.0-rc.1) is a pre-release, and a pre-release is Linux only: there is no Windows machine to
 # verify it on yet ([D23](../docs/plan/04-decisions.md)), so shipping a Windows installer would be a claim nobody
@@ -18,7 +20,7 @@ on:
 
 # One release per tag: re-running the workflow for the same tag replaces nothing and must not overlap with itself.
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -32,6 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
@@ -46,7 +49,7 @@ jobs:
           chmod +x "$HOME/.local/bin/appimagetool"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Publish (runs the tests first)
-        run: bash scripts/publish.sh --version "${{ github.ref_name }}" --only linux
+        run: bash scripts/publish.sh --version "${{ inputs.tag || github.ref_name }}" --only linux
       - uses: actions/upload-artifact@v4
         with:
           name: linux
@@ -58,11 +61,12 @@ jobs:
   windows:
     name: Windows artifacts
     # Pre-releases are Linux only: see the note at the top of the file.
-    if: ${{ !contains(github.ref_name, '-') }}
+    if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
@@ -71,13 +75,14 @@ jobs:
         run: choco install innosetup --no-progress -y
       - name: Publish
         shell: bash
-        run: bash scripts/publish.sh --version "${{ github.ref_name }}" --only windows --no-tests
+        run: bash scripts/publish.sh --version "${{ inputs.tag || github.ref_name }}" --only windows --no-tests
       - name: Build the installer
         shell: bash
         run: |
           # The tag carries the 'v' and, for a pre-release, a '-label'. MyAppVersion takes the text form; Inno Setup's
           # VersionInfoVersion only accepts numbers, so strip both and pad to three parts.
-          version="${GITHUB_REF_NAME#v}"
+          version="${{ inputs.tag || github.ref_name }}"
+          version="${version#v}"
           numeric="${version%%-*}"
           case "$numeric" in
             *.*.*) ;;
@@ -109,6 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
@@ -118,7 +124,7 @@ jobs:
         working-directory: artifacts
         run: sha256sum ./* > SHA256SUMS
       - name: Release notes from Conventional Commits
-        run: bash scripts/release-notes.sh "${{ github.ref_name }}" > RELEASE_NOTES.md
+        run: bash scripts/release-notes.sh "${{ inputs.tag || github.ref_name }}" > RELEASE_NOTES.md
       - name: Note the checksums in the body
         run: |
           printf '\n## Checksums\n\n```\n' >> RELEASE_NOTES.md
@@ -126,9 +132,9 @@ jobs:
           printf '```\n' >> RELEASE_NOTES.md
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           body_path: RELEASE_NOTES.md
           files: |
             artifacts/*.zip
