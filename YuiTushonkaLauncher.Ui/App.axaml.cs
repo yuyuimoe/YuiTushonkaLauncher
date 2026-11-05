@@ -24,9 +24,9 @@ public partial class App : Application
 
     private ShellViewModel? _shell;
 
-    private InstanceManagerWindow? _manager;
+    private readonly WindowSlot<InstanceManagerWindow> _manager = new();
 
-    private ForgeWindow? _forge;
+    private readonly WindowSlot<ForgeWindow> _forge = new();
 
     public override void Initialize()
     {
@@ -94,15 +94,16 @@ public partial class App : Application
             return null;
         }
 
-        if (_manager is null)
+        // A window that the user closed cannot be shown again, so the slot builds a new one on the next request.
+        var window = _manager.GetOrCreate(() =>
         {
             Log.Information("Startup: building the instance manager");
             _shell = _services.GetRequiredService<ShellViewModel>();
-            _manager = new InstanceManagerWindow { DataContext = _shell };
-        }
+            return new InstanceManagerWindow { DataContext = _shell };
+        });
 
-        _shell?.Navigate(section);
-        return _manager;
+        (_shell ??= _services.GetRequiredService<ShellViewModel>()).Navigate(section);
+        return window;
     }
 
     /// <summary>Shows the Forge window, switching it between browsing mods and browsing addons.</summary>
@@ -114,14 +115,14 @@ public partial class App : Application
         }
 
         var page = _services.GetRequiredService<ForgePageViewModel>();
-        if (_forge is null)
+        var window = _forge.GetOrCreate(() =>
         {
             Log.Information("Startup: building the Forge window");
-            _forge = new ForgeWindow { DataContext = page };
-        }
+            return new ForgeWindow { DataContext = page };
+        });
 
         page.Mode = mode;
-        return _forge;
+        return window;
     }
 
     private static async Task LoadAsync(HomeViewModel home)
