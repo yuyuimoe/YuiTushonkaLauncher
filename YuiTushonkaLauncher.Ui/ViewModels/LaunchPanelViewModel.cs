@@ -13,6 +13,7 @@ using YuiTushonkaLauncher.Core.Launch;
 using YuiTushonkaLauncher.Core.Localization;
 using YuiTushonkaLauncher.Core.Runtime;
 using YuiTushonkaLauncher.Core.Server;
+using YuiTushonkaLauncher.Dialogs;
 using YuiTushonkaLauncher.Navigation;
 
 namespace YuiTushonkaLauncher.ViewModels;
@@ -29,6 +30,8 @@ public partial class LaunchPanelViewModel : ViewModelBase
     private readonly IServerProfileService _profiles;
     private readonly IRunAdoptionService _runs;
     private readonly IWindowController _window;
+    private readonly IServerList _servers;
+    private readonly IDialogService _dialogs;
     private readonly ILogger<LaunchPanelViewModel> _logger;
     private CancellationTokenSource? _running;
 
@@ -40,6 +43,8 @@ public partial class LaunchPanelViewModel : ViewModelBase
         IServerProfileService profiles,
         IRunAdoptionService runs,
         IWindowController window,
+        IServerList servers,
+        IDialogService dialogs,
         ILogger<LaunchPanelViewModel> logger
     )
         : base(localizer)
@@ -50,6 +55,8 @@ public partial class LaunchPanelViewModel : ViewModelBase
         _profiles = profiles;
         _runs = runs;
         _window = window;
+        _servers = servers;
+        _dialogs = dialogs;
         _logger = logger;
         Session = new LaunchSession();
         Session.Changed += (_, _) => OnSessionChanged();
@@ -169,6 +176,35 @@ public partial class LaunchPanelViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Which server the game should talk to. One server means no question; more than one is the picker of D25, and a
+    /// cancelled picker cancels the launch rather than guessing.
+    /// </summary>
+    private async Task<ServerEntry?> ChooseServerAsync(CancellationToken cancellationToken)
+    {
+        await _servers.LoadAsync(cancellationToken);
+
+        if (_servers.All.Count <= 1)
+        {
+            return _servers.Active;
+        }
+
+        var dialog = new SelectServerDialogViewModel(Localizer, _servers.All, _servers.Active.Name);
+        var chosen = await _dialogs.SelectServerAsync(dialog, cancellationToken);
+
+        if (chosen is null)
+        {
+            return null;
+        }
+
+        if (dialog.RememberChoice)
+        {
+            await _servers.ActivateAsync(chosen.Name, cancellationToken);
+        }
+
+        return chosen;
+    }
+
     [RelayCommand]
     private async Task LaunchAsync(CancellationToken cancellationToken)
     {
@@ -184,6 +220,12 @@ public partial class LaunchPanelViewModel : ViewModelBase
 
         try
         {
+            if (await ChooseServerAsync(cancellationToken) is not { } server)
+            {
+                Session.Apply(new LaunchProgress(LaunchStep.PreFlight, LaunchStepOutcome.Cancelled, Text("launch.refused")));
+                return;
+            }
+
             var result = await _launch.LaunchAsync(
                 new LaunchRequest
                 {
@@ -191,6 +233,7 @@ public partial class LaunchPanelViewModel : ViewModelBase
                     ProfileUsername = string.IsNullOrWhiteSpace(ProfileUsername) ? null : ProfileUsername.Trim(),
                     RememberProfile = RememberProfile,
                     SkipPatch = SkipPatch,
+                    ServerEndpoint = server is { IsLocal: false } ? server.Endpoint : null,
                 },
                 progress,
                 _running.Token

@@ -26,9 +26,13 @@ public sealed class ServerProfileService(
     private const int MaxNameLength = 64;
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<SptProfileSummary>> ListAsync(Guid instanceId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SptProfileSummary>> ListAsync(
+        Guid instanceId,
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
+    )
     {
-        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken, server);
         return await client.GetProfilesAsync(cancellationToken);
     }
 
@@ -37,11 +41,12 @@ public sealed class ServerProfileService(
         Guid instanceId,
         string username,
         string edition,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
     )
     {
         var name = ValidateName(username);
-        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken, server);
 
         var editions = await client.GetProfileTypesAsync(cancellationToken);
 
@@ -71,19 +76,20 @@ public sealed class ServerProfileService(
         Guid instanceId,
         string username,
         bool confirmed,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
     )
     {
         RequireConfirmation(confirmed, "Deleting", username);
-        var (instance, location, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (instance, location, client) = await ConnectAsync(instanceId, cancellationToken, server);
         var profile = await FindAsync(client, username, cancellationToken);
-        var backup = Backup(instance.Name, location, profile);
+        var backup = location is { } localFiles ? Backup(instance.Name, localFiles, profile) : null;
 
         var change = await client.RemoveAsync(profile.Username, cancellationToken);
 
         if (!change.Accepted)
         {
-            throw new ProfileOperationException($"The server refused to delete '{profile.Username}'. A backup is at '{backup}'.");
+            throw new ProfileOperationException($"The server refused to delete '{profile.Username}'.{Because(backup)}");
         }
 
         await ForgetLastProfileAsync(instanceId, profile.ProfileId, cancellationToken);
@@ -100,19 +106,20 @@ public sealed class ServerProfileService(
         Guid instanceId,
         string username,
         bool confirmed,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
     )
     {
         RequireConfirmation(confirmed, "Wiping", username);
-        var (instance, location, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (instance, location, client) = await ConnectAsync(instanceId, cancellationToken, server);
         var profile = await FindAsync(client, username, cancellationToken);
-        var backup = Backup(instance.Name, location, profile);
+        var backup = location is { } localFiles ? Backup(instance.Name, localFiles, profile) : null;
 
         var change = await client.WipeAsync(profile.Username, profile.Edition, cancellationToken);
 
         if (!change.Accepted)
         {
-            throw new ProfileOperationException($"The server refused to wipe '{profile.Username}'. A backup is at '{backup}'.");
+            throw new ProfileOperationException($"The server refused to wipe '{profile.Username}'.{Because(backup)}");
         }
 
         return new ProfileOperationResult
@@ -124,9 +131,14 @@ public sealed class ServerProfileService(
     }
 
     /// <inheritdoc />
-    public async Task<SptProfileSummary> SelectAsync(Guid instanceId, string username, CancellationToken cancellationToken = default)
+    public async Task<SptProfileSummary> SelectAsync(
+        Guid instanceId,
+        string username,
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
+    )
     {
-        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken, server);
         var profile = await FindAsync(client, username, cancellationToken);
 
         if (profile.InvalidOrUnloadable)
@@ -174,7 +186,7 @@ public sealed class ServerProfileService(
             return null;
         }
 
-        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken);
+        var (_, _, client) = await ConnectAsync(instanceId, cancellationToken, server: null);
         return (await client.GetProfilesAsync(cancellationToken)).FirstOrDefault(profile => profile.ProfileId == lastId);
     }
 
@@ -229,15 +241,32 @@ public sealed class ServerProfileService(
         );
     }
 
-    private async Task<(Core.Domain.Instance Instance, SptServerLocation Location, ISptServerClient Client)> ConnectAsync(
+    private async Task<(Core.Domain.Instance Instance, SptServerLocation? Location, ISptServerClient Client)> ConnectAsync(
         Guid instanceId,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        ServerEndpoint? server
     )
     {
         var instance =
             (await instances.ListAsync(cancellationToken)).FirstOrDefault(row => row.Id == instanceId)
             ?? throw new ProfileOperationException("That instance does not exist.");
         var location = locator.Locate(instance);
+
+        // A server elsewhere is somebody else's process: nothing local to check, and no profile file to back up.
+        if (server is { } remote && !IsLocalEndpoint(remote))
+        {
+            var remoteClient = clients.Create(remote);
+
+            if (!await remoteClient.PingAsync(cancellationToken))
+            {
+                (remoteClient as IDisposable)?.Dispose();
+                throw new ServerNotRunningException(
+                    $"The server at {remote.BaseUri} is not answering. Check the address and that it is running."
+                );
+            }
+
+            return (instance, null, remoteClient);
+        }
 
         if (supervisor.GetStatus(instanceId).State is Core.Server.ServerState.Stopped or Core.Server.ServerState.Failed)
         {
@@ -267,6 +296,15 @@ public sealed class ServerProfileService(
         }
 
         return (instance, location, client);
+    }
+
+    private static bool IsLocalEndpoint(ServerEndpoint endpoint)
+    {
+        return endpoint.ConnectHost.Trim('[', ']').ToLowerInvariant() switch
+        {
+            "127.0.0.1" or "localhost" or "::1" => true,
+            _ => false,
+        };
     }
 
     private static async Task<SptProfileSummary> FindAsync(ISptServerClient client, string username, CancellationToken cancellationToken)
@@ -302,6 +340,12 @@ public sealed class ServerProfileService(
     }
 
     /// <summary>Copies the profile file next to the launcher's data before anything destructive happens, and proves the copy.</summary>
+    /// <summary>What a refusal can promise about a copy: only a local server leaves a file to copy.</summary>
+    private static string Because(string? backup)
+    {
+        return backup is null ? " Nothing was copied: the profile lives on another machine." : $" A backup is at '{backup}'.";
+    }
+
     private string? Backup(string instanceName, SptServerLocation location, SptProfileSummary profile)
     {
         var source = Path.Combine(location.ProfilesDirectory, profile.ProfileId + ".json");

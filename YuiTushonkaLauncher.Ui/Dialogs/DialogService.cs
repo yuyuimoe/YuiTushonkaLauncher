@@ -53,6 +53,32 @@ public sealed class DialogService : IDialogService
         return await closed.Task;
     }
 
+    public async Task<Core.Server.ServerEntry?> SelectServerAsync(
+        SelectServerDialogViewModel dialog,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var window = new SelectServerDialog { DataContext = dialog };
+        var closed = new TaskCompletionSource<Core.Server.ServerEntry?>();
+        dialog.Closed += (_, chosen) =>
+        {
+            closed.TrySetResult(chosen);
+            window.Close();
+        };
+
+        cancellationToken.Register(() => closed.TrySetCanceled(cancellationToken));
+        if (_owner?.Invoke() is { } owner)
+        {
+            await window.ShowDialog(owner);
+        }
+        else
+        {
+            window.Show();
+        }
+
+        return await closed.Task;
+    }
+
     public async Task<Core.Domain.Instance?> CreateInstanceAsync(CreateInstanceDialogViewModel dialog, CancellationToken cancellationToken)
     {
         var window = new InstanceDialog { DataContext = dialog };

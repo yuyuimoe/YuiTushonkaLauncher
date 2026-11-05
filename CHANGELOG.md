@@ -199,3 +199,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
 - `.7z` and `.rar` mod archives install. The format is read from the file's first bytes — the Forge URL ends in the
   version, so a name is no evidence — and reading is via SharpCompress (managed, no native dependency). Solid 7z
   archives are streamed in one forward pass.
+### Added
+
+- Choosing the server before a launch. With more than one server the launcher asks which one, starts the local
+  server with it, and points the game at a remote one with the `BackendUrl` argument instead of starting anything.
+  The choice can be remembered per instance.
+- Trust on first use for a server that is not this machine: its self-signed certificate is accepted (loopback is the
+  server we started, so it is not pinned) and the fingerprint is recorded, so a different certificate later is
+  reported in the server page instead of passing unnoticed.
+- The server page's profile actions — list, create, select, wipe, delete — work against the active server, including
+  one on another machine, where no local profile file exists to back up.

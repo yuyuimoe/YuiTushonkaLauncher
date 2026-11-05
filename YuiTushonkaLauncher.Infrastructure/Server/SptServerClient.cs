@@ -36,12 +36,43 @@ public sealed class SptServerClient : ISptServerClient, IDisposable
     /// </summary>
     public static HttpMessageHandler CreateHandler()
     {
+        return CreateHandler(trust: null, address: null);
+    }
+
+    /// <summary>
+    /// A handler that accepts a server's certificate and, for a server that is not this machine, records the
+    /// fingerprint so a later, different certificate is reported (D25). Nothing is ever blocked: SPT servers are
+    /// self-signed, and a CA would reject every real one.
+    /// </summary>
+    public static HttpMessageHandler CreateHandler(ICertificateTrust? trust, string? address)
+    {
         return new SocketsHttpHandler
         {
             UseCookies = false,
             AllowAutoRedirect = false,
             ConnectTimeout = TimeSpan.FromSeconds(5),
-            SslOptions = { RemoteCertificateValidationCallback = (_, _, _, _) => true },
+            SslOptions =
+            {
+                RemoteCertificateValidationCallback = (_, certificate, _, _) =>
+                {
+                    if (trust is null || address is null || certificate is null)
+                    {
+                        return true;
+                    }
+
+                    try
+                    {
+                        trust.Evaluate(address, Infrastructure.Server.CertificateTrustStore.Fingerprint(certificate.GetRawCertData()));
+                    }
+                    catch (Exception exception) when (exception is not OutOfMemoryException)
+                    {
+                        // Trust on first use is a warning system; it must never be the reason a connection fails.
+                        return true;
+                    }
+
+                    return true;
+                },
+            },
         };
     }
 
@@ -345,11 +376,23 @@ public sealed class SptServerClient : ISptServerClient, IDisposable
 }
 
 /// <summary>Creates a client for each endpoint it is asked about.</summary>
-public sealed class SptServerClientFactory : ISptServerClientFactory
+public sealed class SptServerClientFactory(ICertificateTrust trust) : ISptServerClientFactory
 {
     /// <inheritdoc />
     public ISptServerClient Create(ServerEndpoint endpoint)
     {
-        return new SptServerClient(endpoint);
+        // Loopback is the server this launcher started; there is nothing to pin.
+        var handler = IsLoopback(endpoint) ? SptServerClient.CreateHandler() : SptServerClient.CreateHandler(trust, endpoint.ToStringKey());
+
+        return new SptServerClient(endpoint, handler);
+    }
+
+    private static bool IsLoopback(ServerEndpoint endpoint)
+    {
+        return endpoint.ConnectHost.Trim('[', ']').ToLowerInvariant() switch
+        {
+            "127.0.0.1" or "localhost" or "::1" => true,
+            _ => false,
+        };
     }
 }

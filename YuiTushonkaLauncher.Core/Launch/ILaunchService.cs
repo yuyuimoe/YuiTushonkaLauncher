@@ -1,4 +1,5 @@
 using YuiTushonkaLauncher.Core.Runtime;
+using YuiTushonkaLauncher.Core.Server;
 
 namespace YuiTushonkaLauncher.Core.Launch;
 
@@ -26,6 +27,12 @@ public sealed record LaunchRequest
     public string? GameProgramOverride { get; init; }
 
     public IReadOnlyList<string> ExtraGameArguments { get; init; } = [];
+
+    /// <summary>
+    /// The server the game should talk to. <c>null</c> means the instance's own server, which is what a launch from the
+    /// instance does; a remote entry is chosen in the server picker and only changes the address the game is given.
+    /// </summary>
+    public ServerEndpoint? ServerEndpoint { get; init; }
 }
 
 /// <summary>Why a launch cannot proceed.</summary>

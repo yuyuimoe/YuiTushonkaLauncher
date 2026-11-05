@@ -225,7 +225,15 @@
     "portApplied": "Porta aplicada à instância; reinicie o servidor para usá-la.",
     "testing": "Testando…",
     "reachable": "Acessível ({0} ms).",
-    "unreachable": "Nada respondeu: {0}"
+    "unreachable": "Nada respondeu: {0}",
+    "pickTitle": "Qual servidor?",
+    "pickBody": "O jogo vai falar com o servidor que você escolher.",
+    "pickRemember": "Sempre usar este servidor nesta instância",
+    "pickLocalHint": "O servidor local é iniciado junto com o jogo.",
+    "pickRemoteHint": "Este servidor roda em outra máquina; ele será verificado, não iniciado.",
+    "pickConfirm": "Usar este servidor",
+    "remoteState": "Usando o servidor em {0}",
+    "certificateChanged": "O certificado de {0} mudou desde a última conexão."
   },
   "logs": {
     "title": "Logs",

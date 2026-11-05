@@ -40,6 +40,7 @@ public partial class ServerPageViewModel : PageViewModel
     private readonly IServerList _servers;
     private readonly IServerPortService _ports;
     private readonly IEndpointProbe _probe;
+    private readonly ICertificateTrust _trust;
     private readonly IServerSyncService _sync;
     private readonly IInstanceContext _context;
     private readonly IDialogService _dialogs;
@@ -53,6 +54,7 @@ public partial class ServerPageViewModel : PageViewModel
         IServerList servers,
         IServerPortService ports,
         IEndpointProbe probe,
+        ICertificateTrust trust,
         IServerSyncService sync,
         IInstanceContext context,
         IDialogService dialogs,
@@ -64,6 +66,7 @@ public partial class ServerPageViewModel : PageViewModel
         _servers = servers;
         _ports = ports;
         _probe = probe;
+        _trust = trust;
         _dialogs = dialogs;
         _logger = logger;
         _server = supervisor;
@@ -71,6 +74,7 @@ public partial class ServerPageViewModel : PageViewModel
         _context = context;
         _server.StatusChanged += (_, status) => Apply(status.InstanceId, status);
         _context.Changed += (_, _) => _ = RefreshAsync(CancellationToken.None);
+        _trust.Changed += (_, change) => OnTrustChanged(change);
     }
 
     public ObservableCollection<string> Output { get; } = [];
@@ -295,6 +299,25 @@ public partial class ServerPageViewModel : PageViewModel
             StateText = Text("server.stateOff");
             IsRunning = false;
             OnPropertyChanged(nameof(HasProfiles));
+            return;
+        }
+
+        // A server elsewhere is not a process this launcher watches: it is answering or it is not.
+        if (RemoteEndpoint() is { } remote)
+        {
+            try
+            {
+                StateText = Localizer.Format("server.remoteState", remote.BaseUri);
+                IsRunning = false;
+                await LoadProfilesAsync(instance.Id, cancellationToken);
+            }
+            catch (ServerNotRunningException exception)
+            {
+                Profiles.Clear();
+                OnPropertyChanged(nameof(HasProfiles));
+                ServerStatusText = ViewModelErrors.Describe(exception, Localizer);
+            }
+
             return;
         }
 
@@ -552,7 +575,13 @@ public partial class ServerPageViewModel : PageViewModel
 
         await RunAsync(async () =>
         {
-            var profiles = await _profiles.CreateAsync(instanceId, NewUsername.Trim(), SelectedEdition, cancellationToken);
+            var profiles = await _profiles.CreateAsync(
+                instanceId,
+                NewUsername.Trim(),
+                SelectedEdition,
+                cancellationToken,
+                RemoteEndpoint()
+            );
             Fill(profiles);
             NewUsername = string.Empty;
         });
@@ -568,7 +597,7 @@ public partial class ServerPageViewModel : PageViewModel
 
         await RunAsync(async () =>
         {
-            var summary = await _profiles.SelectAsync(instanceId, row.Username, cancellationToken);
+            var summary = await _profiles.SelectAsync(instanceId, row.Username, cancellationToken, RemoteEndpoint());
             Status = Localizer.Format("server.selected", summary.Username);
             await LoadProfilesAsync(instanceId, cancellationToken);
         });
@@ -596,7 +625,7 @@ public partial class ServerPageViewModel : PageViewModel
 
         await RunAsync(async () =>
         {
-            var result = await _profiles.WipeAsync(instanceId, row.Username, confirmed: true, cancellationToken);
+            var result = await _profiles.WipeAsync(instanceId, row.Username, confirmed: true, cancellationToken, RemoteEndpoint());
             Fill(result.Profiles);
             Status = result.BackupPath is { } backup ? Localizer.Format("patch.backup", backup) : string.Empty;
         });
@@ -624,7 +653,7 @@ public partial class ServerPageViewModel : PageViewModel
 
         await RunAsync(async () =>
         {
-            var result = await _profiles.DeleteAsync(instanceId, row.Username, confirmed: true, cancellationToken);
+            var result = await _profiles.DeleteAsync(instanceId, row.Username, confirmed: true, cancellationToken, RemoteEndpoint());
             Fill(result.Profiles);
         });
     }
@@ -682,7 +711,7 @@ public partial class ServerPageViewModel : PageViewModel
     {
         try
         {
-            Fill(await _profiles.ListAsync(instanceId, cancellationToken));
+            Fill(await _profiles.ListAsync(instanceId, cancellationToken, RemoteEndpoint()));
         }
         catch (ServerNotRunningException exception)
         {
@@ -690,6 +719,25 @@ public partial class ServerPageViewModel : PageViewModel
             Profiles.Clear();
             OnPropertyChanged(nameof(HasProfiles));
         }
+    }
+
+    /// <summary>
+    /// The active server, when it is not this machine: profile actions then happen over the network and the local
+    /// supervisor is not involved. <c>null</c> means the instance's own server.
+    /// </summary>
+    /// <summary>
+    /// A server presenting a different certificate is reported, never blocked (D25): SPT servers are self-signed and
+    /// there is no authority to check against.
+    /// </summary>
+    private void OnTrustChanged(CertificateTrustChange change)
+    {
+        ServerStatusText = Localizer.Format("server.certificateChanged", change.Address);
+    }
+
+    private ServerEndpoint? RemoteEndpoint()
+    {
+        var active = _servers.Active;
+        return active.IsLocal ? null : active.Endpoint;
     }
 
     /// <summary>Applies a status the supervisor reported, for this instance only.</summary>

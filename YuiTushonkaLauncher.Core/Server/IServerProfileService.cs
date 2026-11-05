@@ -23,14 +23,23 @@ public sealed record ProfileOperationResult
 /// </summary>
 public interface IServerProfileService
 {
-    Task<IReadOnlyList<SptProfileSummary>> ListAsync(Guid instanceId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The profiles of the server this instance uses. <paramref name="server" /> names a server elsewhere, chosen in the
+    /// picker; <c>null</c> is the instance's own server.
+    /// </summary>
+    Task<IReadOnlyList<SptProfileSummary>> ListAsync(
+        Guid instanceId,
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
+    );
 
     /// <summary>Creates a profile. The server accepts any text, so the name and the edition are checked here.</summary>
     Task<IReadOnlyList<SptProfileSummary>> CreateAsync(
         Guid instanceId,
         string username,
         string edition,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
     );
 
     /// <summary>Removes a profile after copying its file. <paramref name="confirmed" /> must be true.</summary>
@@ -38,14 +47,26 @@ public interface IServerProfileService
         Guid instanceId,
         string username,
         bool confirmed,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
     );
 
     /// <summary>Wipes a profile after copying its file. <paramref name="confirmed" /> must be true.</summary>
-    Task<ProfileOperationResult> WipeAsync(Guid instanceId, string username, bool confirmed, CancellationToken cancellationToken = default);
+    Task<ProfileOperationResult> WipeAsync(
+        Guid instanceId,
+        string username,
+        bool confirmed,
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
+    );
 
     /// <summary>Selects a profile on the server and remembers it as the last one used by this instance.</summary>
-    Task<SptProfileSummary> SelectAsync(Guid instanceId, string username, CancellationToken cancellationToken = default);
+    Task<SptProfileSummary> SelectAsync(
+        Guid instanceId,
+        string username,
+        CancellationToken cancellationToken = default,
+        ServerEndpoint? server = null
+    );
 
     /// <summary>The profile this instance used last, if it still exists on the server.</summary>
     Task<SptProfileSummary?> GetLastUsedAsync(Guid instanceId, CancellationToken cancellationToken = default);

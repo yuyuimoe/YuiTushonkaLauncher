@@ -109,13 +109,26 @@ public sealed class FakeProfiles : IServerProfileService
         return Task.CompletedTask;
     }
 
-    public Task<SptProfileSummary> SelectAsync(Guid instanceId, string username, CancellationToken cancellationToken = default)
+    /// <summary>The server each selection was made against; null is the instance's own.</summary>
+    public List<Core.Server.ServerEndpoint?> SelectedOn { get; } = [];
+
+    public Task<SptProfileSummary> SelectAsync(
+        Guid instanceId,
+        string username,
+        CancellationToken cancellationToken = default,
+        Core.Server.ServerEndpoint? server = null
+    )
     {
         Selected.Add(username);
+        SelectedOn.Add(server);
         return Task.FromResult(FakeSptClient.NewProfile(username, "Standard"));
     }
 
-    public Task<IReadOnlyList<SptProfileSummary>> ListAsync(Guid instanceId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<SptProfileSummary>> ListAsync(
+        Guid instanceId,
+        CancellationToken cancellationToken = default,
+        Core.Server.ServerEndpoint? server = null
+    )
     {
         throw new NotSupportedException();
     }
@@ -124,7 +137,8 @@ public sealed class FakeProfiles : IServerProfileService
         Guid instanceId,
         string username,
         string edition,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        Core.Server.ServerEndpoint? server = null
     )
     {
         throw new NotSupportedException();
@@ -134,7 +148,8 @@ public sealed class FakeProfiles : IServerProfileService
         Guid instanceId,
         string username,
         bool confirmed,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        Core.Server.ServerEndpoint? server = null
     )
     {
         throw new NotSupportedException();
@@ -144,7 +159,8 @@ public sealed class FakeProfiles : IServerProfileService
         Guid instanceId,
         string username,
         bool confirmed,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        Core.Server.ServerEndpoint? server = null
     )
     {
         throw new NotSupportedException();

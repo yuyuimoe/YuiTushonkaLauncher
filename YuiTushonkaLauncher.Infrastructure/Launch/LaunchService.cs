@@ -187,7 +187,7 @@ public sealed class LaunchService(
                 Report(progress, LaunchStep.PatchCheck, LaunchStepOutcome.Succeeded);
             }
 
-            var (serverPid, adopted) = await StartOrAdoptServerAsync(instance, plan, progress, cancellationToken);
+            var (serverPid, adopted) = await StartOrAdoptServerAsync(instance, plan, request, progress, cancellationToken);
             var (profileId, profileUsername) = await ResolveProfileAsync(instance, request, plan, progress, cancellationToken);
 
             if (request.RememberProfile)
@@ -257,11 +257,36 @@ public sealed class LaunchService(
     private async Task<(int? ServerPid, bool Adopted)> StartOrAdoptServerAsync(
         Instance instance,
         LaunchPreflight plan,
+        LaunchRequest request,
         IProgress<LaunchProgress>? progress,
         CancellationToken cancellationToken
     )
     {
         Report(progress, LaunchStep.ServerStart, LaunchStepOutcome.Running);
+
+        if (request.ServerEndpoint is { } remote && !IsLocalEndpoint(remote))
+        {
+            // The chosen server runs on another machine: nothing to start, only to reach.
+            var client = clients.Create(remote);
+            try
+            {
+                if (!await client.PingAsync(cancellationToken))
+                {
+                    throw new LaunchException(
+                        $"The server at {remote.BaseUri} is not answering, so the game would start against nothing.",
+                        [new LaunchProblem(LaunchProblemCode.ServerFailed, $"No answer from {remote.BaseUri}.", remote.BaseUri.ToString())]
+                    );
+                }
+            }
+            finally
+            {
+                (client as IDisposable)?.Dispose();
+            }
+
+            Report(progress, LaunchStep.ServerStart, LaunchStepOutcome.Succeeded, $"Using the server at {remote.BaseUri}.");
+            Report(progress, LaunchStep.Ready, LaunchStepOutcome.Succeeded, "The server is answering.");
+            return (null, true);
+        }
 
         if (plan.ServerAlreadyRunning)
         {
@@ -332,7 +357,7 @@ public sealed class LaunchService(
         }
 
         // Selecting it is what the official launcher does before it starts the game: it logs the profile in.
-        await profiles.SelectAsync(instance.Id, username, cancellationToken);
+        await profiles.SelectAsync(instance.Id, username, cancellationToken, request.ServerEndpoint);
 
         return (profile.ProfileId, username);
     }
@@ -348,7 +373,7 @@ public sealed class LaunchService(
     {
         Report(progress, LaunchStep.GameStart, LaunchStepOutcome.Running);
 
-        var endpoint = locator.Locate(instance).Endpoint;
+        var endpoint = request.ServerEndpoint ?? locator.Locate(instance).Endpoint;
         var arguments = new List<string>
         {
             "-force-gfx-jobs",
@@ -443,6 +468,15 @@ public sealed class LaunchService(
         var run = runs.Find(instanceId);
 
         return run?.Server is { } server && inspector.IsAlive(server.ProcessId);
+    }
+
+    private static bool IsLocalEndpoint(ServerEndpoint endpoint)
+    {
+        return endpoint.ConnectHost.Trim('[', ']').ToLowerInvariant() switch
+        {
+            "127.0.0.1" or "localhost" or "::1" => true,
+            _ => false,
+        };
     }
 
     private static LaunchPreflight Plan(
