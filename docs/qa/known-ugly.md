@@ -35,6 +35,12 @@ Screens rendered: `home`, `home-small`, `manager-mods`, `manager-addons`, `manag
 | Create instance dialog | The plan/refusal area is empty until "Plan" is pressed, which leaves a lot of blank space. | Fields, browse buttons and Create/Cancel are reachable. | ✅ |
 | Select server dialog | — | Fits at 480×420; the chosen server's meaning ("started with the game" / "elsewhere") is stated under the list. | ✅ |
 
+## The tool's own limitation
+
+The dark pass reuses one process, and the last capture of a process can repeat the previous list (a second, identical
+instance card appeared at 1180×760 while the view model reported one instance). The light captures are unaffected and
+the view model counts were checked; treat a duplicated list in a `*-dark.png` as the camera, not the screen.
+
 ## Deferred to the redesign
 
 - Everything above in the "ugly" column: unlabelled values, placeholder-only fields, distant buttons, silent empty
