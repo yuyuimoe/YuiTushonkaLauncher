@@ -8,8 +8,8 @@ namespace YuiTushonkaLauncher.Infrastructure.Server;
 /// <summary>
 /// Starts the processes of a run and detaches them, so the launcher's own death does not take them
 /// (see <c>docs/plan/04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted</c>): a systemd user
-/// scope when there is one, otherwise a new session through <c>setsid</c>, otherwise a plain child. Windows uses a
-/// job object the launcher does not own, plus <c>CREATE_BREAKAWAY_FROM_JOB</c>.
+/// scope when there is one, otherwise a new session through <c>setsid</c>, otherwise a plain child. Windows creates the
+/// child with <c>CREATE_BREAKAWAY_FROM_JOB</c> and puts it in a job that kills nothing (<see cref="WindowsProcess" />).
 /// </summary>
 public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAsyncDisposable
 {
@@ -140,6 +140,21 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
             fileName = wrapper;
         }
 
+        // Windows needs creation flags .NET does not expose, so it does not go through ProcessStartInfo at all.
+        if (_platform.IsWindows && OperatingSystem.IsWindows())
+        {
+            // A program that asks GetConsoleMode keeps the console CREATE_NO_WINDOW makes for it and gets no pipe: that is
+            // the only way it starts, and the price is that its output does not reach the launcher.
+            var child = WindowsProcess.Start(command with { FileName = fileName, Arguments = arguments }, request.RequiresConsole);
+            AssignToJob(child.Process);
+
+            return new ManagedChild(child.Process, child.Output, child.Error, request.RequiresConsole ? null : request.OnOutput)
+            {
+                Mechanism = Strategy.Mechanism,
+                Scope = unit,
+            };
+        }
+
         var info = new ProcessStartInfo(fileName)
         {
             UseShellExecute = false,
@@ -170,12 +185,11 @@ public sealed class ChildProcessSpawner : IChildProcessSpawner, IDisposable, IAs
         // A server that asks "press any key" must find stdin closed, or it would wait for a key nobody can press.
         process.StandardInput.Close();
 
-        if (_platform.IsWindows && OperatingSystem.IsWindows())
+        return new ManagedChild(process, process.StandardOutput, process.StandardError, request.OnOutput)
         {
-            AssignToJob(process);
-        }
-
-        return new ManagedChild(process, request.OnOutput) { Mechanism = Strategy.Mechanism, Scope = unit };
+            Mechanism = Strategy.Mechanism,
+            Scope = unit,
+        };
     }
 
     [SupportedOSPlatform("windows")]
@@ -212,7 +226,7 @@ internal sealed class ManagedChild : IChildProcess
 
     private volatile bool _hasExited;
 
-    public ManagedChild(Process process, Action<ProcessLine>? onOutput)
+    public ManagedChild(Process process, TextReader? output, TextReader? error, Action<ProcessLine>? onOutput)
     {
         _process = process;
         ProcessId = process.Id;
@@ -228,7 +242,7 @@ internal sealed class ManagedChild : IChildProcess
             StartedAt = DateTimeOffset.UtcNow;
         }
 
-        var readers = Task.WhenAll(Pump(process.StandardOutput, false, onOutput), Pump(process.StandardError, true, onOutput));
+        var readers = Task.WhenAll(Pump(output, false, onOutput), Pump(error, true, onOutput));
         Exited = WaitAsync(readers);
     }
 
@@ -297,11 +311,24 @@ internal sealed class ManagedChild : IChildProcess
         return code;
     }
 
-    private static async Task Pump(StreamReader reader, bool isError, Action<ProcessLine>? onOutput)
+    private static async Task Pump(TextReader? reader, bool isError, Action<ProcessLine>? onOutput)
     {
-        while (await reader.ReadLineAsync() is { } line)
+        if (reader is null)
         {
-            onOutput?.Invoke(new ProcessLine(isError, line));
+            // A child that kept its own console: there is no stream to read, only a process to watch.
+            return;
+        }
+
+        try
+        {
+            while (await reader.ReadLineAsync() is { } line)
+            {
+                onOutput?.Invoke(new ProcessLine(isError, line));
+            }
+        }
+        finally
+        {
+            reader.Dispose();
         }
     }
 }

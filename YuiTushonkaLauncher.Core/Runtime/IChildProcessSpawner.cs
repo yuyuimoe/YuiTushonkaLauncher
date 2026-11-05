@@ -1,12 +1,20 @@
 namespace YuiTushonkaLauncher.Core.Runtime;
 
-/// <summary>What to start as a long-running child that lives and dies with the launcher.</summary>
+/// <summary>What to start as a long-running child that outlives the launcher ([D22](../docs/plan/04-decisions.md)).</summary>
 public sealed record ChildProcessStart
 {
     public required LaunchCommand Command { get; init; }
 
     /// <summary>Receives every line of stdout and stderr as it is written.</summary>
     public Action<ProcessLine>? OnOutput { get; init; }
+
+    /// <summary>
+    /// True for a program that calls <c>GetConsoleMode</c> on its own standard output and refuses to start when the handle
+    /// is a pipe instead of a console. Such a child keeps the console the spawner gives it, no handle is redirected, and
+    /// <see cref="OnOutput" /> never fires; where the output goes instead is the program's own log file. Measured with SPT
+    /// 4.0.9 on Windows (<c>docs/plan/03-verified-facts.md</c>).
+    /// </summary>
+    public bool RequiresConsole { get; init; }
 }
 
 /// <summary>A running child process.</summary>
@@ -33,9 +41,9 @@ public interface IChildProcess
 }
 
 /// <summary>
-/// Starts child processes tied to the launcher: when the launcher dies, even by SIGKILL, the children get
-/// SIGTERM (Linux) or are killed with the job (Windows). The seam where "tied to the launcher" is decided,
-/// so a different policy (a detached game) is a different implementation, not a different architecture.
+/// Starts child processes and detaches them from the launcher: a scope, a session or a job of their own, so an OOM kill
+/// or a crash of the launcher does not take them. The seam where that is decided, so a different policy is a different
+/// implementation, not a different architecture ([D22](../docs/plan/04-decisions.md)).
 /// </summary>
 public interface IChildProcessSpawner
 {
