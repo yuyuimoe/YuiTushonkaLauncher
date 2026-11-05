@@ -5,17 +5,23 @@ using System.Runtime.Versioning;
 namespace YuiTushonkaLauncher.Infrastructure.Server;
 
 /// <summary>
-/// A Windows job object with "kill on close". The launcher owns the only handle, so when the launcher ends —
-/// for any reason, including being killed — Windows ends every process in the job.
+/// A Windows job object the launcher's children are put in, <b>without</b> "kill on close": closing the launcher, being
+/// killed included, must leave the server and the game running ([D22](../../docs/plan/04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted)).
 /// </summary>
-/// <remarks>Not exercised on a real Windows machine yet; see docs/plan/91-before-1.0.md.</remarks>
+/// <remarks>
+/// The job is the record of "these processes are one run" while the launcher lives. It carries
+/// <c>JOB_OBJECT_LIMIT_BREAKAWAY_OK</c> so a program that has to escape a job of its own (Steam, a launcher of a launcher)
+/// still can, and it deliberately carries no limit that kills anything. The child is created with
+/// <c>CREATE_BREAKAWAY_FROM_JOB</c> (<see cref="WindowsProcess" />) so a job the launcher inherited — a terminal's, an
+/// installer's — does not capture it either.
+/// </remarks>
 [SupportedOSPlatform("windows")]
 #pragma warning disable SYSLIB1054 // DllImport is intentional, as in FileSystemNative: the project does not enable unsafe code.
 internal sealed class WindowsJobObject : IDisposable
 {
     private const int ExtendedLimitInformation = 9;
 
-    private const uint KillOnJobClose = 0x2000;
+    private const uint BreakawayOk = 0x0800;
 
     private readonly nint _job;
 
@@ -28,7 +34,7 @@ internal sealed class WindowsJobObject : IDisposable
             throw new InvalidOperationException($"CreateJobObject failed (error {Marshal.GetLastWin32Error()}).");
         }
 
-        var limits = new JobObjectExtendedLimitInformation { BasicLimitInformation = { LimitFlags = KillOnJobClose } };
+        var limits = new JobObjectExtendedLimitInformation { BasicLimitInformation = { LimitFlags = BreakawayOk } };
         var size = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
         var buffer = Marshal.AllocHGlobal(size);
 
@@ -47,7 +53,10 @@ internal sealed class WindowsJobObject : IDisposable
         }
     }
 
-    /// <summary>Puts a started process in the job. There is a window between start and assignment; the server cannot spawn anything useful in it.</summary>
+    /// <summary>
+    /// Puts a started process in the job. There is a window between start and assignment, but nothing in it can kill the
+    /// process: the job never kills anything.
+    /// </summary>
     public void Assign(Process process)
     {
         if (!AssignProcessToJobObject(_job, process.Handle))

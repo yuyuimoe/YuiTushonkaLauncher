@@ -10,8 +10,9 @@ namespace YuiTushonkaLauncher.Tests.Server;
 /// <summary>The supervisor wired against fakes for everything that is a process, a socket or a clock.</summary>
 public sealed class SupervisorHarness : IDisposable
 {
-    public SupervisorHarness()
+    public SupervisorHarness(bool isWindows = false)
     {
+        var platform = new YuiTushonkaLauncher.Tests.Runtime.FakePlatform(linux: !isWindows);
         Time = new FastTimeProvider();
         Spawner = new FakeSpawner { Time = Time };
         Client = new FakeSptClient();
@@ -22,7 +23,7 @@ public sealed class SupervisorHarness : IDisposable
         Runs = new InstanceRunStore(paths, NullLogger<InstanceRunStore>.Instance);
 
         Supervisor = new SptServerSupervisor(
-            new SptServerLocator(new Runtime.FakePlatform(linux: true)),
+            new SptServerLocator(platform),
             DotNet,
             Spawner,
             Clients,
@@ -32,6 +33,7 @@ public sealed class SupervisorHarness : IDisposable
             Instances,
             Inspector,
             Runs,
+            platform,
             Time,
             NullLogger<SptServerSupervisor>.Instance
         );
@@ -61,9 +63,9 @@ public sealed class SupervisorHarness : IDisposable
 
     public SptServerSupervisor Supervisor { get; }
 
-    public Instance AddInstance(string name, int port = 6969, string ip = "127.0.0.1")
+    public Instance AddInstance(string name, int port = 6969, string ip = "127.0.0.1", InstanceLayout layout = InstanceLayout.Spt41Plus)
     {
-        var instance = World.CreateInstance(name, port, ip);
+        var instance = World.CreateInstance(name, port, ip, layout);
         Instances.Instances.Add(instance);
         return instance;
     }
