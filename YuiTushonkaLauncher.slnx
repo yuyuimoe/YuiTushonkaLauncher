@@ -10,5 +10,6 @@
     <Project Path="YuiTushonkaLauncher.Ui/YuiTushonkaLauncher.Ui.csproj" />
     <Folder Name="/tools/">
         <Project Path="tools/YuiTushonkaLauncher.Tools.CoverageGate/YuiTushonkaLauncher.Tools.CoverageGate.csproj" />
+        <Project Path="tools/YuiTushonkaLauncher.Tools.Shots/YuiTushonkaLauncher.Tools.Shots.csproj" />
     </Folder>
 </Solution>
