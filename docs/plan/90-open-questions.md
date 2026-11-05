@@ -155,3 +155,16 @@ Everything still unresolved, with who/what resolves it.
 30. **Licence — decided: LGPL-3.0-or-later.** `LICENSE` carries the GNU LGPL v3 text with an SPDX line, the README states
     it, and the AppStream metadata declares `LGPL-3.0-or-later` (validated with `appstreamcli`). The installer and the
     about box show the version only, which is all LGPL asks for.
+
+## Open questions found while building the description parser and the server list (2026-11)
+
+* **Q31 — how long the first dependents answer takes.** The catalogue walk is about 42 catalogue pages plus as many
+  batched dependency questions (≈ 84 requests for 2 083 mods) and it is only cached for seven days. It runs
+  behind a status line ("reading the catalogue… page N of M"), but nobody has timed it on a real machine yet, and
+  whether a user will accept the wait once a week is a question, not a fact.
+* **Q32 — the description parser is not CommonMark.** It covers headings, paragraphs, both list kinds, code, quotes,
+  rules, images and inline emphasis and links; tables, footnotes and reference-style links are read as plain text. That
+  is deliberate — mod descriptions are short — but it is a limitation to state, not a parser to grow.
+* **Q33 — a server entry that is not local does nothing yet.** It is stored, tested and reported, but nothing points
+  the game at it: the game's server address is still the instance's own. Deciding whether a remote entry should rewrite
+  the game's configuration (and how that interacts with D6, the copy-on-write invariant) is still open.

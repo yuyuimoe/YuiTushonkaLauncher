@@ -501,3 +501,19 @@ From real, played installs: `Program Files/tarkov_runs/spt41_live` (SPT 4.1), `t
   is_detached, created_between, updated_between, published_between`. `filter[mod_id]` does narrow to one parent.
 * `include=versions` puts `versions[]` on each addon, each with `mod_version_constraint` (a mod version, not an SPT
   version), `link`, `content_length` and `downloads`.
+
+## Dependency answers and dependents (measured 2026-11)
+
+* `/mods/dependencies?mods=<id|guid>:<version>,…&spt_version=X` names each answer by what was asked. A mod is identified
+  by **`id`** in the entry — there is no `mod_id` field, and a reader that expects one finds no dependencies at all.
+* The installable version of a dependency is `latest_compatible_version.version` (with `.link`); the entry's own
+  `version` is absent. `conflict` is a sibling of those fields.
+* SAIN (`me.sol.sain`, 4.5.0) declares **BigBrain (`xyz.drakia.bigbrain`) and Waypoints (`xyz.drakia.waypoints`)**; the
+  answer does not change with `spt_version` 4.0.0, 4.0.13 or 4.1.6. Version 4.3.0 declares only BigBrain.
+* **There is no reverse endpoint.** `/mods/dependents`, `/mod/{id}/dependents` and every `filter[depends_on…]` variant
+  answer 404 or `INVALID_QUERY_PARAMETER`. The site's Dependents tab is server-rendered by Livewire from its own
+  database. A launcher that wants dependents must ask for dependencies over the catalogue and invert the answers.
+* `/mods?per_page=50&include=versions` gives each mod's versions in one page (the API caps a page at **50**, even when
+  100 is requested). 2 083 mods ≈ 42 pages; the dependency calls then go in batches of 50-ish per request.
+* `/mods/dependencies` rejects mod versions that are not plain semver (`4.4.3+fix` fails the whole request when it is
+  the only one asked).
