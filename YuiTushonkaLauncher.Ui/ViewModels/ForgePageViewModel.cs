@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -522,6 +524,10 @@ public partial class ForgePageViewModel : PageViewModel
             });
         }
 
+        // The catalogue's dependency answers are collected in the background: the dependents tab then opens with an
+        // answer instead of starting a hundred-request walk behind a click.
+        _graph.WarmUp();
+
         if (Results.Count == 0 && !IsBusy)
         {
             await SearchAsync(cancellationToken);
@@ -680,10 +686,20 @@ public partial class ForgePageViewModel : PageViewModel
 
             OnPropertyChanged(nameof(HasDependents));
         }
-        catch (ForgeException exception)
+        catch (OperationCanceledException)
+        {
+            // The page moved on while the catalogue was being read. The walk keeps going on its own, so the next time
+            // this tab is opened it answers from what was already collected.
+            _dependentsLoaded = false;
+        }
+        catch (Exception exception) when (exception is ForgeException or HttpRequestException or JsonException)
         {
             _dependentsLoaded = false;
             Error = ViewModelErrors.Describe(exception, Localizer);
+        }
+        finally
+        {
+            Status = string.Empty;
         }
     }
 
@@ -1182,7 +1198,6 @@ public partial class ForgePageViewModel : PageViewModel
             Status = Localizer.Format("forge.readingCatalogue", report.Page, report.Pages)
         );
         var edges = await _graph.DependentsOfAsync(mod.Id, progress, cancellationToken);
-        Status = string.Empty;
         return
         [
             .. edges.Select(edge => new ForgeModReferenceViewModel(

@@ -20,6 +20,14 @@ public sealed class FakeDependencyGraph : IDependencyGraph
     /// <summary>How many times the cache was thrown away.</summary>
     public int Invalidations { get; private set; }
 
+    /// <summary>How many times the page asked for the catalogue to be read early.</summary>
+    public int WarmUps { get; private set; }
+
+    public void WarmUp()
+    {
+        WarmUps++;
+    }
+
     public Task<IReadOnlyList<ForgeDependencyEdge>> DependentsOfAsync(
         int modId,
         IProgress<DependencyGraphProgress>? progress = null,

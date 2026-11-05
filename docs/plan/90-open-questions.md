@@ -158,7 +158,9 @@ Everything still unresolved, with who/what resolves it.
 
 ## Open questions found while building the description parser and the server list (2026-11)
 
-* **Q31 — how long the first dependents answer takes.** The catalogue walk is about 42 catalogue pages plus as many
+* **Q31 — how long the first dependents answer takes.** Resolved in part: the walk now starts when the Forge window
+  opens (not on the click), is shared between pages, and is not restarted by navigating; measured **99 requests for
+  2 083 mods** against the live API (42 catalogue pages + 57 dependency batches), producing 23 dependents for BigBrain. The catalogue walk is about 42 catalogue pages plus as many
   batched dependency questions (≈ 84 requests for 2 083 mods) and it is only cached for seven days. It runs
   behind a status line ("reading the catalogue… page N of M"), but nobody has timed it on a real machine yet, and
   whether a user will accept the wait once a week is a question, not a fact.

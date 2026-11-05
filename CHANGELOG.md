@@ -186,3 +186,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Developme
   command, which is built for a link view model, and the thrown `ArgumentException` came out of `CanExecute` while the
   button was attaching. Document links now have a command of their own, typed for a string, and the view invokes it
   from a click handler instead of binding it.
+### Fixed
+
+- The dependents tab fired a burst of requests on every click: the catalogue walk was tied to the page's cancellation
+  token and restarted on each ask, so navigating away cancelled it halfway and the next click began again from page
+  one. The walk now belongs to the graph — started once, shared by everyone asking, unaffected by a page that moved on
+  — and a failed walk waits five minutes before it is tried again. It is also started when the browser opens, so the
+  tab usually answers from what was already collected, and a catalogue that ignores the page number can no longer be
+  asked for two hundred pages.

@@ -49,6 +49,12 @@ public interface IDependencyGraph
         CancellationToken cancellationToken = default
     );
 
+    /// <summary>
+    /// Starts the walk without anyone waiting for it. Called when the browser opens, so the dependents tab usually has
+    /// an answer already instead of spending a hundred requests behind a click.
+    /// </summary>
+    void WarmUp();
+
     /// <summary>Forgets the cached answers so the next question walks the catalogue again.</summary>
     void Invalidate();
 }

@@ -28,11 +28,17 @@ public sealed class DependencyGraph : IDependencyGraph
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>How long a failed walk is remembered, so a broken API is not asked again on every click.</summary>
+    public static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(5);
+
     private readonly IForgeClient _forge;
     private readonly ILogger<DependencyGraph> _logger;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly Lock _gate = new();
     private readonly string _path;
-    private volatile IReadOnlyList<ForgeDependencyEdge>? _edges;
+    private IReadOnlyList<ForgeDependencyEdge>? _edges;
+    private Task<IReadOnlyList<ForgeDependencyEdge>>? _build;
+    private Exception? _failure;
+    private DateTimeOffset _failedAt;
 
     /// <summary>A graph cached under the launcher's data directory.</summary>
     public DependencyGraph(IForgeClient forge, IAppPaths paths, ILogger<DependencyGraph> logger)
@@ -65,9 +71,33 @@ public sealed class DependencyGraph : IDependencyGraph
     }
 
     /// <inheritdoc />
+    public void WarmUp()
+    {
+        if (_edges is not null || _build is not null)
+        {
+            return;
+        }
+
+        // Fire and forget: the failure is remembered and logged by the build itself, and nobody is waiting here.
+        _ = BuildOnce(null)
+            .ContinueWith(
+                task => _ = task.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
+    }
+
+    /// <inheritdoc />
     public void Invalidate()
     {
-        _edges = null;
+        lock (_gate)
+        {
+            _edges = null;
+            _build = null;
+            _failure = null;
+        }
+
         try
         {
             File.Delete(_path);
@@ -78,6 +108,10 @@ public sealed class DependencyGraph : IDependencyGraph
         }
     }
 
+    /// <summary>
+    /// The walk is the graph's, not the caller's: it is started once, shared by everyone who asks, and it does not stop
+    /// because the page that asked navigated away. A caller's token only ends its own wait.
+    /// </summary>
     private async Task<IReadOnlyList<ForgeDependencyEdge>> LoadAsync(
         IProgress<DependencyGraphProgress>? progress,
         CancellationToken cancellationToken
@@ -88,27 +122,60 @@ public sealed class DependencyGraph : IDependencyGraph
             return loaded;
         }
 
-        await _gate.WaitAsync(cancellationToken);
+        return await BuildOnce(progress).WaitAsync(cancellationToken);
+    }
+
+    private Task<IReadOnlyList<ForgeDependencyEdge>> BuildOnce(IProgress<DependencyGraphProgress>? progress)
+    {
+        lock (_gate)
+        {
+            if (_build is { } running)
+            {
+                return running;
+            }
+
+            if (_edges is { } loaded)
+            {
+                return Task.FromResult(loaded);
+            }
+
+            // A failed walk waits out its cooldown: the tab can be clicked as often as a user likes without one request
+            // leaving the machine.
+            if (_failure is { } failure && DateTimeOffset.UtcNow - _failedAt < RetryAfter)
+            {
+                return Task.FromException<IReadOnlyList<ForgeDependencyEdge>>(failure);
+            }
+
+            _build = RunBuildAsync(progress);
+            return _build;
+        }
+    }
+
+    private async Task<IReadOnlyList<ForgeDependencyEdge>> RunBuildAsync(IProgress<DependencyGraphProgress>? progress)
+    {
         try
         {
-            if (_edges is { } raced)
-            {
-                return raced;
-            }
-
-            if (await ReadCacheAsync(cancellationToken) is { } cached)
-            {
-                _edges = cached;
-                return cached;
-            }
-
-            var built = await BuildAsync(progress, cancellationToken);
-            _edges = built;
-            return built;
+            // CancellationToken.None on purpose: nothing the user does in a page should be able to cancel a walk halfway
+            // and leave the next click starting it again from page one.
+            var edges = await ReadCacheAsync(CancellationToken.None) ?? await BuildAsync(progress, CancellationToken.None);
+            _edges = edges;
+            return edges;
         }
-        finally
+        catch (Exception exception) when (exception is ForgeException or HttpRequestException or JsonException or IOException)
         {
-            _gate.Release();
+            lock (_gate)
+            {
+                _failure = exception;
+                _failedAt = DateTimeOffset.UtcNow;
+                _build = null;
+            }
+
+            _logger.LogWarning(
+                exception,
+                "The dependency graph could not be built; it will be tried again in {Minutes} minutes.",
+                RetryAfter.TotalMinutes
+            );
+            throw;
         }
     }
 
@@ -153,6 +220,7 @@ public sealed class DependencyGraph : IDependencyGraph
         var edges = new List<ForgeDependencyEdge>();
         var page = 1;
         var pages = 1;
+        var firstIdOfLastPage = int.MinValue;
         while (page <= pages && page <= MaxPages)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -167,7 +235,23 @@ public sealed class DependencyGraph : IDependencyGraph
                 cancellationToken
             );
 
-            pages = Math.Max(1, pageOfMods.LastPage);
+            pages = Math.Min(MaxPages, Math.Max(1, pageOfMods.LastPage));
+
+            if (pageOfMods.Items.Count == 0)
+            {
+                // Nothing there: the catalogue ended earlier than it said it would.
+                break;
+            }
+
+            if (pageOfMods.Items[0].Id == firstIdOfLastPage && page > 1)
+            {
+                // The same page again: the server ignored `page`. Asking for the next twenty cannot go better.
+                _logger.LogWarning("The catalogue returned page {Page} twice; the walk stops here.", page);
+                break;
+            }
+
+            firstIdOfLastPage = pageOfMods.Items[0].Id;
+
             var packages = pageOfMods
                 .Items.Select(mod => (Mod: mod, Version: Newest(mod)))
                 .Where(pair => pair.Version is not null && !string.IsNullOrWhiteSpace(pair.Mod.Guid))
