@@ -53,7 +53,7 @@ public sealed class FlowTests
         // 2. Install a mod through the real installer, from a real archive.
         using var archive = new ZipFixture().AddAssembly("BepInEx/plugins/ClientMod.dll", "ClientMod.dll");
         world.Dialogs.NextPath = archive.Path;
-        world.Shell.Navigate(LauncherSection.Mods);
+        await world.Shell.NavigateAsync(LauncherSection.Mods);
         await world.Shell.ModsPage.InstallFromFileCommand.ExecuteAsync(null);
 
         world.Shell.ModsPage.Error.Should().BeEmpty();
@@ -93,7 +93,7 @@ public sealed class FlowTests
         System.IO.Directory.CreateDirectory(runDirectory);
         await System.IO.File.WriteAllTextAsync(System.IO.Path.Join(runDirectory, "application.log"), "[Info] game started\n");
 
-        world.Shell.Navigate(LauncherSection.Logs);
+        await world.Shell.NavigateAsync(LauncherSection.Logs);
         world.Shell.LogsPage.Sources.Should().Contain(source => source.Kind == LogSourceKind.Game);
         world.Shell.LogsPage.Lines.Should().Contain("[Info] game started");
     }
