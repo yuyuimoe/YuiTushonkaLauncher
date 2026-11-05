@@ -1,22 +1,36 @@
 # Before 1.0
 
-Everything that is **allowed to stay open while phases are built, but not to stay open at release**. It
-is the short list; the reasoning for each item lives in [90-open-questions.md](90-open-questions.md) (item
-numbers in brackets). Add to it whenever a phase leaves a deliberate gap, and tick an item only with
-evidence.
+The gate is deliberately short ([D23](04-decisions.md#d23-the-10-gate-is-three-items-and-the-releases-are-sequenced)).
+This list was 13 items with no release date in sight; the session of 2026-11-05 cut it to the three things a
+1.0 must honestly be able to claim. Everything else either has a decision now (and moved to
+[04-decisions.md](04-decisions.md)) or waits for 1.1.
 
-| # | Point | Why it cannot ship open | Where |
-|---|---|---|---|
-| 1 | **Pack authenticity** — decide whether `.sptpack` is signed and/or embeds a hash of the producing install. | The share code proves integrity only, never who made a package. Changing it later changes the format (`formatVersion` 2), so decide before packages exist in the wild. Hold a grilling session first. | Q1, [D19](04-decisions.md#d19-a-sptpack-is-a-list-of-names-never-a-payload) |
-| 2 | **Patch guard is size-only** — a same-size tampered `Assembly-CSharp.dll` passes. | Close it with an expected-output hash per SPT/Tarkov build (own output hash recorded in `PatchInfo` is already there), or ship per-release hashes. | Q11 |
-| 3 | **Byte identity with the official launcher** is unverified. | Needs one fresh 4.1.6 install patched by the *current* official launcher to compare against. | Q12 |
-| 4 | **Review screen shows untrusted names** — always show the GUID and the Forge-confirmed name beside any name from a package. | A package's names are unauthenticated. | Q13 (phase 12) |
-| 5 | **`IsConfig` misses `.txt`** — integrity does not list an edited `MOTD.txt`. | Export no longer depends on the flag; integrity should use the same extension rule. | Q14 (phase 12) |
-| 6 | **Windows is untested on real hardware** — this now includes `CREATE_BREAKAWAY_FROM_JOB` for the detached pair ([D22](04-decisions.md#d22-the-server-and-the-game-are-detached-and-adopted)). The native path (no runtime layer, nothing Linux-specific invoked) is proven only with a fake platform; no Windows machine has run it. Hard links, `CreateHardLinkW`, job objects and the single-instance guard share this gap. | A Windows release needs one real run of each headless command on Windows. | phase 13 |
-| 7 | **Stale build after `wt merge`** — the suite ran the previous phase's test count twice. Cause unproven (Rider open on the main worktree is the suspect). | A release pipeline must not trust a count it did not expect; CI should assert the test count floor. | process |
-| 8 | **GameMode path is only tested with fakes** — GameMode is not installed on the development machine. | Run `--runtime-plan` with a profile that has GameMode on, on a machine that has it. | Q17 |
-| 9 | **umu `GAMEID`** — profiles use `umu-default`, so umu applies no per-game fixes. | Check whether the umu database has an entry for Tarkov and use it if so. | Q18 |
-| 10 | **Prefix size** — a per-instance prefix is 0.4–0.7 GB. | Decide whether the default stays per-instance, becomes shared, or is cloned copy-on-write. | Q19 |
-| 11 | **Server mods that are not on the Forge** cannot be installed by `--server-sync --apply`; only named. | A user syncing to a server that runs a private mod needs a way to get it, and a release cannot answer "where is it?". | Q16 |
-| 12 | **A detached process still inherits the launcher's stdout pipe** (this is why Proton's output is not a log source in phase 11) (kept so a failed start shows its reason). If the launcher dies and the process writes, the write can fail. | Choose between inheriting the pipe (visibility) and a log file the process writes itself; the server and BepInEx already log to files. | Q21 |
-| 13 | **The `ip` in `http.json`** can be `0.0.0.0` (LAN-reachable). We warn but never change it. | Deciding the default for new instances is a release-time UX decision, not a bug. | Q18 |
+## The gate
+
+| # | Point | What closes it |
+|---|---|---|
+| 1 | **Real Windows** — installer, create instance, start/stop server, install a mod, launch, logs, job object and `CREATE_BREAKAWAY_FROM_JOB`. | One run of each on a Windows machine that has the Tarkov files, with the result written into `docs/qa/manual-matrix.md`. |
+| 2 | **`.7z` and `.rar` mods install** ([D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip)). | The installer reads the three formats by content; a real `.7z` (BigBrain) and a real `.rar` install, extract and are identified. |
+| 3 | **Visual smoke** ([D29](04-decisions.md#d29-two-documents-that-make-gaps-visible-instead-of-remembered)). | `docs/qa/known-ugly.md` written: every screen opened in light and dark, with 1000 rows, and in a small window, with scrolling where needed. Ugly is allowed; cut off, unreadable or unreachable is not. |
+
+## Evidence that is welcome but does not gate
+
+- **Byte identity with the official launcher** (Q12): run the official launcher once on a clean 4.1.6 install
+  and compare the produced `Assembly-CSharp.dll` with ours. Worth having; not a blocker.
+- **GameMode with a real daemon** (Q17): run `--runtime-plan` on a machine that has GameMode.
+- **`systemd-run --scope --no-block`** (Q22): measure on a slow machine before changing anything.
+
+## Sequence
+
+`v0.1.0` (the state that exists, which also exercises the release pipeline for the first time) → 7z +
+remote servers ([D24](04-decisions.md#d24-archives-7z-and-rar-are-read-the-format-comes-from-the-bytes-packs-stay-zip),
+[D25](04-decisions.md#d25-a-server-that-is-not-this-machine)) → `v0.2.0` → the gate above → `1.0.0`.
+
+## Deliberately left for 1.1
+
+- Signed `.sptpack` and shell integration/MIME ([D26](04-decisions.md#d26-sptpack-stays-integrity-only-for-10)).
+- Built-in app updater; the app keeps GitHub Releases plus a manual check (D27).
+- Designed light/dark palettes: the layout is temporary and will be redesigned (D28).
+- Patch guard above size-only: the output hash of our own patching is recorded in `PatchInfo`, and shipping
+  per-release hashes is a follow-up (Q11).
+- Windows support for `--stale --scan` (D28).
